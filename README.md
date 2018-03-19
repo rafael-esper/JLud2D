@@ -1,6 +1,6 @@
 # JLud2D
 
-JLud2D is an old-school engine for games, currently in Java. It is compatible with [Tiled](http://www.mapeditor.org) maps, RPG-style characters and sprites, and MP3, MIDI, VGM, S3M, MOD and XM music formats.
+JLud2D is an old-school engine for games, currently in Java 8. It is compatible with [Tiled](http://www.mapeditor.org) maps, RPG-style characters and sprites, and MP3, MIDI, VGM, S3M, MOD and XM music formats.
 
 <!---
 ![Screenshot of Alex Kidd](/screenshots/Ak_1.png?raw=true "Alex Kidd") ![Screenshot of Sully Chronicles](/screenshots/Sully_2.png?raw=true "Sully Chronicles") ![Screenshot of Phantasy Star Remake](/screenshots/PS_1.png?raw=true "Phantasy Star")  
@@ -44,7 +44,7 @@ Here is an example of a map script used when talking with an entity:
 
 ## Getting Started: I want to play
 
-You can download just the demo / game you want to play and execute it with:
+You can download just the demo / game you want to play and execute it with Java 8 command line:
 ```
 java -jar Demo.jar
 ```
