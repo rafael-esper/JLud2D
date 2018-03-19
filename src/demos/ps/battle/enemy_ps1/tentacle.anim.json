@@ -1,0 +1,14 @@
+{
+  "totalframes" : 5,
+  "fxsize" : 64,
+  "fysize" : 80,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F4W2F0W2F4W2F0W2F4W2F0W2", "F0W8F1W8F2W8F3W16F2W8F1W8F0W4", "", "", "", "", "" ],
+  "imageName" : "tentacle.png",
+  "columns" : 5,
+  "spacing" : 1
+}

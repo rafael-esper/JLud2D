@@ -1,0 +1,10 @@
+http://jmikmod.shlomifish.org/about.html
+
+* Create a base class for all the drivers in which the VC_ functions call
+the Virtch ones.
+
+* Write a regression test suite - render several MOD files into .wav and .raw
+and check their lengthes and signatures.
+
+* Fix the incorrectly played notes in uc-fah.xm (Flow Ahead).
+

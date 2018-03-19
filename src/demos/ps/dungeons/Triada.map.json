@@ -1,0 +1,139 @@
+{
+  "tilesets" : [ {
+    "firstgid" : 1,
+    "source" : "3d.tiles.json"
+  }, {
+    "tilewidth" : 16,
+    "tileheight" : 16,
+    "tilecount" : 220,
+    "columns" : 20,
+    "spacing" : 0,
+    "firstgid" : 12,
+    "image" : "default.meta.png",
+    "name" : "Meta",
+    "tileproperties" : {
+      "20" : {
+        "name" : "exit",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "exit",
+        "isObstruction" : false
+      },
+      "21" : {
+        "name" : "luveno",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "luveno",
+        "isObstruction" : false
+      },
+      "22" : {
+        "name" : "robot",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "robot",
+        "isObstruction" : false
+      },
+      "23" : {
+        "name" : "man1",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "man1",
+        "isObstruction" : false
+      },
+      "24" : {
+        "name" : "man2",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "man2",
+        "isObstruction" : false
+      },
+      "25" : {
+        "name" : "man3",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "man3",
+        "isObstruction" : false
+      },
+      "26" : {
+        "name" : "man4",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "man4",
+        "isObstruction" : false
+      },
+      "27" : {
+        "name" : "man5",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "man5",
+        "isObstruction" : false
+      },
+      "28" : {
+        "name" : "tarantul",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "tarantul",
+        "isObstruction" : true
+      },
+      "29" : {
+        "name" : "skeleton",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "skeleton",
+        "isObstruction" : true
+      }
+    }
+  } ],
+  "properties" : {
+    "title" : "",
+    "musicName" : "",
+    "startEvent" : "startmap",
+    "startX" : 9,
+    "startY" : 10,
+    "renderString" : "1,E,R",
+    "horizontalWrappable" : false,
+    "verticalWrappable" : false
+  },
+  "layers" : [ {
+    "width" : 16,
+    "height" : 16,
+    "opacity" : 1,
+    "properties" : {
+      "id" : 0,
+      "parallax_y" : 1.0,
+      "parallax_x" : 1.0
+    },
+    "name" : "Layer 0",
+    "type" : "tilelayer",
+    "visible" : true,
+    "data" : [ 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 7, 2, 2, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 7, 0, 11, 0, 7, 0, 0, 11, 0, 0, 0, 0, 0, 2, 0, 0, 11, 0, 7, 0, 11, 0, 0, 7, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 7, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 11, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+    "color" : "#99ff00"
+  }, {
+    "width" : 16,
+    "height" : 16,
+    "opacity" : 1,
+    "name" : "Meta",
+    "type" : "tilelayer",
+    "visible" : true,
+    "data" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 37, 0, 0, 0, 0, 38, 0, 0, 0, 0, 0, 0, 0, 0, 36, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+    "color" : "#99ff00"
+  }, {
+    "width" : 16,
+    "height" : 16,
+    "opacity" : 1,
+    "name" : "Entities",
+    "type" : "objectgroup",
+    "visible" : true,
+    "objects" : [ ],
+    "color" : "#99ff00"
+  } ],
+  "orientation" : "orthogonal",
+  "renderorder" : "right-down",
+  "tiledversion" : "2017.07.26",
+  "tileheight" : 16,
+  "tilewidth" : 16,
+  "type" : "map",
+  "version" : 1,
+  "width" : 16,
+  "height" : 16
+}

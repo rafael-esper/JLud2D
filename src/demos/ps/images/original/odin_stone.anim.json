@@ -1,0 +1,14 @@
+{
+  "totalframes" : 7,
+  "fxsize" : 40,
+  "fysize" : 88,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 6, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F0W16F1W16F2W16F3W16F4W16F5W16F6W16", "F6W1", "", "", "", "", "" ],
+  "imageName" : "odin_stone.png",
+  "columns" : 7,
+  "spacing" : 1
+}

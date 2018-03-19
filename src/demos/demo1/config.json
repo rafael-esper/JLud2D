@@ -1,0 +1,9 @@
+{
+  "xRes" : 360,
+  "yRes" : 240,
+  "logConsole" : true,
+  "windowMode" : true,
+  "doubleWindowMode" : true,
+  "noSound" : false,
+  "mapName" : "island.map.json"
+}

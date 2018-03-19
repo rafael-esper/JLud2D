@@ -1,0 +1,14 @@
+{
+  "totalframes" : 88,
+  "fxsize" : 35,
+  "fysize" : 90,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F0W1", "", "", "", "", "", "" ],
+  "imageName" : "entities.png",
+  "columns" : 16,
+  "spacing" : 1
+}

@@ -1,0 +1,154 @@
+{
+  "tilewidth" : 16,
+  "tileheight" : 16,
+  "tilecount" : 602,
+  "columns" : 16,
+  "spacing" : 0,
+  "type" : "tileset",
+  "firstgid" : 1,
+  "image" : "2018_darkside.png",
+  "name" : "2018_darkside",
+  "tiles" : {
+    "0" : {
+      "animation" : [ {
+        "duration" : 0,
+        "tileid" : 0
+      } ]
+    },
+    "297" : {
+      "animation" : [ {
+        "duration" : 20,
+        "tileid" : 297
+      }, {
+        "duration" : 20,
+        "tileid" : 298
+      } ]
+    },
+    "299" : {
+      "animation" : [ {
+        "duration" : 20,
+        "tileid" : 299
+      }, {
+        "duration" : 20,
+        "tileid" : 300
+      } ]
+    },
+    "301" : {
+      "animation" : [ {
+        "duration" : 20,
+        "tileid" : 301
+      }, {
+        "duration" : 20,
+        "tileid" : 302
+      } ]
+    },
+    "315" : {
+      "animation" : [ {
+        "duration" : 20,
+        "tileid" : 315
+      }, {
+        "duration" : 20,
+        "tileid" : 316
+      } ]
+    },
+    "317" : {
+      "animation" : [ {
+        "duration" : 20,
+        "tileid" : 317
+      }, {
+        "duration" : 20,
+        "tileid" : 318
+      } ]
+    },
+    "319" : {
+      "animation" : [ {
+        "duration" : 20,
+        "tileid" : 319
+      }, {
+        "duration" : 20,
+        "tileid" : 320
+      } ]
+    },
+    "333" : {
+      "animation" : [ {
+        "duration" : 20,
+        "tileid" : 333
+      }, {
+        "duration" : 20,
+        "tileid" : 334
+      } ]
+    },
+    "335" : {
+      "animation" : [ {
+        "duration" : 20,
+        "tileid" : 335
+      }, {
+        "duration" : 20,
+        "tileid" : 336
+      } ]
+    },
+    "337" : {
+      "animation" : [ {
+        "duration" : 20,
+        "tileid" : 337
+      }, {
+        "duration" : 20,
+        "tileid" : 338
+      } ]
+    },
+    "513" : {
+      "animation" : [ {
+        "duration" : 10,
+        "tileid" : 513
+      }, {
+        "duration" : 10,
+        "tileid" : 514
+      } ]
+    },
+    "515" : {
+      "animation" : [ {
+        "duration" : 10,
+        "tileid" : 515
+      }, {
+        "duration" : 10,
+        "tileid" : 516
+      } ]
+    },
+    "517" : {
+      "animation" : [ {
+        "duration" : 10,
+        "tileid" : 517
+      }, {
+        "duration" : 10,
+        "tileid" : 518
+      } ]
+    },
+    "531" : {
+      "animation" : [ {
+        "duration" : 10,
+        "tileid" : 531
+      }, {
+        "duration" : 10,
+        "tileid" : 532
+      } ]
+    },
+    "533" : {
+      "animation" : [ {
+        "duration" : 10,
+        "tileid" : 533
+      }, {
+        "duration" : 10,
+        "tileid" : 534
+      } ]
+    },
+    "535" : {
+      "animation" : [ {
+        "duration" : 10,
+        "tileid" : 535
+      }, {
+        "duration" : 10,
+        "tileid" : 536
+      } ]
+    }
+  }
+}

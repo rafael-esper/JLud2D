@@ -1,0 +1,14 @@
+{
+  "totalframes" : 12,
+  "fxsize" : 15,
+  "fysize" : 32,
+  "hx" : 0,
+  "hy" : 16,
+  "hw" : 15,
+  "hh" : 16,
+  "idle" : [ 0, 7, 1, 4, 10 ],
+  "animbuf" : [ null, "F6W30F7W10F8W30F7W10", "F0W30F1W10F2W30F1W10", "F3W30F4W10F5W30F4W10", "F9W30F10W10F11W30F10W10", "F3W30F4W10F5W30F4W10", "F9W30F10W10F11W30F10W10", "F3W30F4W10F5W30F4W10", "F9W30F10W10F11W30F10W10" ],
+  "imageName" : "Wmn1.png",
+  "columns" : 3,
+  "spacing" : 1
+}

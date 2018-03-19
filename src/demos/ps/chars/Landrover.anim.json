@@ -1,0 +1,14 @@
+{
+  "totalframes" : 12,
+  "fxsize" : 32,
+  "fysize" : 32,
+  "hx" : 4,
+  "hy" : 4,
+  "hw" : 24,
+  "hh" : 24,
+  "idle" : [ 0, 3, 0, 6, 9 ],
+  "animbuf" : [ null, "F3W5F4W5F5W8F4W5F3W5", "F0W5F1W5F2W8F1W5F0W5", "F6W5F7W5F8W8F7W5F6W5", "F9W5F10W5F11W8F10W5F9W5", "", "", "", "" ],
+  "imageName" : "Landrover.png",
+  "columns" : 3,
+  "spacing" : 1
+}

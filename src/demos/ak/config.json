@@ -1,0 +1,9 @@
+{
+  "xRes" : 320,
+  "yRes" : 240,
+  "logConsole" : true,
+  "windowMode" : true,
+  "doubleWindowMode" : false,
+  "noSound" : false,
+  "mapName" : null
+}

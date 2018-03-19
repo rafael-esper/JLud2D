@@ -1,0 +1,14 @@
+{
+  "totalframes" : 4,
+  "fxsize" : 39,
+  "fysize" : 76,
+  "hx" : 0,
+  "hy" : 20,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "", "", "F0W4F1W4F2W4F3W4", "", "", "", "", "" ],
+  "imageName" : "Claw.png",
+  "columns" : 4,
+  "spacing" : 1
+}

@@ -1,0 +1,14 @@
+{
+  "totalframes" : 45,
+  "fxsize" : 32,
+  "fysize" : 32,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 16,
+  "hh" : 16,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W0", "F1W0", "F2W0", "F3W0", "F0W0", "F1W0", "F2W0", "F3W0" ],
+  "imageName" : "Ak.png",
+  "columns" : 6,
+  "spacing" : 1
+}

@@ -1,0 +1,14 @@
+{
+  "totalframes" : 5,
+  "fxsize" : 52,
+  "fysize" : 88,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F4W2F0W2F4W2F0W2F4W2F0W2", "F0W4F1W12F2W12F1W12F0W4", "F0W4F3W50F0W4", "", "", "", "" ],
+  "imageName" : "wizard.png",
+  "columns" : 5,
+  "spacing" : 1
+}

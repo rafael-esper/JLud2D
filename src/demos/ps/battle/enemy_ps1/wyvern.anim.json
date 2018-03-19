@@ -1,0 +1,14 @@
+{
+  "totalframes" : 9,
+  "fxsize" : 64,
+  "fysize" : 104,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F8W2F0W2F8W2F0W2F8W2F0W2", "F0W4F1W4F2W4F3W4F4W4F5W4F6W4F5W4F6W4F7W4F2W4F1W2F0W4", "", "", "", "", "" ],
+  "imageName" : "wyvern.png",
+  "columns" : 9,
+  "spacing" : 1
+}

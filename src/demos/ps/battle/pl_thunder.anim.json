@@ -1,0 +1,14 @@
+{
+  "totalframes" : 10,
+  "fxsize" : 64,
+  "fysize" : 112,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F0W1", "F0W8F1W4F2W4F3W4F4W4F5W4F6W4F7W4F8W4F9W4", "", "", "", "", "" ],
+  "imageName" : "pl_thunder.png",
+  "columns" : 5,
+  "spacing" : 1
+}

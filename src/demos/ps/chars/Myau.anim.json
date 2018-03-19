@@ -1,0 +1,14 @@
+{
+  "totalframes" : 17,
+  "fxsize" : 16,
+  "fysize" : 32,
+  "hx" : 0,
+  "hy" : 16,
+  "hw" : 16,
+  "hh" : 16,
+  "idle" : [ 0, 11, 3, 7, 15 ],
+  "animbuf" : [ null, "F8W16F9W16F10W16F11W16", "F0W16F1W16F2W16F3W16", "F4W16F5W32F6W16", "F12W16F13W32F14W16", "F4W16F5W32F6W16", "F12W16F13W32F14W16", "F4W16F5W32F6W16", "F12W16F13W32F14W16" ],
+  "imageName" : "Myau.png",
+  "columns" : 17,
+  "spacing" : 1
+}

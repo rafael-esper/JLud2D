@@ -1,0 +1,73 @@
+{
+  "tilewidth" : 16,
+  "tileheight" : 16,
+  "tilecount" : 160,
+  "columns" : 20,
+  "spacing" : 0,
+  "type" : "tileset",
+  "firstgid" : 1,
+  "image" : "akidd.png",
+  "name" : "Tiles",
+  "tiles" : {
+    "0" : {
+      "animation" : [ {
+        "duration" : 0,
+        "tileid" : 0
+      } ]
+    },
+    "47" : {
+      "animation" : [ {
+        "duration" : 10,
+        "tileid" : 47
+      }, {
+        "duration" : 10,
+        "tileid" : 48
+      }, {
+        "duration" : 10,
+        "tileid" : 49
+      }, {
+        "duration" : 10,
+        "tileid" : 50
+      } ]
+    },
+    "63" : {
+      "animation" : [ {
+        "duration" : 30,
+        "tileid" : 63
+      }, {
+        "duration" : 30,
+        "tileid" : 64
+      } ]
+    },
+    "81" : {
+      "animation" : [ {
+        "duration" : 15,
+        "tileid" : 81
+      }, {
+        "duration" : 15,
+        "tileid" : 82
+      }, {
+        "duration" : 15,
+        "tileid" : 83
+      }, {
+        "duration" : 15,
+        "tileid" : 84
+      } ]
+    },
+    "99" : {
+      "animation" : [ {
+        "duration" : 25,
+        "tileid" : 99
+      }, {
+        "duration" : 25,
+        "tileid" : 100
+      }, {
+        "duration" : 25,
+        "tileid" : 101
+      }, {
+        "duration" : 25,
+        "tileid" : 102
+      } ]
+    }
+  }
+}

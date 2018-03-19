@@ -1,0 +1,14 @@
+{
+  "totalframes" : 7,
+  "fxsize" : 54,
+  "fysize" : 113,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "", "", "F0W4F1W4F2W4F3W4F4W4F5W4F6W4", "", "", "", "", "" ],
+  "imageName" : "Needle.png",
+  "columns" : 7,
+  "spacing" : 1
+}

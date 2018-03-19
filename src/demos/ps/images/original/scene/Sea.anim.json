@@ -1,0 +1,14 @@
+{
+  "totalframes" : 9,
+  "fxsize" : 320,
+  "fysize" : 240,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W8F1W8F2W8F3W8F4W8F5W8F6W8F7W8F8W8", "", "", "", "", "", "", "" ],
+  "imageName" : "Sea.png",
+  "columns" : 9,
+  "spacing" : 1
+}

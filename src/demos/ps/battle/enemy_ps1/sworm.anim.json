@@ -1,0 +1,14 @@
+{
+  "totalframes" : 4,
+  "fxsize" : 48,
+  "fysize" : 48,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F3W2F0W2F3W2F0W2F3W2F0W2", "F0W2F1W2F0W2F2W2F0W2F1W2F0W2F2W2", "F0W2F1W2F0W2F2W2F0W2F1W2F0W2F2W2F0W32", "", "", "", "" ],
+  "imageName" : "sworm.png",
+  "columns" : 4,
+  "spacing" : 1
+}

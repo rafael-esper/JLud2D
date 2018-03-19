@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Preferences xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <DefaultZoomLevel>2</DefaultZoomLevel>
+  <AutoSave>true</AutoSave>
+  <AutoSaveDelay>5</AutoSaveDelay>
+  <AutoSaveLimit>20</AutoSaveLimit>
+  <ObsColor>-1</ObsColor>
+  <ZonesColor>-16776961</ZonesColor>
+  <EntsColor>-256</EntsColor>
+  <WorkingDirectory>C:\javaref\eclipse</WorkingDirectory>
+</Preferences>

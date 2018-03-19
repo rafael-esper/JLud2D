@@ -1,0 +1,14 @@
+{
+  "totalframes" : 45,
+  "fxsize" : 64,
+  "fysize" : 64,
+  "hx" : 0,
+  "hy" : 16,
+  "hw" : 16,
+  "hh" : 16,
+  "idle" : [ 0, 2, 0, 4, 6 ],
+  "animbuf" : [ null, "F2W10F3W15", "F0W10F1W15", "F4W10F5W15", "F6W10F7W15", "F2W10F3W15", "F0W10F1W15", "F4W10F5W15", "F6W10F7W15" ],
+  "imageName" : "xOrc_Male1.png",
+  "columns" : 9,
+  "spacing" : 0
+}

@@ -1,0 +1,391 @@
+{
+  "tilesets" : [ {
+    "firstgid" : 1,
+    "source" : "3d.tiles.json"
+  }, {
+    "tilewidth" : 16,
+    "tileheight" : 16,
+    "tilecount" : 220,
+    "columns" : 20,
+    "spacing" : 0,
+    "firstgid" : 12,
+    "image" : "default.meta.png",
+    "name" : "Meta",
+    "tileproperties" : {
+      "20" : {
+        "name" : "exit",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "exit",
+        "isObstruction" : false
+      },
+      "21" : {
+        "name" : "chest1",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "chest1",
+        "isObstruction" : true
+      },
+      "22" : {
+        "name" : "chest2",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "chest2",
+        "isObstruction" : true
+      },
+      "23" : {
+        "name" : "chest3",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "chest3",
+        "isObstruction" : true
+      },
+      "24" : {
+        "name" : "chest4",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "chest4",
+        "isObstruction" : true
+      },
+      "25" : {
+        "name" : "chest5",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "chest5",
+        "isObstruction" : true
+      },
+      "26" : {
+        "name" : "dezo",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "dezo",
+        "isObstruction" : true
+      },
+      "27" : {
+        "name" : "blscorpion",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "blscorpion",
+        "isObstruction" : true
+      },
+      "28" : {
+        "name" : "chest6",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "chest6",
+        "isObstruction" : true
+      },
+      "29" : {
+        "name" : "trap1",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "trap1",
+        "isObstruction" : false
+      },
+      "30" : {
+        "name" : "trap2",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "trap2",
+        "isObstruction" : false
+      },
+      "31" : {
+        "name" : "trap3",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "trap3",
+        "isObstruction" : false
+      },
+      "32" : {
+        "name" : "trap4",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "trap4",
+        "isObstruction" : false
+      },
+      "33" : {
+        "name" : "trap5",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "trap5",
+        "isObstruction" : false
+      },
+      "34" : {
+        "name" : "trap6",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "trap6",
+        "isObstruction" : false
+      },
+      "35" : {
+        "name" : "oldman",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "oldman",
+        "isObstruction" : false
+      },
+      "36" : {
+        "name" : "stairs_1_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_1_up",
+        "isObstruction" : false
+      },
+      "37" : {
+        "name" : "stairs_1_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_1_down",
+        "isObstruction" : false
+      },
+      "38" : {
+        "name" : "stairs_2_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_2_up",
+        "isObstruction" : false
+      },
+      "39" : {
+        "name" : "stairs_2_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_2_down",
+        "isObstruction" : false
+      },
+      "40" : {
+        "name" : "stairs_3_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_3_up",
+        "isObstruction" : false
+      },
+      "41" : {
+        "name" : "stairs_3_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_3_down",
+        "isObstruction" : false
+      },
+      "42" : {
+        "name" : "stairs_4_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_4_up",
+        "isObstruction" : false
+      },
+      "43" : {
+        "name" : "stairs_4_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_4_down",
+        "isObstruction" : false
+      },
+      "44" : {
+        "name" : "stairs_5_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_5_up",
+        "isObstruction" : false
+      },
+      "45" : {
+        "name" : "stairs_5_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_5_down",
+        "isObstruction" : false
+      },
+      "46" : {
+        "name" : "stairs_6_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_6_up",
+        "isObstruction" : false
+      },
+      "47" : {
+        "name" : "stairs_6_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_6_down",
+        "isObstruction" : false
+      },
+      "48" : {
+        "name" : "stairs_7_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_7_up",
+        "isObstruction" : false
+      },
+      "49" : {
+        "name" : "stairs_7_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_7_down",
+        "isObstruction" : false
+      },
+      "50" : {
+        "name" : "stairs_8_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_8_up",
+        "isObstruction" : false
+      },
+      "51" : {
+        "name" : "stairs_8_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_8_down",
+        "isObstruction" : false
+      },
+      "52" : {
+        "name" : "stairs_9_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_9_up",
+        "isObstruction" : false
+      },
+      "53" : {
+        "name" : "stairs_9_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_9_down",
+        "isObstruction" : false
+      },
+      "54" : {
+        "name" : "stairs_10_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_10_up",
+        "isObstruction" : false
+      },
+      "55" : {
+        "name" : "stairs_10_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_10_down",
+        "isObstruction" : false
+      },
+      "56" : {
+        "name" : "stairs_11_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_11_up",
+        "isObstruction" : false
+      },
+      "57" : {
+        "name" : "stairs_11_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_11_down",
+        "isObstruction" : false
+      },
+      "58" : {
+        "name" : "stairs_12_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_12_up",
+        "isObstruction" : false
+      },
+      "59" : {
+        "name" : "stairs_12_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_12_down",
+        "isObstruction" : false
+      },
+      "60" : {
+        "name" : "stairs_13_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_13_up",
+        "isObstruction" : false
+      },
+      "61" : {
+        "name" : "stairs_13_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_13_down",
+        "isObstruction" : false
+      },
+      "62" : {
+        "name" : "stairs_14_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_14_up",
+        "isObstruction" : false
+      },
+      "63" : {
+        "name" : "stairs_14_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_14_down",
+        "isObstruction" : false
+      },
+      "64" : {
+        "name" : "stairs_15_up",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_15_up",
+        "isObstruction" : false
+      },
+      "65" : {
+        "name" : "stairs_15_down",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "stairs_15_down",
+        "isObstruction" : false
+      }
+    }
+  } ],
+  "properties" : {
+    "title" : "",
+    "musicName" : "",
+    "startEvent" : "startmap",
+    "startX" : 9,
+    "startY" : 10,
+    "renderString" : "1,E,R",
+    "horizontalWrappable" : false,
+    "verticalWrappable" : false
+  },
+  "layers" : [ {
+    "width" : 32,
+    "height" : 48,
+    "opacity" : 1,
+    "properties" : {
+      "id" : 0,
+      "parallax_y" : 1.0,
+      "parallax_x" : 1.0
+    },
+    "name" : "Layer 0",
+    "type" : "tilelayer",
+    "visible" : true,
+    "data" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 4, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 2, 0, 0, 2, 0, 3, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 2, 0, 0, 2, 0, 2, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 4, 0, 0, 6, 0, 2, 0, 4, 0, 2, 0, 0, 2, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 2, 0, 0, 2, 0, 2, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 2, 0, 2, 0, 2, 0, 0, 0, 2, 2, 4, 0, 0, 0, 0, 2, 2, 2, 2, 0, 2, 0, 0, 2, 0, 4, 0, 2, 0, 2, 0, 0, 2, 0, 2, 0, 2, 0, 0, 0, 2, 0, 3, 0, 0, 0, 0, 2, 0, 0, 2, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 2, 2, 2, 2, 2, 2, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 2, 0, 0, 2, 0, 2, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 2, 0, 0, 2, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 2, 0, 0, 2, 0, 2, 0, 0, 0, 0, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2, 2, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 2, 2, 0, 4, 2, 2, 2, 2, 2, 2, 0, 0, 0, 2, 2, 3, 0, 0, 2, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 2, 4, 0, 0, 2, 2, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 3, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 7, 2, 2, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+    "color" : "#99ff00"
+  }, {
+    "width" : 32,
+    "height" : 48,
+    "opacity" : 1,
+    "name" : "Meta",
+    "type" : "tilelayer",
+    "visible" : true,
+    "data" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 53, 0, 0, 0, 0, 0, 0, 0, 57, 0, 0, 0, 0, 0, 0, 0, 52, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 59, 0, 0, 0, 0, 0, 0, 51, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 55, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 49, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 38, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 61, 0, 0, 0, 63, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 60, 0, 0, 0, 0, 62, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0, 0, 56, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 67, 0, 0, 0, 0, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 58, 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 73, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 71, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 66, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 68, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 45, 0, 0, 0, 75, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 37, 0, 0, 0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 74, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 46, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 70, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+    "color" : "#99ff00"
+  }, {
+    "width" : 32,
+    "height" : 48,
+    "opacity" : 1,
+    "name" : "Entities",
+    "type" : "objectgroup",
+    "visible" : true,
+    "objects" : [ ],
+    "color" : "#99ff00"
+  } ],
+  "orientation" : "orthogonal",
+  "renderorder" : "right-down",
+  "tiledversion" : "2017.07.26",
+  "tileheight" : 16,
+  "tilewidth" : 16,
+  "type" : "map",
+  "version" : 1,
+  "width" : 32,
+  "height" : 48
+}

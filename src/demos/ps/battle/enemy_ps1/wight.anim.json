@@ -1,0 +1,14 @@
+{
+  "totalframes" : 6,
+  "fxsize" : 48,
+  "fysize" : 92,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F5W2F0W2F5W2F0W2F5W2F0W2", "F0W8F1W8F2W8F3W8F4W8F1W8F2W8F3W8F4W8F0W4", "", "", "", "", "" ],
+  "imageName" : "wight.png",
+  "columns" : 6,
+  "spacing" : 1
+}

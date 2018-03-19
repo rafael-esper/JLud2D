@@ -1,0 +1,14 @@
+{
+  "totalframes" : 12,
+  "fxsize" : 16,
+  "fysize" : 32,
+  "hx" : 0,
+  "hy" : 16,
+  "hw" : 16,
+  "hh" : 16,
+  "idle" : [ 0, 6, 0, 3, 9 ],
+  "animbuf" : [ null, "F7W30F6W10F8W30F6W10", "F1W30F0W10F2W30F0W10", "F4W30F3W10F5W30F3W10", "F10W30F9W10F11W30F9W10", "F4W30F3W10F5W30F3W10", "F10W30F9W10F11W30F9W10", "F4W30F3W10F5W30F3W10", "F10W30F9W10F11W30F9W10" ],
+  "imageName" : "Scholar2.png",
+  "columns" : 3,
+  "spacing" : 1
+}

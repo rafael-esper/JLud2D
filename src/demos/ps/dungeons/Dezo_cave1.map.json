@@ -1,0 +1,97 @@
+{
+  "tilesets" : [ {
+    "firstgid" : 1,
+    "source" : "3d.tiles.json"
+  }, {
+    "tilewidth" : 16,
+    "tileheight" : 16,
+    "tilecount" : 220,
+    "columns" : 20,
+    "spacing" : 0,
+    "firstgid" : 12,
+    "image" : "default.meta.png",
+    "name" : "Meta",
+    "tileproperties" : {
+      "20" : {
+        "name" : "exit",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "exit",
+        "isObstruction" : false
+      },
+      "21" : {
+        "name" : "nextArea",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "nextArea",
+        "isObstruction" : false
+      },
+      "22" : {
+        "name" : "chest1",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "chest1",
+        "isObstruction" : true
+      },
+      "23" : {
+        "name" : "chest2",
+        "activationChance" : 255,
+        "activationDelay" : 0,
+        "activationEvent" : "chest2",
+        "isObstruction" : true
+      }
+    }
+  } ],
+  "properties" : {
+    "title" : "",
+    "musicName" : "",
+    "startEvent" : "startmap",
+    "startX" : 9,
+    "startY" : 10,
+    "renderString" : "1,E,R",
+    "horizontalWrappable" : false,
+    "verticalWrappable" : false
+  },
+  "layers" : [ {
+    "width" : 16,
+    "height" : 18,
+    "opacity" : 1,
+    "properties" : {
+      "id" : 0,
+      "parallax_y" : 1.0,
+      "parallax_x" : 1.0
+    },
+    "name" : "Layer 0",
+    "type" : "tilelayer",
+    "visible" : true,
+    "data" : [ 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+    "color" : "#99ff00"
+  }, {
+    "width" : 16,
+    "height" : 18,
+    "opacity" : 1,
+    "name" : "Meta",
+    "type" : "tilelayer",
+    "visible" : true,
+    "data" : [ 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+    "color" : "#99ff00"
+  }, {
+    "width" : 16,
+    "height" : 18,
+    "opacity" : 1,
+    "name" : "Entities",
+    "type" : "objectgroup",
+    "visible" : true,
+    "objects" : [ ],
+    "color" : "#99ff00"
+  } ],
+  "orientation" : "orthogonal",
+  "renderorder" : "right-down",
+  "tiledversion" : "2017.07.26",
+  "tileheight" : 16,
+  "tilewidth" : 16,
+  "type" : "map",
+  "version" : 1,
+  "width" : 16,
+  "height" : 18
+}

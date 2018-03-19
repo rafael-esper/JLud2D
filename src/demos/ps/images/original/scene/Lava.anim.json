@@ -1,0 +1,14 @@
+{
+  "totalframes" : 12,
+  "fxsize" : 320,
+  "fysize" : 240,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W16F1W16F2W16F3W16F4W16F5W16", "", "", "", "", "", "", "" ],
+  "imageName" : "Lava.png",
+  "columns" : 3,
+  "spacing" : 1
+}

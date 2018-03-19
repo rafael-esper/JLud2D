@@ -1,0 +1,14 @@
+{
+  "totalframes" : 7,
+  "fxsize" : 94,
+  "fysize" : 108,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F6W2F0W2F6W2F0W2F6W2F0W2", "F0W8F1W8F2W8F3W8F4W16F5W4F0W6", "", "", "", "", "" ],
+  "imageName" : "skeleton_guard.png",
+  "columns" : 7,
+  "spacing" : 1
+}

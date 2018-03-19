@@ -1,0 +1,14 @@
+{
+  "totalframes" : 7,
+  "fxsize" : 40,
+  "fysize" : 64,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F6W2F0W2F6W2F0W2F6W2F0W2", "F0W3F1W3F2W6F3W4F4W6F5W3F2W3", "", "", "", "", "" ],
+  "imageName" : "mota_shooter.png",
+  "columns" : 7,
+  "spacing" : 1
+}

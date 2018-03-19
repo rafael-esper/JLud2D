@@ -1,0 +1,19 @@
+{
+  "tilewidth" : 16,
+  "tileheight" : 16,
+  "tilecount" : 11,
+  "columns" : 20,
+  "spacing" : 0,
+  "type" : "tileset",
+  "firstgid" : 1,
+  "image" : "3d.png",
+  "name" : "Tiles",
+  "tiles" : {
+    "0" : {
+      "animation" : [ {
+        "duration" : 0,
+        "tileid" : 0
+      } ]
+    }
+  }
+}

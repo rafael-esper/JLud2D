@@ -1,0 +1,14 @@
+{
+  "totalframes" : 7,
+  "fxsize" : 56,
+  "fysize" : 88,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F6W2F0W2F6W2F0W2F6W2F0W2", "F0W6F1W6F2W12F3W6F4W6F5W12F4W6F3W6F0W4", "F1W4F2W4F3W4F4W4F5W32F4W6F3W6F0W4", "", "", "", "" ],
+  "imageName" : "snow_lion.png",
+  "columns" : 7,
+  "spacing" : 1
+}

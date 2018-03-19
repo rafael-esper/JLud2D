@@ -1,0 +1,14 @@
+{
+  "totalframes" : 5,
+  "fxsize" : 56,
+  "fysize" : 64,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F4W2F0W2F4W2F0W2F4W2F0W2", "F0W6F1W6F2W6F3W6F1W6F0W6F1W6F2W6F3W6F1W6F0W6", "", "", "", "", "" ],
+  "imageName" : "wingeye.png",
+  "columns" : 5,
+  "spacing" : 1
+}

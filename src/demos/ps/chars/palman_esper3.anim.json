@@ -1,0 +1,14 @@
+{
+  "totalframes" : 12,
+  "fxsize" : 16,
+  "fysize" : 32,
+  "hx" : 0,
+  "hy" : 16,
+  "hw" : 16,
+  "hh" : 16,
+  "idle" : [ 0, 3, 0, 9, 6 ],
+  "animbuf" : [ null, "F4W30F3W10F5W30", "F1W30F0W10F2W30", "F10W30F9W10F11W30", "F7W30F6W10F8W30", "F10W30F9W10F11W30", "F7W30F6W10F8W30", "F10W30F9W10F11W30", "F7W30F6W10F8W30" ],
+  "imageName" : "palman_esper3.png",
+  "columns" : 3,
+  "spacing" : 1
+}

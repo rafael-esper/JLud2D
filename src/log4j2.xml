@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration package="log4j.test" 
+               status="WARN">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss} [%t] %-5level %logger{36} - %msg%n"/>
+            <ThresholdFilter level="WARN" onMatch="DENY" onMismatch="ACCEPT"/>            
+        </Console>
+        <Console name="ConsoleError" target="SYSTEM_ERR">
+            <PatternLayout pattern="%d{HH:mm:ss} [%t] %-5level %logger{36} - %msg%n"/>
+            <ThresholdFilter level="WARN" onMatch="ACCEPT" onMismatch="DENY"/>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Logger name="log4j.test.Log4jTest" level="trace">
+            <AppenderRef ref="Console"/>
+        </Logger>
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="ConsoleError"/>
+        </Root>
+    </Loggers>
+</Configuration>

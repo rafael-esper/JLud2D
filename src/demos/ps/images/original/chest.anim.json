@@ -1,0 +1,14 @@
+{
+  "totalframes" : 13,
+  "fxsize" : 64,
+  "fysize" : 72,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 3, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F0W10F1W8F2W8F3W16", "F3W16F4W4F5W4F6W4F7W8F8W4F3W8", "F9W4F10W4F11W4F12W8F3W8", "", "", "", "" ],
+  "imageName" : "chest.png",
+  "columns" : 13,
+  "spacing" : 1
+}

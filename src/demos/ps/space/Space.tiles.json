@@ -1,0 +1,12 @@
+{
+  "tilewidth" : 16,
+  "tileheight" : 16,
+  "tilecount" : 120,
+  "columns" : 20,
+  "spacing" : 0,
+  "type" : "tileset",
+  "firstgid" : 1,
+  "image" : "Space.png",
+  "name" : "Tiles",
+  "tiles" : { }
+}

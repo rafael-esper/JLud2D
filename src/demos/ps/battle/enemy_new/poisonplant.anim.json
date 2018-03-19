@@ -1,0 +1,14 @@
+{
+  "totalframes" : 7,
+  "fxsize" : 48,
+  "fysize" : 48,
+  "hx" : 0,
+  "hy" : 0,
+  "hw" : 0,
+  "hh" : 0,
+  "idle" : [ 0, 0, 0, 0, 0 ],
+  "animbuf" : [ null, "F0W1", "F6W2F0W2F6W2F0W2F6W2F0W2", "F0W4F1W4F2W4F3W4F4W4F5W4F4W4F3W4F2W4F1W4F0W4", "", "", "", "", "" ],
+  "imageName" : "poisonplant.png",
+  "columns" : 7,
+  "spacing" : 1
+}
