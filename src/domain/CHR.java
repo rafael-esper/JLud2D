@@ -31,12 +31,12 @@ public class CHR {
 	private BufferedImage [] frames;
 
     @JsonIgnore
-	private int anims[][] = new int[9][];
+	private int anims[][]; // = new int[9][];
 
 	//String filename;                        // the filename this was loaded from
 	
 	// Loaded from JSON
-	private String[] animbuf = new String[9];
+	private String[] animbuf; // = new String[9];
 	private String imageName;
 	private int columns = 1;
 	private int spacing = 1;	
@@ -71,6 +71,9 @@ public class CHR {
 		// So a F1W5F2W5 will insert in the array the values 1 1 1 1 1 2 2 2 2 2
 		// TODO Diagonal ignored, order was changed from export
 		//int indexes[] = { 0, Entity.NORTH, Entity.SOUTH, Entity.WEST, Entity.EAST, 0, 0, 0, 0}; 
+		if(chr.getAnims() == null) {
+			chr.anims = new int[chr.animbuf.length][];
+		}
 		for(int b=0; b<chr.animbuf.length; b++) {
 			int totalLength = chr.GetAnimLength(chr.getAnimbuf()[b]);
 			chr.getAnims()[b] = new int[totalLength == 0 ? 1 : totalLength];
@@ -79,14 +82,38 @@ public class CHR {
 
 		// Load images
 		URL imageUrl = VImage.findInSameDir(url, chr.imageName);
-		VImage[] framesFromImage = VImage.loadFramesFromImage(0, 0, chr.fxsize, chr.fysize, 0, 0, 
-				chr.columns, chr.totalframes, chr.getSpacing(), new VImage(imageUrl));
-		chr.setFrames(new BufferedImage[chr.getTotalframes()]);
-		for(int i=0; i<chr.getTotalframes(); i++) {
-			chr.getFrames()[i] = framesFromImage[i].image;
-		}
+		chr.loadCHRFromImage(imageUrl);
 		
 		return chr;
+	}
+
+	public static CHR loadChrFromImage(URL url, int total, int xSize, int ySize, int columns, int spacing) {
+		log.info("Loading CHR from Image: " + url);
+		CHR chr = new CHR();
+		chr.fxsize = xSize;
+		chr.fysize = ySize;
+		chr.columns = columns;
+		chr.totalframes = total;
+		chr.spacing = spacing;
+		chr.anims = new int[0][0];
+
+		if(url == null) {
+			return chr;
+		}
+
+		chr.imageName = url.getFile().substring(url.getFile().lastIndexOf('/')+1, url.getFile().length());
+		chr.loadCHRFromImage(url);
+		
+		return chr;
+	}
+	
+	private void loadCHRFromImage(URL url) {
+		VImage[] framesFromImage = VImage.loadFramesFromImage(0, 0, fxsize, fysize, 0, 0, 
+				columns, totalframes, getSpacing(), new VImage(url));
+		setFrames(new BufferedImage[getTotalframes()]);
+		for(int i=0; i<getTotalframes(); i++) {
+			getFrames()[i] = framesFromImage[i].image;
+		}
 	}
 
 	/// Method to make easier to export CHRs from images

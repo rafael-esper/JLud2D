@@ -716,7 +716,7 @@ public class EntityImpl implements Entity {
 		{
 			if (follow==null)
 			{
-				if (ready() || framect == 0) { // framect condition by Rafael
+				if (ready() || framect == 0 || chr.getAnims().length == 0) { // framect condition by Rafael
 					frame = chr.getIdle()[getFace()];
 				}
 				else { 

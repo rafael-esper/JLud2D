@@ -9,6 +9,7 @@ import java.awt.Font;
 import javax.swing.JApplet;
 
 import core.MainEngine;
+import core.Script;
 import domain.CHR;
 import domain.VImage;
 import domain.VSound;
@@ -95,7 +96,7 @@ public class AK extends JApplet {
   private static int spe[] = new int[25];
   private static int spt[] = new int[25];
 
-  private static String levelName, currentMusic, currentLevel;
+  private static String currentMusic, currentLevel;
 
   // Resources
   private static final String MUSIC_FIELD = "res/music/field.vgz";
@@ -274,8 +275,6 @@ public class AK extends JApplet {
       snd[8] = new VSound(load("res/sound/Brac.wav"));
       snd[9] = new VSound(load("res/sound/Item.wav"));
       snd[10] = new VSound(load("res/sound/Water.wav"));
-
-      levelName = "Ak.anim.json";
     }
 
     DoLevel();
@@ -523,17 +522,18 @@ public class AK extends JApplet {
       StartUp();
 
     // This changes all 'monster.chr' entities to load the CHR info from an image file
-    CHR c = CHR.loadChr("monster.anim.json");
-    CHR bigC = CHR.loadChr("Big.anim.json");
+    //CHR c = CHR.loadChr("monster.anim.json");
+    CHR c = CHR.loadChrFromImage(Script.load("monster.png"), 56, 32, 32, 7, 1);
+    CHR bigC = CHR.loadChrFromImage(Script.load("Big.png"), 6, 48, 64, 6, 1);
     for (int i = 0; i < numentities; i++) {
-      if (entities.get(i).getChrname().equalsIgnoreCase("monster.anim.json")) {
+      if (entities.get(i).getChrname().contains("monster")) {
     	  entities.get(i).setChr(c);
       } else {
     	  entities.get(i).setChr(bigC);  
       }
     }
 
-    player = entityspawn(gotox, gotoy, levelName);
+    player = entityspawn(gotox, gotoy, "Ak.anim.json");
     setplayer(player);
     // cameratracking = 1;
     setNormalCondition(condition);
