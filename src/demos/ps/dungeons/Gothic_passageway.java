@@ -22,7 +22,7 @@ public class Gothic_passageway {
 	}
 	
 	public static void exit() {
-		PSGame.toSpaceportSecret();
+		PSGame.mapswitch(City.SPACEPORT1, 2, 18);
 	}
 	public static void gothic() {
 		PSGame.mapswitch(City.GOTHIC,31,8);

@@ -927,11 +927,6 @@ public class PSGame {
 		PSMenu.instance.pop(); // mstBox		
 	}
 	
-	// Through Gothic
-	public static void toSpaceportSecret() {
-		mapswitch(City.SPACEPORT1, 2, 18);
-	}
-	
 	public static void spaceportTransition(int direction, int whenStop, City destiny, int gotox, int gotoy) {
 		setentitiespaused(true);
 		PSMenu.menuOff();
