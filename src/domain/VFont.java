@@ -5,72 +5,88 @@ import org.apache.logging.log4j.Logger;
 
 import static core.Script.*;
 
+import java.awt.Color;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/*
+ * There are two formats of VFonts: 
+ * - default  20x5 (100 chars) and various subsets
+ * - extended 16 x 16 (256 chars) ASCII-like
+ */
 public class VFont {
 
 	private static final Logger log = LogManager.getLogger(VFont.class);
 
-	VImage rawdata[];
+	VImage frames[];
 	public int width, height;
-	int subsets, selected;
-	int totalframes;
-	int fwidth[] = new int[100];
+	int fwidth[];
 	boolean incolor;
 
-	public VFont(URL url, int xsize, int ysize)
-	{
+	public VFont(URL url, int xsize, int ysize)	{
+		
 		width = xsize;
 		height = ysize;
 
-		readFont(url, xsize, ysize);
+		readFont(url, xsize, ysize, 20, 5);
 	}
 	
 	public VFont(URL url)
 	{
-		int w, h;
-		
 		// this constructor autodetected cell dimensions, B
 		VImage workingimage = new VImage(url);
 
+		int rows = 0, columns = 0, last = -1;
+		
 		// Analyze image and guess cell dimensions.
 		int bgcolor = workingimage.readPixel(0, 0);   // This is the image bg color;
-		for (w=1; w<workingimage.width; w++)
-		{
+		for (int w=1; w<workingimage.width; w++) {
 			int z = workingimage.readPixel(w, 1);
-			if (z == bgcolor)
-				break;
+			if (z == bgcolor) {
+				if(last == z) {
+					break;
+				}
+				columns++;
+				if(width == 0)
+					width = w-1;
+			}
+			last = z;
 		}
-		for (h=1; h<workingimage.height; h++)
-		{
+		for (int h=1; h<workingimage.height; h++) {
 			int z = workingimage.readPixel(1, h);
-			if (z == bgcolor)
-				break;
+			if (z == bgcolor) {
+				if(last == z) {
+					break;
+				}
+				rows++;
+				if(height == 0) 
+					height = h-1;
+			}
+			last = z;
 		}
-		width = w-1;
-		height = h-1;
-		readFont(url, width, height);
+		
+		log.info("Reading font " + url + " with char (" + width + "," + height + "), columns = " + columns
+				+ ", rows = " + rows);
+		readFont(url, width, height, columns, rows);
 	}
 
-	private void readFont(URL url, int xsize, int ysize) {
+	private void readFont(URL url, int xsize, int ysize, int columns, int rows) {
 		VImage workingimage = new VImage(url);
-		subsets = workingimage.width / ((ysize*5)+4);
-		selected = 0;
+
 		incolor = false;
 
-		rawdata = new VImage[100*subsets];
+		frames = new VImage[columns * rows];
 		int imageindex = 0;
-		for (int yl = 0; yl<5 * subsets; yl++)
-			for (int xl = 0; xl<20; xl++) {
-				rawdata[imageindex] = new VImage(xsize, ysize);
-				rawdata[imageindex++].grabRegion(1+(xl*(xsize+1)), 1+(yl*(ysize+1)), width+1+(xl*(xsize+1)), height+1+(yl*(ysize+1)),
-					0, 0, workingimage);
+		for (int yl = 0; yl<rows; yl++)
+			for (int xl = 0; xl<columns; xl++) {
+				frames[imageindex] = new VImage(xsize, ysize);
+				frames[imageindex++].tgrabRegion(1+(xl*(xsize+1)), 1+(yl*(ysize+1)), width+1+(xl*(xsize+1)), height+1+(yl*(ysize+1)),
+					0, 0, Color.MAGENTA, workingimage);
 			}
 
-		for (int i=0; i<100; i++)
+		fwidth = new int[columns*rows];
+		for (int i=0; i<columns*rows; i++)
 			fwidth[i] = xsize; // + 1 (commented by [Rafael])
 
 	}
@@ -78,17 +94,16 @@ public class VFont {
 	boolean ColumnEmpty(int cell, int column, int tcolor)
 	{
 		//container.data = ((int) rawdata.data + ((cell)*width*height*vid_bytesperpixel));
-		for (int y=0; y<rawdata[cell].height; y++)
-			if (rawdata[cell].readPixel(column, y) != tcolor)
+		for (int y=0; y<frames[cell].height; y++)
+			if (frames[cell].readPixel(column, y) != tcolor)
 				return false;
 		return true;
 	}
 
-	public void EnableVariableWidth()
-	{
+	public void enablevariablewidth() {
 		fwidth[0] = width * 60 / 100;
-		int tcolor = rawdata[0].readPixel(0, 0);
-		for (int i=1; i<100; i++)
+		int tcolor = frames[0].readPixel(0, 0);
+		for (int i=1; i<frames.length; i++)
 		{
 			fwidth[i] = -1;
 			for (int x=width-1; x>=0; x--)
@@ -112,12 +127,20 @@ public class VFont {
 
 	public void PrintChar(char c, int x, int y, VImage dest)
 	{
-		if (c<32 || c>=128) 
-			return;  
-		
-		dest.tblit(x, y, rawdata[c-32].image);
-		//dest.g.drawImage(rawdata[c-32].image, x, y, null);
-		//TBlit(x, y, container, dest);
+		// Default 100 frames
+		if(this.frames.length == 100) {
+			if (c<32 || c>=128) 
+				return;  
+			dest.tblit(x, y, frames[c-32].image);
+		}
+		else {
+			// Specials hanging chars that go beyond
+			if(c == 'q' || c == 'y' || c == 'g' || c == 'j' || c == 'p') {
+				dest.tblit(x, y+1, frames[c].image);	
+			} else {
+				dest.tblit(x, y, frames[c].image);
+			}
+		}
 	}
 
 	// print a chunk of a string; doesn't care about newlines
@@ -137,16 +160,20 @@ public class VFont {
 					continue;
 				}
 				*/
-				selected = s.charAt(pos) - '0';
-				if (selected >= subsets || selected < 0)
-					selected = 0;
-				else
-					incolor = true;
-				continue;
+//				selected = s.charAt(pos) - '0';
+//				if (selected >= subsets || selected < 0)
+//					selected = 0;
+//				else
+//					incolor = true;
+//				continue;
 			}
 			PrintChar(s.charAt(pos), x, y, dest);
-			if (s.charAt(pos) < 32) continue;
-			x += fwidth[s.charAt(pos) - 32]+1;
+			if(frames.length == 100) {
+				if (s.charAt(pos) < 32) continue;
+				x += fwidth[s.charAt(pos) - 32] + 1;
+			} else {
+				x += fwidth[s.charAt(pos)] + 1;
+			}
 		}
 	}
 
@@ -197,7 +224,6 @@ public class VFont {
 		xsize = Pixels(msg.substring(start, end));
 		PrintLine(msg.substring(start, end),x - xsize,y,dest);
 
-		selected=0;
 		incolor = false;
 	}
 
@@ -224,7 +250,6 @@ public class VFont {
 		xsize = Pixels(msg.substring(start, end));
 		PrintLine(msg.substring(start, end),x - (xsize/2),y,dest);
 
-		selected=0;
 		incolor = false;
 	}
 
@@ -251,8 +276,12 @@ public class VFont {
 			}
 			else
 			{
-				if (str.charAt(i) < 32) continue;
-				xsize += fwidth[str.charAt(i) - 32]+1;
+				if(frames.length == 100) {
+					if (str.charAt(i) < 32) continue;
+					xsize += fwidth[str.charAt(i) - 32] + 1;
+				} else {
+					xsize += fwidth[str.charAt(i)] + 1;
+				}
 			}
 		}
 
@@ -261,19 +290,16 @@ public class VFont {
 	}
 	
 	//VI.i. Font Functions
-	public void enablevariablewidth() {
-		this.EnableVariableWidth();
-	}
 	public int fontheight() {
 		//if (this==null) return 7;
 		return this.height;
 	}
-	public void printcenter(int x, int y, VImage d, String text) { 
-		this.PrintCenter(text, x, y, d);
+	public void printcenter(int x, int y, VImage dest, String text) { 
+		this.PrintCenter(text, x, y, dest);
 	}
 	
-	public void printright(int x, int y, VImage d, String text) { 
-		this.PrintRight(text, x, y, d);
+	public void printright(int x, int y, VImage dest, String text) { 
+		this.PrintRight(text, x, y, dest);
 	}
 	
 	public void printstring(int x, int y, VImage dest, String text) {
@@ -301,13 +327,13 @@ public class VFont {
 			str = words.get(i);
 		    while (i < words.size()-1 && this.textwidth(str) + this.textwidth(words.get(i+1)) <= wt_linelen) {
 		       str = str.concat(" " + words.get(i+1));
-		       i += 1;
+		       i++;
 			}
 		    rows.add(str); //log.info(str);
-		    str = "";i+=1;
+		    str = "";
+		    i++;
 		}
 		return rows;
-
 	}
 	
 }
