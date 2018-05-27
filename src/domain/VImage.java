@@ -20,13 +20,7 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.geom.AffineTransform;
-import java.awt.image.AffineTransformOp;
-import java.awt.image.BufferedImage;
-import java.awt.image.FilteredImageSource;
-import java.awt.image.ImageFilter;
-import java.awt.image.ImageProducer;
-import java.awt.image.RGBImageFilter;
-import java.awt.image.WritableRaster;
+import java.awt.image.*;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -71,6 +65,7 @@ public class VImage implements Transferable {
 			  }
 		  } catch (IOException e) {
 			  log.error("Unable to read image from URL " + url);
+			  return;
 		  }
 		  this.width = image.getWidth();
 		  this.height = image.getHeight();
@@ -83,7 +78,7 @@ public class VImage implements Transferable {
 		  
 		  g = (Graphics2D)image.getGraphics();
 	 }
-	 
+
 	 public VImage(URL url) { // Rafael: per default, all images are loaded as transparent
 		 this(url, true);
 	 }
@@ -99,6 +94,10 @@ public class VImage implements Transferable {
 		return this.height;
 	}
 
+	public int[] pixels() {
+		return ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+	}
+	
 	// See http://wiki.java.net/bin/view/Games/LoadingSpritesWithImageIO
    private static BufferedImage imageToBufferedImage(Image image) {
         GraphicsConfiguration gc = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice ().getDefaultConfiguration();

@@ -145,8 +145,8 @@ public class MapTiledJSON extends MapAbstract implements Map {
 					e.setChr(CHR.loadChr(e.getChrname())); //RequestCHR(e.chrname);
 				}
 				
-				e.setx(e.getx()*16); // New JLud2d
-				e.sety(e.gety()*16); // New Jlud2d
+				e.setx(e.getx()*tilewidth); // New JLud2d
+				e.sety(e.gety()*tileheight); // New Jlud2d
 				
 				// TODO Is it necessary to call some initialization, see EntityImpl(int x, int y, String chrfn)
 				/*	switch(e.getMovecode()) {
@@ -206,18 +206,18 @@ public class MapTiledJSON extends MapAbstract implements Map {
 	}
 
 	public boolean getobspixel(int x, int y) { // modified by [Rafael]
-		if (!getHorizontalWrappable() && (x < 0 || (x >> 4) >= getWidth()))
+		if (!getHorizontalWrappable() && (x < 0 || (x / tilewidth) >= getWidth()))
 				return true;
-		if (!getVerticalWrappable() && (y < 0 || (y >> 4) >= getHeight()))
+		if (!getVerticalWrappable() && (y < 0 || (y / tileheight) >= getHeight()))
 				return true;
 		if(getHorizontalWrappable() && x < 0)
-			x+= (getWidth() *16); 
-		if(getHorizontalWrappable() && (x >> 4) >= getWidth())
-			x-= (getWidth() *16);
+			x+= (getWidth() * tilewidth); 
+		if(getHorizontalWrappable() && (x / tilewidth) >= getWidth())
+			x-= (getWidth() * tilewidth);
 		if(getVerticalWrappable() && y < 0)
-			y+= (getHeight() *16); 
-		if(getVerticalWrappable() && (y >> 4) >= getHeight())
-			y-= (getHeight() *16);
+			y+= (getHeight() * tileheight); 
+		if(getVerticalWrappable() && (y / tileheight) >= getHeight())
+			y-= (getHeight() * tileheight);
 
 		//int t = obsLayer[((y >> 4) * getWidth()) + (x >> 4)];
 		int t = layers[layers.length - META_LAYER].getTile(x>> 4, y>>4);
@@ -600,6 +600,26 @@ public class MapTiledJSON extends MapAbstract implements Map {
 			e.printStackTrace();
 			return null;			
 		}
+	}
+
+	@Override
+	public int getTileHeight() {
+		return tileheight;
+	}
+
+	@Override
+	public int getTileWidth() {
+		return tilewidth;
+	}
+
+	@Override
+	// Returns actual tile considering animations
+	public int getActualTile(int x, int y, int i) {
+		int ret = this.tilesets[0].tileidx[gettile(x, y, i)];
+		if(ret != 0) {
+			ret = ret + this.tilesets[0].getFirstgid();
+		}
+		return ret;
 	}
 	
 }

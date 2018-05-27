@@ -135,7 +135,10 @@ public class VFont {
 		}
 		else {
 			// Specials hanging chars that go beyond
-			if(c == 'q' || c == 'y' || c == 'g' || c == 'j' || c == 'p') {
+			if(c == ' ') {
+				return;
+			}
+			if(c == 'q' || c == 'y' || c == 'g' || c == 'p') {
 				dest.tblit(x, y+1, frames[c].image);	
 			} else {
 				dest.tblit(x, y, frames[c].image);

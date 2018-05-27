@@ -85,8 +85,8 @@ public abstract class MapAbstract implements Map {
 	
 	public void render(int x, int y, VImage dest) {
 		boolean first = true;
-		int tx = (dest.width / 16) + 2;
-		int ty = (dest.height / 16) + 2;
+		int tx = (dest.width / getTileWidth()) + 2;
+		int ty = (dest.height / getTileHeight()) + 2;
 
 		for (int i = 0; i < getRenderstring().length(); i++) {
 			char token = getRenderstring().charAt(i);
@@ -150,7 +150,7 @@ public abstract class MapAbstract implements Map {
 		}
 		
 		if(imgcache[l]==null) {
-			imgcache[l] = new VImage(dest.width+16, dest.height+16);
+			imgcache[l] = new VImage(dest.width+getTileWidth(), dest.height+getTileHeight());
 		}
 		
 		// Draw layer into the cache
@@ -173,11 +173,11 @@ public abstract class MapAbstract implements Map {
 					
 					if (transparent) { // TODO getTilesets(n) instead of 0?
 						if (c != 0 || l==0) {
-							getCurrentTileset().TBlit((x * 16), (y * 16), c, imgcache[l]);
+							getCurrentTileset().TBlit((x * getTileWidth()), (y * getTileHeight()), c, imgcache[l]);
 							//tileset.TBlit((x * 16) + xofs, (y * 16) + yofs, c, dest);
 						}
 					} else {
-							getCurrentTileset().Blit((x * 16), (y * 16), c, imgcache[l]);
+							getCurrentTileset().Blit((x * getTileWidth()), (y * getTileHeight()), c, imgcache[l]);
 							//tileset.Blit((x * 16) + xofs, (y * 16) + yofs, c, dest);
 					}
 				}

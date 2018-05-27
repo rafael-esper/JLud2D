@@ -41,7 +41,10 @@ public interface Map {
 	@JsonIgnore
 	int gettile(int x, int y, int i);
 	void settile(int x, int y, int i, int z);
-
+	
+	@JsonIgnore
+	int getActualTile(int x, int y, int i);
+	
 	@JsonIgnore
 	boolean getobs(int x, int y);
 	void setobs(int x, int y, int t);
@@ -82,4 +85,8 @@ public interface Map {
 	int getLayerLucent(int layer);
 		
 	void startMap();
+	
+	int getTileHeight();
+	int getTileWidth();
+
 }
