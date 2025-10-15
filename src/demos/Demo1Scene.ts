@@ -255,7 +255,7 @@ export class Demo1Scene extends Phaser.Scene {
     MainEngine.setPlayerStep(4);
     const player = MainEngine.getPlayer();
     if (player) {
-      player.setSpeed(200);
+      player.setSpeed(64); // Pixels per second - much slower, more reasonable
 
       // Center camera on player initially
       const playerPixelX = player.getPixelX();

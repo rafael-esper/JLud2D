@@ -134,25 +134,26 @@ export class Entity {
   private moveTick(): void {
     if (this.ready()) return;
 
+    // Speed is in pixels per second, convert to pixels per frame (assuming 60 FPS)
     const speed = this.properties.speed || 100;
-    const moveStep = Math.floor(speed / 16); // Convert speed to pixels per tick
+    const pixelsPerFrame = speed / 60; // Much slower movement
 
     // Calculate direction to waypoint
     const dx = this.waypointx - this.x;
     const dy = this.waypointy - this.y;
 
-    if (Math.abs(dx) <= moveStep && Math.abs(dy) <= moveStep) {
+    if (Math.abs(dx) <= pixelsPerFrame && Math.abs(dy) <= pixelsPerFrame) {
       // Close enough, snap to waypoint
       this.x = this.waypointx;
       this.y = this.waypointy;
       this.delay = 0;
     } else {
-      // Move towards waypoint
+      // Move towards waypoint pixel by pixel
       if (dx !== 0) {
-        this.x += dx > 0 ? moveStep : -moveStep;
+        this.x += dx > 0 ? pixelsPerFrame : -pixelsPerFrame;
       }
       if (dy !== 0) {
-        this.y += dy > 0 ? moveStep : -moveStep;
+        this.y += dy > 0 ? pixelsPerFrame : -pixelsPerFrame;
       }
 
       // Update facing direction if autoface is enabled
