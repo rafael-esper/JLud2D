@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>JLud2D - Phaser 4 Port</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: monospace;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            transition: all 0.2s ease;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            border: 1px solid #333;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            z-index: 100;
+        }
+
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #666;
+            font-size: 10px;
+            z-index: 50;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <h2>JLud2D - Phaser 4 Port</h2>
+        <p>Loading configuration...</p>
+    </div>
+
+    <div id="info">
+        <div>F11: Toggle Fullscreen</div>
+        <div>ESC: Menu/Back</div>
+    </div>
+
+    <div id="game-container"></div>
+
+    <!-- Phaser 3.80 (using CDN for now) -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
+
+    <!-- Game scripts -->
+    <script type="module" src="src/main.ts"></script>
+
+    <script>
+        // Hide loading screen once game starts
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const loading = document.getElementById('loading');
+                if (loading) {
+                    loading.classList.add('hidden');
+                }
+            }, 2000);
+        });
+
+        // Simple error handling
+        window.addEventListener('error', (event) => {
+            console.error('Game error:', event.error);
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.innerHTML = '<h2>Error Loading Game</h2><p>Check console for details</p>';
+            }
+        });
+    </script>
+</body>
+</html>
