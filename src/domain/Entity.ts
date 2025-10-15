@@ -85,7 +85,7 @@ export class Entity {
   /**
    * Initialize entity sprite in Phaser scene
    */
-  public async initSprite(scene: Phaser.Scene): Promise<void> {
+  public async initSprite(scene: Phaser.Scene, depth?: number): Promise<void> {
     if (this.chrname && !this.chr) {
       this.chr = await CHR.loadChr(scene, this.chrname);
 
@@ -96,12 +96,15 @@ export class Entity {
         try {
           this.sprite = scene.add.sprite(this.x, this.y, imageKey);
           this.sprite.setOrigin(0, 0);
-          this.sprite.setDepth(10); // Ensure entities render above tilemap
+
+          // Set depth based on map's entity depth or use default
+          const entityDepth = depth !== undefined ? depth : 5; // Default entity depth
+          this.sprite.setDepth(entityDepth);
 
           // Set initial frame
           this.updateFrame();
 
-          console.log(`Entity sprite created: ${this.chrname} at (${this.getx()}, ${this.gety()}) with image ${imageKey}`);
+          console.log(`Entity sprite created: ${this.chrname} at (${this.getx()}, ${this.gety()}) with depth ${entityDepth}`);
         } catch (error) {
           console.error(`Failed to create sprite for ${this.chrname}:`, error);
         }

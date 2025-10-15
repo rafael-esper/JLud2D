@@ -36,14 +36,20 @@ export class MainEngine {
     const entity = new Entity(Math.floor(x / 16), Math.floor(y / 16), chr);
     entity.setIndex(MainEngine.numentities);
 
-    // Initialize the entity sprite
-    await entity.initSprite(scene);
+    // Get entity depth from current map
+    let entityDepth = 5; // Default depth
+    if (MainEngine.current_map && typeof MainEngine.current_map.getEntityDepth === 'function') {
+      entityDepth = MainEngine.current_map.getEntityDepth();
+    }
+
+    // Initialize the entity sprite with proper depth
+    await entity.initSprite(scene, entityDepth);
 
     // Add to entity list
     MainEngine.entities.push(entity);
     const entityIndex = MainEngine.numentities++;
 
-    console.log(`Entity allocated: ${chr} at (${Math.floor(x / 16)}, ${Math.floor(y / 16)}) -> index ${entityIndex}`);
+    console.log(`Entity allocated: ${chr} at (${Math.floor(x / 16)}, ${Math.floor(y / 16)}) -> index ${entityIndex}, depth: ${entityDepth}`);
     return entityIndex;
   }
 

@@ -193,11 +193,16 @@ export class TiledMap {
 
   /**
    * Create map layers in the correct render order
+   * Uses layer order from JSON and renderstring to determine entity placement
    */
   private createLayers(): void {
     if (!this.mapData || !this.tilemap || !this.tileset) return;
 
-    // Create layers based on Tiled JSON data
+    // Parse renderstring to find entity position
+    const entityLayerPosition = this.getEntityLayerPosition();
+
+    // Create layers based on JSON order (which defines render order)
+    let layerIndex = 0;
     for (const layerData of this.mapData.layers) {
       if (layerData.type === 'tilelayer' && layerData.visible) {
         const layer = this.tilemap.createLayer(layerData.name, this.tileset, 0, 0);
@@ -209,16 +214,55 @@ export class TiledMap {
             layer.setAlpha(layerData.opacity);
           }
 
+          // Set depth based on layer position and entity layer position
+          // Layers before entities get depth 0, 1, 2...
+          // Entities get depth at entityLayerPosition
+          // Layers after entities get depth entityLayerPosition + 1, entityLayerPosition + 2...
+          let depth;
+          if (layerIndex < entityLayerPosition) {
+            depth = layerIndex;
+          } else {
+            depth = layerIndex + 1; // Skip entity depth
+          }
+
+          layer.setDepth(depth);
+
           // Store layer reference
           this.layers[layerData.name] = layer;
 
-          console.log(`Created layer: ${layerData.name} (${layerData.width}x${layerData.height})`);
+          console.log(`Created layer: ${layerData.name} (index: ${layerIndex}, depth: ${depth})`);
         } else {
           console.error(`Failed to create layer: ${layerData.name}`);
           this.layers[layerData.name] = null;
         }
+
+        layerIndex++;
       }
     }
+
+    console.log(`Layer rendering order: ${this.renderstring}`);
+    console.log('Entity depth:', entityLayerPosition);
+  }
+
+  /**
+   * Parse renderstring to find where entities should render
+   * Examples: "1,2,E,3,R" -> entities at position 2 (after layers 1,2)
+   */
+  private getEntityLayerPosition(): number {
+    const renderOrder = this.renderstring.split(',');
+    let layerCount = 0;
+
+    for (const item of renderOrder) {
+      const trimmed = item.trim();
+      if (trimmed === 'E') {
+        return layerCount; // Entities render at this depth
+      } else if (trimmed !== 'R' && !isNaN(parseInt(trimmed))) {
+        layerCount++; // Count numeric layers before entities
+      }
+    }
+
+    // If no 'E' found, default to middle of layers
+    return Math.floor(this.mapData?.layers.length / 2) || 1;
   }
 
   /**
@@ -345,6 +389,14 @@ export class TiledMap {
   public getStartY(): number { return this.startY; }
   public getFilename(): string { return this.filename; }
   public getRenderstring(): string { return this.renderstring; }
+
+  /**
+   * Get the depth at which entities should render
+   * Based on renderstring position of 'E'
+   */
+  public getEntityDepth(): number {
+    return this.getEntityLayerPosition();
+  }
 
   /**
    * Get Phaser tilemap object
