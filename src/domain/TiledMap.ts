@@ -15,6 +15,16 @@ export interface LayerData {
   properties?: any;
 }
 
+export interface AnimationFrame {
+  duration: number;
+  tileid: number;
+}
+
+export interface AnimatedTile {
+  id: number;
+  animation: AnimationFrame[];
+}
+
 export interface TilesetData {
   name: string;
   image: string;
@@ -27,6 +37,7 @@ export interface TilesetData {
   margin?: number;
   spacing?: number;
   firstgid: number;
+  tiles?: AnimatedTile[];
 }
 
 export interface MapData {
@@ -63,6 +74,10 @@ export class TiledMap {
   private startX: number = 22; // Default start position
   private startY: number = 13;
   private renderstring: string = "1,2,E,3,R"; // Default render order: Ground, Fringe, Entities, Over, Render
+
+  // Animation system
+  private animatedTiles: any[] = [];
+  private animatedTileCount: number = 0;
 
   constructor(scene: Phaser.Scene, filename: string = '') {
     this.scene = scene;
@@ -131,6 +146,9 @@ export class TiledMap {
 
     // Create map layers
     this.createLayers();
+
+    // Setup tile animations
+    this.setupTileAnimations();
 
     // Set start position from map properties if available
     this.extractStartPosition();
@@ -420,6 +438,114 @@ export class TiledMap {
   }
 
   /**
+   * Setup tile animations from tileset data
+   * Find all animated tiles that are actually placed in the map
+   */
+  private setupTileAnimations(): void {
+    if (!this.mapData || !this.tilemap) return;
+
+    // Initialize animated tiles array
+    this.animatedTiles = [];
+    this.animatedTileCount = 0;
+
+    // Get tileset data with animations
+    for (const tilesetData of this.mapData.tilesets) {
+      if (!tilesetData.tiles) continue;
+
+      // Create a map of animated tiles by their ID
+      const animatedTileData: { [key: number]: AnimatedTile } = {};
+      for (const animatedTile of tilesetData.tiles) {
+        if (animatedTile.animation && animatedTile.animation.length > 0) {
+          animatedTileData[animatedTile.id] = animatedTile;
+        }
+      }
+
+      // Check each layer for animated tiles that are actually placed
+      for (const layerName in this.layers) {
+        const layer = this.layers[layerName];
+        if (!layer) continue;
+
+        // Check every tile in the layer
+        for (let x = 0; x < this.width; x++) {
+          for (let y = 0; y < this.height; y++) {
+            const tile = layer.getTileAt(x, y);
+            if (!tile || tile.index === 0) continue;
+
+            // Convert tile index to local tileset ID
+            const localTileId = tile.index - tilesetData.firstgid;
+
+            // Check if this tile has animation data
+            if (animatedTileData[localTileId]) {
+              const animatedTile = animatedTileData[localTileId];
+
+              // Add to animated tiles array
+              this.animatedTiles.push({
+                tile: tile,
+                tileAnimationData: animatedTile.animation,
+                firstgid: tilesetData.firstgid,
+                elapsedTime: 0
+              });
+
+              this.animatedTileCount++;
+
+              console.log(`Found animated tile at (${x}, ${y}): tile ${tile.index}, local ID ${localTileId}, ${animatedTile.animation.length} frames`);
+            }
+          }
+        }
+      }
+    }
+
+    console.log(`Total animated tiles found in map: ${this.animatedTileCount}`);
+  }
+
+  /**
+   * Update tile animations - manually update tile indices
+   */
+  public updateAnimations(deltaTime: number = 16): void {
+    if (this.animatedTiles.length === 0) return;
+
+    // Update each animated tile
+    for (const animatedTileData of this.animatedTiles) {
+      if (!animatedTileData.tileAnimationData || animatedTileData.tileAnimationData.length === 0) continue;
+
+      // Get the total animation duration of each tile
+      const animationDuration = animatedTileData.tileAnimationData[0].duration * animatedTileData.tileAnimationData.length;
+
+      // Update elapsed time
+      animatedTileData.elapsedTime += deltaTime;
+      animatedTileData.elapsedTime %= animationDuration;
+
+      // Calculate current animation frame index
+      const animationFrameIndex = Math.floor(animatedTileData.elapsedTime / animatedTileData.tileAnimationData[0].duration);
+
+      // Ensure frame index is within bounds
+      const frameIndex = Math.min(animationFrameIndex, animatedTileData.tileAnimationData.length - 1);
+
+      // Update the tile index to the new frame
+      const newTileId = animatedTileData.tileAnimationData[frameIndex].tileid + animatedTileData.firstgid;
+      animatedTileData.tile.index = newTileId;
+    }
+  }
+
+  /**
+   * Start animations - setup animated tiles for manual updating
+   */
+  public startAnimations(): void {
+    if (this.animatedTileCount > 0) {
+      console.log(`Tile animations started: ${this.animatedTileCount} animated tiles found`);
+    } else {
+      console.log('No animated tiles found');
+    }
+  }
+
+  /**
+   * Stop animations - Phaser handles this automatically
+   */
+  public stopAnimations(): void {
+    console.log('Tile animations will stop automatically when tilemap is destroyed');
+  }
+
+  /**
    * Cleanup map resources
    */
   public destroy(): void {
@@ -437,5 +563,7 @@ export class TiledMap {
 
     this.layers = {};
     this.mapData = null;
+    this.animatedTiles = [];
+    this.animatedTileCount = 0;
   }
 }

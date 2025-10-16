@@ -28,6 +28,11 @@ export class MainEngine {
   protected static invc: number = 0; // Script/cutscene active flag
   protected static current_map: any = null; // TiledMap instance
 
+  // Camera system
+  protected static current_scene: Phaser.Scene | null = null;
+  protected static current_config: any = null;
+  protected static cameraSpeed: number = 4;
+
   /**
    * Allocate and create a new entity
    * Equivalent to Java AllocateEntity()
@@ -251,5 +256,205 @@ export class MainEngine {
    */
   public static getPlayerStep(): number {
     return MainEngine.playerstep;
+  }
+
+  /**
+   * Set current scene and config references for camera system
+   */
+  public static setCurrentScene(scene: Phaser.Scene, config: any): void {
+    MainEngine.current_scene = scene;
+    MainEngine.current_config = config;
+  }
+
+  /**
+   * Setup camera for current map
+   * Equivalent to Demo1Scene.setupCamera()
+   */
+  public static setupCamera(): void {
+    if (!MainEngine.current_map || !MainEngine.current_scene || !MainEngine.current_config) return;
+
+    const scene = MainEngine.current_scene;
+    const config = MainEngine.current_config;
+
+    // Calculate map bounds in pixels
+    const mapWidth = MainEngine.current_map.getWidth() * MainEngine.current_map.getTileWidth();
+    const mapHeight = MainEngine.current_map.getHeight() * MainEngine.current_map.getTileHeight();
+
+    // CRITICAL: Camera viewport is ALWAYS the config resolution
+    const cameraWidth = config.xRes;
+    const cameraHeight = config.yRes;
+
+    // Set camera bounds to the map size (this constrains scrolling)
+    scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
+
+    // Set camera viewport to exact config resolution
+    scene.cameras.main.setViewport(0, 0, cameraWidth, cameraHeight);
+
+    // Set initial camera position using map's start position
+    const startX = MainEngine.current_map.getStartX() * MainEngine.current_map.getTileWidth();
+    const startY = MainEngine.current_map.getStartY() * MainEngine.current_map.getTileHeight();
+
+    // Center camera on start position with proper clamping
+    MainEngine.setCameraPosition(startX, startY);
+
+    console.log('MainEngine Camera setup:', {
+      mapSize: `${mapWidth}x${mapHeight}`,
+      cameraViewport: `${cameraWidth}x${cameraHeight}`,
+      startPosition: `${startX}, ${startY}`,
+      tilesVisible: `${Math.floor(cameraWidth / MainEngine.current_map.getTileWidth())}x${Math.floor(cameraHeight / MainEngine.current_map.getTileHeight())}`
+    });
+  }
+
+  /**
+   * Set camera position with proper clamping
+   * Equivalent to Demo1Scene.setCameraPosition()
+   */
+  public static setCameraPosition(x: number, y: number): void {
+    if (!MainEngine.current_map || !MainEngine.current_scene) return;
+
+    const camera = MainEngine.current_scene.cameras.main;
+    const mapWidth = MainEngine.current_map.getWidth() * MainEngine.current_map.getTileWidth();
+    const mapHeight = MainEngine.current_map.getHeight() * MainEngine.current_map.getTileHeight();
+
+    // Camera viewport dimensions (like Java camera.viewportWidth/2)
+    const camViewportHalfX = camera.width / 2;
+    const camViewportHalfY = camera.height / 2;
+
+    // Clamp camera position to map bounds (like Java MathUtils.clamp)
+    const clampedX = Math.max(camViewportHalfX, Math.min(x, mapWidth - camViewportHalfX));
+    const clampedY = Math.max(camViewportHalfY, Math.min(y, mapHeight - camViewportHalfY));
+
+    // Set camera position (Phaser uses centerOn which is like setting camera.position in Java)
+    camera.centerOn(clampedX, clampedY);
+  }
+
+  /**
+   * Handle manual camera movement
+   * Equivalent to Demo1Scene.handleCameraMovement()
+   */
+  public static handleCameraMovement(inputManager: any): void {
+    if (!MainEngine.current_scene) return;
+
+    let moveX = 0;
+    let moveY = 0;
+
+    if (inputManager.left) {
+      moveX = -MainEngine.cameraSpeed;
+    }
+    if (inputManager.right) {
+      moveX = MainEngine.cameraSpeed;
+    }
+    if (inputManager.up) {
+      moveY = -MainEngine.cameraSpeed;
+    }
+    if (inputManager.down) {
+      moveY = MainEngine.cameraSpeed;
+    }
+
+    // Apply camera movement with proper clamping
+    if (moveX !== 0 || moveY !== 0) {
+      const camera = MainEngine.current_scene.cameras.main;
+      const newX = camera.centerX + moveX;
+      const newY = camera.centerY + moveY;
+
+      // Use the same clamping logic as setCameraPosition
+      MainEngine.setCameraPosition(newX, newY);
+    }
+  }
+
+  /**
+   * Handle camera tracking - follow the player
+   * Equivalent to Demo1Scene.handleCameraTracking()
+   */
+  public static handleCameraTracking(): void {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    // Get player center position
+    const playerX = player.getPixelX() + (player.getHotW() / 2);
+    const playerY = player.getPixelY() + (player.getHotH() / 2);
+
+    // Set camera to follow player (with same clamping as manual movement)
+    MainEngine.setCameraPosition(playerX, playerY);
+  }
+
+  /**
+   * Map initialization - equivalent to Demo1.mapinit()
+   * Spawns the player character and sets up camera tracking
+   */
+  public static async mapinit(scene: Phaser.Scene, chrname: string = 'maxim.anim.json'): Promise<void> {
+    if (!MainEngine.current_map) {
+      console.error('MainEngine.mapinit: current_map not set');
+      return;
+    }
+
+    // Get start position from map (matching Java demo logic)
+    let gotox = 0;
+    let gotoy = 0;
+
+    if (gotox === 0 && gotoy === 0) {
+      // Use map start position
+      gotox = MainEngine.current_map.getStartX(); // current_map.getStartX() equivalent
+      gotoy = MainEngine.current_map.getStartY(); // current_map.getStartY() equivalent
+    }
+
+    // Spawn player entity (equivalent to entityspawn + setplayer)
+    const playerIndex = await MainEngine.entityspawn(scene, gotox, gotoy, chrname);
+    MainEngine.setplayer(playerIndex);
+
+    // Enable camera tracking (equivalent to cameratracking = 1)
+    MainEngine.setCameraTracking(1);
+
+    // Set player properties (matching Java demo)
+    MainEngine.setPlayerStep(4);
+    const player = MainEngine.getPlayer();
+    if (player) {
+      player.setSpeed(200); // Pixels per second - much slower, more reasonable
+
+      // Center camera on player initially
+      const playerPixelX = player.getPixelX();
+      const playerPixelY = player.getPixelY();
+      MainEngine.setCameraPosition(playerPixelX, playerPixelY);
+    }
+
+    console.log('MainEngine: mapinit completed - player spawned and camera tracking enabled');
+  }
+
+  /**
+   * Generic update method for handling camera and movement
+   * Should be called from scene update() method
+   */
+  public static updateEngine(inputManager: any): void {
+    // Update all entities
+    MainEngine.updateEntities();
+
+    // Handle player movement or camera movement
+    const player = MainEngine.getPlayer();
+    if (player) {
+      // Process player controls
+      MainEngine.ProcessControls(inputManager);
+
+      // Handle camera tracking if enabled
+      if (MainEngine.getCameraTracking() === 1) {
+        MainEngine.handleCameraTracking();
+      }
+    } else {
+      // Fallback to manual camera movement
+      MainEngine.handleCameraMovement(inputManager);
+    }
+  }
+
+  /**
+   * Set camera speed
+   */
+  public static setCameraSpeed(speed: number): void {
+    MainEngine.cameraSpeed = speed;
+  }
+
+  /**
+   * Get camera speed
+   */
+  public static getCameraSpeed(): number {
+    return MainEngine.cameraSpeed;
   }
 }

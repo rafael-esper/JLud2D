@@ -239,19 +239,19 @@
                 {
                  "animation":[
                         {
-                         "duration":10,
+                         "duration":100,
                          "tileid":37
                         }, 
                         {
-                         "duration":10,
+                         "duration":100,
                          "tileid":46
                         }, 
                         {
-                         "duration":10,
+                         "duration":100,
                          "tileid":55
                         }, 
                         {
-                         "duration":10,
+                         "duration":100,
                          "tileid":64
                         }],
                  "id":37
@@ -259,19 +259,19 @@
                 {
                  "animation":[
                         {
-                         "duration":10,
+                         "duration":100,
                          "tileid":148
                         }, 
                         {
-                         "duration":10,
+                         "duration":100,
                          "tileid":157
                         }, 
                         {
-                         "duration":10,
+                         "duration":100,
                          "tileid":166
                         }, 
                         {
-                         "duration":10,
+                         "duration":100,
                          "tileid":175
                         }],
                  "id":148
