@@ -231,6 +231,22 @@ export class MainEngine {
   }
 
   /**
+   * Complete cleanup - clears entities and map
+   */
+  public static cleanup(): void {
+    // Clear entities
+    MainEngine.clearEntities();
+
+    // Destroy map if it exists
+    if (MainEngine.current_map && typeof MainEngine.current_map.destroy === 'function') {
+      MainEngine.current_map.destroy();
+    }
+    MainEngine.current_map = null;
+
+    console.log('MainEngine: Cleanup completed');
+  }
+
+  /**
    * Set script/cutscene active state
    */
   public static setScriptActive(active: boolean): void {
@@ -379,10 +395,39 @@ export class MainEngine {
   }
 
   /**
+   * Load map and initialize - combines map loading with initialization
+   */
+  public static async loadAndInitMap(scene: Phaser.Scene, mapFilename: string): Promise<any> {
+    // Import TiledMap here to avoid circular dependencies
+    const { TiledMap } = await import('../domain/TiledMap');
+
+    // Load the tilemap
+    const tiledMap = await TiledMap.loadMap(scene, mapFilename);
+
+    if (tiledMap) {
+      // Start the map
+      tiledMap.startMap();
+
+      // Set current map reference
+      MainEngine.setCurrentMap(tiledMap);
+
+      console.log('MainEngine: Map loaded and started:', {
+        size: `${tiledMap.getWidth()}x${tiledMap.getHeight()}`,
+        tileSize: `${tiledMap.getTileWidth()}x${tiledMap.getTileHeight()}`,
+        startPos: `${tiledMap.getStartX()}, ${tiledMap.getStartY()}`
+      });
+    } else {
+      console.error('MainEngine: Failed to load TiledMap');
+    }
+
+    return tiledMap;
+  }
+
+  /**
    * Map initialization - equivalent to Demo1.mapinit()
    * Spawns the player character and sets up camera tracking
    */
-  public static async mapinit(scene: Phaser.Scene, chrname: string = 'maxim.anim.json'): Promise<void> {
+  public static async mapinit(scene: Phaser.Scene, chrname: string): Promise<void> {
     if (!MainEngine.current_map) {
       console.error('MainEngine.mapinit: current_map not set');
       return;
