@@ -23,13 +23,11 @@ export class Demo1Scene extends Phaser.Scene {
   }
 
   preload() {
-    // Load tilemap and tileset assets from demo folder
+    // Load tilemap JSON - tileset image will be auto-loaded by TiledMap
     this.load.tilemapTiledJSON('island-map', 'src/demos/island.map.json');
-    this.load.image('beach-tileset', 'src/demos/beach_tileset.png');
 
-    // Load character assets
+    // Load character animation JSON - sprite image will be auto-loaded by CHR
     this.load.json('maxim-anim', 'src/demos/maxim.anim.json');
-    this.load.image('maxim-sprite', 'src/demos/maxim.png');
 
     // Create loading text
     const loadingText = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'Loading Island World...', {

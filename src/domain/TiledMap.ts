@@ -181,16 +181,31 @@ export class TiledMap {
   }
 
   /**
-   * Load tilesets and create tileset images
+   * Load tilesets and automatically load tileset images from JSON
    */
   private async loadTilesets(): Promise<void> {
     if (!this.mapData || !this.tilemap) return;
 
-    // Use the preloaded tileset image from Demo1Scene
-    const imageKey = 'beach-tileset'; // This matches what Demo1Scene preloads
-
     for (const tilesetData of this.mapData.tilesets) {
-      // Add tileset to the tilemap using preloaded image
+      // Automatically determine image key from tileset image property
+      const imageKey = `tileset-${tilesetData.image.replace('.png', '')}`;
+
+      // Load the tileset image if not already loaded
+      if (!this.scene.textures.exists(imageKey)) {
+        this.scene.load.image(imageKey, `src/demos/${tilesetData.image}`);
+
+        // Wait for the image to load
+        await new Promise<void>((resolve) => {
+          const onComplete = () => {
+            this.scene.load.off('complete', onComplete);
+            resolve();
+          };
+          this.scene.load.on('complete', onComplete);
+          this.scene.load.start();
+        });
+      }
+
+      // Add tileset to the tilemap using auto-loaded image
       this.tileset = this.tilemap.addTilesetImage(
         tilesetData.name,
         imageKey
@@ -198,12 +213,12 @@ export class TiledMap {
 
       if (!this.tileset) {
         console.error(`Failed to load tileset: ${tilesetData.name} with image: ${imageKey}`);
-        // Try with the exact tileset name match
+        // Try with the exact tileset name match as fallback
         this.tileset = this.tilemap.addTilesetImage(tilesetData.name, tilesetData.name);
       }
 
       if (this.tileset) {
-        console.log(`Tileset loaded: ${tilesetData.name} -> ${imageKey}`);
+        console.log(`Tileset loaded: ${tilesetData.name} -> ${imageKey} (auto-loaded from ${tilesetData.image})`);
         break; // Only need the first tileset for now
       }
     }
