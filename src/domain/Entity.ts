@@ -126,8 +126,6 @@ export class Entity {
       this.moveTick();
     }
 
-    // Update animation frame
-    this.framect++;
     this.updateFrame();
   }
 
@@ -137,33 +135,30 @@ export class Entity {
   private moveTick(): void {
     if (this.ready()) return;
 
-    // Speed is in pixels per second, convert to pixels per frame (assuming 60 FPS)
-    const speed = this.properties.speed || 100;
-    const pixelsPerFrame = speed / 60; // Much slower movement
-
-    // Calculate direction to waypoint
+    // Java-style tile-based movement: move 1 pixel per tick toward waypoint
     const dx = this.waypointx - this.x;
     const dy = this.waypointy - this.y;
 
-    if (Math.abs(dx) <= pixelsPerFrame && Math.abs(dy) <= pixelsPerFrame) {
-      // Close enough, snap to waypoint
-      this.x = this.waypointx;
-      this.y = this.waypointy;
-      this.delay = 0;
-    } else {
-      // Move towards waypoint pixel by pixel
-      if (dx !== 0) {
-        this.x += dx > 0 ? pixelsPerFrame : -pixelsPerFrame;
-      }
-      if (dy !== 0) {
-        this.y += dy > 0 ? pixelsPerFrame : -pixelsPerFrame;
-      }
-
-      // Update facing direction if autoface is enabled
-      if (this.properties.autoface) {
-        this.updateFacing(dx, dy);
-      }
+    if (dx === 0 && dy === 0) {
+      // Already at waypoint
+      return;
     }
+
+    // Move 1 pixel toward waypoint in each direction
+    if (dx !== 0) {
+      this.x += dx > 0 ? 1 : -1;
+    }
+    if (dy !== 0) {
+      this.y += dy > 0 ? 1 : -1;
+    }
+
+    // Update facing direction if autoface is enabled
+    if (this.properties.autoface) {
+      this.updateFacing(dx, dy);
+    }
+
+    // Increment animation frame when moving (like Java move_tick)
+    this.framect++;
 
     // Update sprite position
     if (this.sprite && this.chr) {
@@ -195,7 +190,16 @@ export class Entity {
       this.frame = this.specframe;
     } else {
       const direction = this.properties.face || EntityDirection.SOUTH;
-      this.frame = this.chr.getFrame(direction, this.framect);
+
+      // Use Java logic: idle frame when ready, walking frame when moving
+      if (this.ready()) {
+        // Use idle frame for current direction (but preserve framect for resume)
+        const idleFrames = this.chr.getIdle();
+        this.frame = idleFrames[direction] || 0;
+      } else {
+        // Use walking animation frame
+        this.frame = this.chr.getFrame(direction, this.framect);
+      }
     }
 
     // Update sprite frame

@@ -312,4 +312,5 @@ export class CHR {
   public getHw(): number { return this.hw; }
   public getHh(): number { return this.hh; }
   public getImageName(): string { return this.imageName; }
+  public getIdle(): number[] { return this.idle; }
 }

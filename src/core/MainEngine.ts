@@ -126,9 +126,21 @@ export class MainEngine {
     if (MainEngine.up) moveY = -1;
     if (MainEngine.down) moveY = 1;
 
-    // Apply movement with obstruction checking
+    // Apply movement with Java-style facing and obstruction checking
     if (moveX !== 0 || moveY !== 0) {
-      // Calculate target position
+      // ALWAYS set facing direction FIRST (like Java setFace)
+      let newDirection = EntityDirection.SOUTH;
+      if (moveX !== 0) {
+        // Prioritize horizontal movement for facing direction (like Java diagonal handling)
+        newDirection = moveX > 0 ? EntityDirection.EAST : EntityDirection.WEST;
+      } else if (moveY !== 0) {
+        newDirection = moveY > 0 ? EntityDirection.SOUTH : EntityDirection.NORTH;
+      }
+
+      // Set face immediately, regardless of obstruction
+      MainEngine.myself.setFace(newDirection);
+
+      // Calculate target position for obstruction check
       const currentX = MainEngine.myself.getx();
       const currentY = MainEngine.myself.gety();
       const targetX = currentX + moveX;
@@ -140,18 +152,14 @@ export class MainEngine {
         canMove = !MainEngine.current_map.getobs(targetX, targetY);
       }
 
-      // Only move if target position is not obstructed
+      // Only move if target position is not obstructed (like Java dist != 0 check)
       if (canMove) {
-        // Set waypoint for movement
-        MainEngine.myself.setWaypointRelative(moveX, moveY, true);
+        // Set waypoint for movement (don't change face again since we already set it)
+        MainEngine.myself.setWaypointRelative(moveX, moveY, false);
       }
 
-      // Update last player direction for diagonal handling (even if movement is blocked)
-      if (Math.abs(moveX) > Math.abs(moveY)) {
-        MainEngine.lastplayerdir = moveX > 0 ? EntityDirection.EAST : EntityDirection.WEST;
-      } else if (moveY !== 0) {
-        MainEngine.lastplayerdir = moveY > 0 ? EntityDirection.SOUTH : EntityDirection.NORTH;
-      }
+      // Update last player direction for diagonal handling
+      MainEngine.lastplayerdir = newDirection;
     }
   }
 
