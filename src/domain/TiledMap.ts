@@ -54,12 +54,20 @@ export interface MapData {
 }
 
 export class TiledMap {
+  // Java constants ported from MapTiledJSON.java
+  private static readonly META_LAYER = 1; // Meta layer offset from end
+  private static readonly ZONE_OFFSET = 60; // Zone offset for tile IDs
+
   // Map properties
   private width: number = 30;
   private height: number = 20;
   private tilewidth: number = 16;
   private tileheight: number = 16;
   private filename: string = '';
+
+  // Wrapping properties (from Java)
+  private horizontalWrappable: boolean = false;
+  private verticalWrappable: boolean = false;
 
   // Map data
   private mapData: MapData | null = null;
@@ -275,11 +283,6 @@ export class TiledMap {
     let layerIndex = 0;
     for (const layerData of this.mapData.layers) {
       if (layerData.type === 'tilelayer' && layerData.visible) {
-        // Skip Meta layer - it contains only metadata (obstacles, zones)
-        if (layerData.name === 'Meta') {
-          console.log(`Skipping Meta layer: ${layerData.name} (metadata only)`);
-          continue;
-        }
         // Use all tilesets - Phaser automatically handles multiple tilesets based on firstgid
         const layer = this.tilemap.createLayer(layerData.name, this.tilemap.tilesets, 0, 0);
 
@@ -288,6 +291,12 @@ export class TiledMap {
           layer.setScale(1, 1); // Pixel perfect rendering
           if (layerData.opacity !== undefined && layerData.opacity < 1) {
             layer.setAlpha(layerData.opacity);
+          }
+
+          // Hide Meta layer - it's for data access only, not rendering
+          if (layerData.name === 'Meta') {
+            layer.setVisible(false);
+            console.log(`Meta layer created but hidden from rendering: ${layerData.name}`);
           }
 
           // Set depth based on layer position and entity layer position
@@ -665,15 +674,38 @@ export class TiledMap {
    * @param value Obstacle value (0 = no obstacle, non-zero = obstacle)
    */
   public setobs(x: number, y: number, value: number): void {
-    if (!this.obstructionMap) {
-      this.obstructionMap = new Map<string, number>();
+    if (!this.mapData) return;
+
+    // Find the Meta layer by name
+    let metaLayerData = null;
+    for (const layer of this.mapData.layers) {
+      if (layer.name === 'Meta') {
+        metaLayerData = layer;
+        break;
+      }
     }
 
-    const key = `${x},${y}`;
-    if (value === 0) {
-      this.obstructionMap.delete(key);
-    } else {
-      this.obstructionMap.set(key, value);
+    if (!metaLayerData || metaLayerData.type !== 'tilelayer' || !metaLayerData.data) {
+      return; // No Meta layer found
+    }
+
+    // Bounds check
+    if (x < 0 || y < 0 || x >= metaLayerData.width || y >= metaLayerData.height) {
+      return;
+    }
+
+    // Calculate array index (row-major order) and update the raw data
+    const index = y * metaLayerData.width + x;
+    metaLayerData.data[index] = value;
+
+    // Also update the Phaser layer if it exists (Meta layer is hidden anyway)
+    const phaserLayer = this.layers['Meta'];
+    if (phaserLayer) {
+      try {
+        phaserLayer.putTileAt(value, x, y);
+      } catch (error) {
+        // Ignore Phaser layer update errors for Meta layer - raw data update is sufficient
+      }
     }
   }
 
@@ -681,29 +713,179 @@ export class TiledMap {
   private obstructionMap: Map<string, number> = new Map();
 
   /**
-   * Get obstacle value at coordinates (override of existing getObs)
+   * Get obstacle value at coordinates (Java getobs equivalent)
    * @param x Tile X coordinate
    * @param y Tile Y coordinate
-   * @returns Obstacle value (0 = no obstacle, non-zero = obstacle)
+   * @returns true if obstructed, false if passable
    */
   public getObs(x: number, y: number): boolean {
-    // Check manual obstruction map first
-    if (this.obstructionMap) {
-      const key = `${x},${y}`;
-      const value = this.obstructionMap.get(key);
-      if (value !== undefined) {
-        return value !== 0;
+    return this.getobs(x, y);
+  }
+
+  /**
+   * Get obstacle at tile coordinates (Java getobs method)
+   */
+  public getobs(x: number, y: number): boolean {
+    if (x < 0 || y < 0 || x >= this.getWidth() || y >= this.getHeight()) {
+      return true;
+    }
+
+    // Get tile from Meta layer (last layer minus META_LAYER offset)
+    if (!this.mapData || !this.mapData.layers || this.mapData.layers.length === 0) {
+      return false;
+    }
+
+    // Find the Meta layer by name instead of using offset calculation
+    let metaLayerIndex = -1;
+    for (let i = 0; i < this.mapData.layers.length; i++) {
+      if (this.mapData.layers[i].name === 'Meta') {
+        metaLayerIndex = i;
+        break;
       }
     }
 
-    // Fallback to bounds checking
-    if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
-      return true; // Out of bounds = obstructed
+    if (metaLayerIndex === -1) {
+      return false;
     }
 
-    // Could check specific obstruction tiles or layers
-    // For now, assume no obstruction if not in manual map
+    const t = this.gettile(x, y, metaLayerIndex);
+    return this.isObs(t);
+  }
+
+  /**
+   * Get obstacle at pixel coordinates (Java getobspixel method)
+   */
+  public getobspixel(x: number, y: number): boolean {
+    // Handle wrapping for horizontal axis
+    if (!this.getHorizontalWrappable() && (x < 0 || Math.floor(x / this.tilewidth) >= this.getWidth())) {
+      return true;
+    }
+
+    // Handle wrapping for vertical axis
+    if (!this.getVerticalWrappable() && (y < 0 || Math.floor(y / this.tileheight) >= this.getHeight())) {
+      return true;
+    }
+
+    // Apply horizontal wrapping
+    if (this.getHorizontalWrappable() && x < 0) {
+      x += (this.getWidth() * this.tilewidth);
+    }
+    if (this.getHorizontalWrappable() && Math.floor(x / this.tilewidth) >= this.getWidth()) {
+      x -= (this.getWidth() * this.tilewidth);
+    }
+
+    // Apply vertical wrapping
+    if (this.getVerticalWrappable() && y < 0) {
+      y += (this.getHeight() * this.tileheight);
+    }
+    if (this.getVerticalWrappable() && Math.floor(y / this.tileheight) >= this.getHeight()) {
+      y -= (this.getHeight() * this.tileheight);
+    }
+
+    // Convert to tile coordinates
+    const tileX = x >> 4; // x / 16
+    const tileY = y >> 4; // y / 16
+
+    // Get tile from Meta layer
+    if (!this.mapData || !this.mapData.layers || this.mapData.layers.length === 0) {
+      return false;
+    }
+
+    const metaLayerIndex = this.mapData.layers.length - TiledMap.META_LAYER;
+    if (metaLayerIndex < 0 || metaLayerIndex >= this.mapData.layers.length) {
+      return false;
+    }
+
+    const t = this.gettile(tileX, tileY, metaLayerIndex);
+    if (!this.isObs(t)) {
+      return false;
+    }
+
+    // For detailed pixel-level obstruction, would need Meta tileset GetObs method
+    // For now, if tile is obstructed, entire tile is obstructed
+    return true;
+  }
+
+  /**
+   * Check if a tile ID represents an obstruction (Java isObs method)
+   */
+  private isObs(t: number): boolean {
+    // If tile is 0 (empty), not obstructed
+    if (t === 0) {
+      return false;
+    }
+
+    const metaTileset = this.getMetaTileset();
+    if (!metaTileset) {
+      return false;
+    }
+
+    const firstGid = metaTileset.firstgid;
+
+    // Check if tile is in Meta tileset range
+    if (t >= firstGid) {
+      // Tile is from Meta tileset - check if it's an obstruction tile
+      const metaTileId = t - firstGid + 1; // Convert to 1-based tile ID within tileset
+      const inRange = metaTileId >= 1 && metaTileId <= TiledMap.ZONE_OFFSET;
+      return inRange;
+    } else if (t > 0) {
+      // Tile is from another tileset - assume any non-zero tile in Meta layer is an obstruction
+      // This handles cases where Meta layer uses tiles from the main tileset for obstructions
+      return true;
+    }
+
     return false;
+  }
+
+  /**
+   * Get the Meta tileset (equivalent to Java getMetaTileset)
+   */
+  private getMetaTileset(): TilesetData | null {
+    if (!this.mapData || !this.mapData.tilesets) {
+      return null;
+    }
+
+    // Find the Meta tileset - typically the last one or named "Meta"
+    for (const tileset of this.mapData.tilesets) {
+      if (tileset.name.toLowerCase().includes('meta')) {
+        return tileset;
+      }
+    }
+
+    // If no Meta tileset found by name, use the last tileset
+    if (this.mapData.tilesets.length > 0) {
+      return this.mapData.tilesets[this.mapData.tilesets.length - 1];
+    }
+
+    return null;
+  }
+
+  /**
+   * Get horizontal wrapping property
+   */
+  public getHorizontalWrappable(): boolean {
+    return this.horizontalWrappable;
+  }
+
+  /**
+   * Get vertical wrapping property
+   */
+  public getVerticalWrappable(): boolean {
+    return this.verticalWrappable;
+  }
+
+  /**
+   * Set horizontal wrapping property
+   */
+  public setHorizontalWrappable(wrappable: boolean): void {
+    this.horizontalWrappable = wrappable;
+  }
+
+  /**
+   * Set vertical wrapping property
+   */
+  public setVerticalWrappable(wrappable: boolean): void {
+    this.verticalWrappable = wrappable;
   }
 
   /**

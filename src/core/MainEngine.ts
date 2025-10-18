@@ -126,12 +126,27 @@ export class MainEngine {
     if (MainEngine.up) moveY = -1;
     if (MainEngine.down) moveY = 1;
 
-    // Apply movement
+    // Apply movement with obstruction checking
     if (moveX !== 0 || moveY !== 0) {
-      // Set waypoint for movement
-      MainEngine.myself.setWaypointRelative(moveX, moveY, true);
+      // Calculate target position
+      const currentX = MainEngine.myself.getx();
+      const currentY = MainEngine.myself.gety();
+      const targetX = currentX + moveX;
+      const targetY = currentY + moveY;
 
-      // Update last player direction for diagonal handling
+      // Check for obstructions at target position
+      let canMove = true;
+      if (MainEngine.current_map) {
+        canMove = !MainEngine.current_map.getobs(targetX, targetY);
+      }
+
+      // Only move if target position is not obstructed
+      if (canMove) {
+        // Set waypoint for movement
+        MainEngine.myself.setWaypointRelative(moveX, moveY, true);
+      }
+
+      // Update last player direction for diagonal handling (even if movement is blocked)
       if (Math.abs(moveX) > Math.abs(moveY)) {
         MainEngine.lastplayerdir = moveX > 0 ? EntityDirection.EAST : EntityDirection.WEST;
       } else if (moveY !== 0) {
