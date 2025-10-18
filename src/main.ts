@@ -7,7 +7,8 @@ import { GameConfig } from './config/GameConfig';
 import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';
 import { SettingsScene } from './scenes/SettingsScene';
-import { Demo1Scene } from './demos/Demo1Scene';
+import { Demo1Scene } from './demos/demo1/Demo1Scene';
+import { Demo2Scene } from './demos/demo2/Demo2Scene';
 import { ResponsiveScaler } from './utils/ResponsiveScaler';
 
 class Game {
@@ -61,7 +62,8 @@ class Game {
       BootScene,
       MenuScene,
       SettingsScene,
-      Demo1Scene
+      Demo1Scene,
+      Demo2Scene
     ];
 
     // Create the game

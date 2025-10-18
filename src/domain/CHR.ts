@@ -41,13 +41,13 @@ export class CHR {
   /**
    * Load CHR from JSON file (like maxim.anim.json)
    */
-  public static async loadChr(scene: Phaser.Scene, chrname: string): Promise<CHR> {
+  public static async loadChr(scene: Phaser.Scene, chrname: string, basePath: string): Promise<CHR> {
     const chr = new CHR();
 
     try {
       // Load the JSON animation data
       const animName = chrname.replace('.chr', '.anim.json').replace('.CHR', '.anim.json');
-      const response = await fetch(`src/demos/${animName}`);
+      const response = await fetch(`${basePath}/${animName}`);
 
       if (!response.ok) {
         console.error(`Failed to load CHR: ${animName}`);
@@ -60,7 +60,8 @@ export class CHR {
       // Load the sprite image if not already loaded
       const imageKey = `chr-${data.imageName.replace('.png', '')}`;
       if (!scene.textures.exists(imageKey)) {
-        scene.load.image(imageKey, `src/demos/${data.imageName}`);
+        // Load image with transparency support for magenta (255, 0, 255)
+        scene.load.image(imageKey, `${basePath}/${data.imageName}`);
 
         // Wait for the image to load
         await new Promise<void>((resolve) => {

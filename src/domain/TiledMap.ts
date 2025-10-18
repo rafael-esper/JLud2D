@@ -79,7 +79,7 @@ export class TiledMap {
   private animatedTiles: any[] = [];
   private animatedTileCount: number = 0;
 
-  constructor(scene: Phaser.Scene, filename: string = '') {
+  constructor(scene: Phaser.Scene, filename: string = '', private basePath: string) {
     this.scene = scene;
     this.filename = filename;
   }
@@ -88,28 +88,27 @@ export class TiledMap {
    * Load map from Tiled JSON file
    * Equivalent to Java MapTiledJSON.loadMap()
    */
-  public static async loadMap(scene: Phaser.Scene, mapFilename: string): Promise<TiledMap> {
-    const tiledMap = new TiledMap(scene, mapFilename);
+  public static async loadMap(scene: Phaser.Scene, mapFilename: string, basePath: string): Promise<TiledMap> {
+    const tiledMap = new TiledMap(scene, mapFilename, basePath);
 
     try {
-      // Use the preloaded map data (loaded in preload() with key 'island-map')
+      // Use the preloaded map data - derive cache key from filename
       const mapKey = mapFilename.replace('.json', '').replace('.map', '');
-      const cacheKey = mapKey === 'island' ? 'island-map' : mapKey;
+      const cacheKey = `${mapKey}-map`;
+
 
       let mapData: MapData;
 
       if (scene.cache.json.exists(cacheKey)) {
         // Already loaded via preload
         mapData = scene.cache.json.get(cacheKey);
-        console.log(`Using preloaded map data: ${cacheKey}`);
       } else {
         // Load manually as fallback
-        const response = await fetch(`src/demos/${mapFilename}`);
+        const response = await fetch(`${basePath}/${mapFilename}`);
         if (!response.ok) {
           throw new Error(`Failed to load map: ${mapFilename}`);
         }
         mapData = await response.json();
-        console.log(`Loaded map data manually: ${mapFilename}`);
       }
 
       await tiledMap.loadFromData(mapData);
@@ -160,19 +159,22 @@ export class TiledMap {
   private createTilemap(): void {
     if (!this.mapData) return;
 
-    // Use the preloaded map key from Demo1Scene
-    const mapKey = 'island-map'; // This matches what Demo1Scene preloads
+    // Use the correct map key based on filename
+    const mapKey = this.filename.replace('.json', '').replace('.map', '');
+    const cacheKey = `${mapKey}-map`;
+
+    console.log(`Creating tilemap with key: ${cacheKey} for filename: ${this.filename}`);
 
     // Create the tilemap using the preloaded data
-    this.tilemap = this.scene.make.tilemap({ key: mapKey });
+    this.tilemap = this.scene.make.tilemap({ key: cacheKey });
 
     if (!this.tilemap) {
-      console.error('Failed to create tilemap from preloaded data');
+      console.error(`Failed to create tilemap from preloaded data with key: ${cacheKey}`);
       return;
     }
 
     console.log('Tilemap created from preloaded data:', {
-      key: mapKey,
+      key: cacheKey,
       width: this.tilemap.width,
       height: this.tilemap.height,
       layers: this.tilemap.layers?.length || 0,
@@ -186,42 +188,77 @@ export class TiledMap {
   private async loadTilesets(): Promise<void> {
     if (!this.mapData || !this.tilemap) return;
 
+    console.log(`Loading ${this.mapData.tilesets.length} tilesets:`, this.mapData.tilesets.map(t => ({ name: t.name, image: t.image, firstgid: t.firstgid })));
+
     for (const tilesetData of this.mapData.tilesets) {
       // Automatically determine image key from tileset image property
       const imageKey = `tileset-${tilesetData.image.replace('.png', '')}`;
 
       // Load the tileset image if not already loaded
       if (!this.scene.textures.exists(imageKey)) {
-        this.scene.load.image(imageKey, `src/demos/${tilesetData.image}`);
+        console.log(`Loading tileset image: ${imageKey} from ${this.basePath}/${tilesetData.image}`);
+        this.scene.load.image(imageKey, `${this.basePath}/${tilesetData.image}`);
 
         // Wait for the image to load
-        await new Promise<void>((resolve) => {
+        await new Promise<void>((resolve, reject) => {
           const onComplete = () => {
             this.scene.load.off('complete', onComplete);
-            resolve();
+            this.scene.load.off('loaderror', onError);
+            if (this.scene.textures.exists(imageKey)) {
+              console.log(`Successfully loaded image: ${imageKey}`);
+              resolve();
+            } else {
+              console.error(`Image loading completed but texture not found: ${imageKey}`);
+              reject(new Error(`Failed to load ${imageKey}`));
+            }
           };
+
+          const onError = (event: any) => {
+            console.error(`Failed to load image: ${imageKey}`, event);
+            this.scene.load.off('complete', onComplete);
+            this.scene.load.off('loaderror', onError);
+            reject(new Error(`Failed to load ${imageKey}`));
+          };
+
           this.scene.load.on('complete', onComplete);
+          this.scene.load.on('loaderror', onError);
           this.scene.load.start();
+        }).catch(error => {
+          console.error(`Image loading failed for ${imageKey}:`, error);
+          // Continue anyway to avoid blocking other tilesets
         });
+      } else {
+        console.log(`Image already exists: ${imageKey}`);
       }
 
-      // Add tileset to the tilemap using auto-loaded image
-      this.tileset = this.tilemap.addTilesetImage(
+      // Add tileset to the tilemap - Phaser automatically handles firstgid for combining tilesets
+      console.log(`Adding tileset: name=${tilesetData.name}, imageKey=${imageKey}, firstgid=${tilesetData.firstgid}`);
+      console.log(`Available textures:`, this.scene.textures.getTextureKeys().filter(k => k.includes('tileset')));
+
+      const tileset = this.tilemap.addTilesetImage(
         tilesetData.name,
-        imageKey
+        imageKey,
+        tilesetData.tilewidth,
+        tilesetData.tileheight,
+        tilesetData.margin,
+        tilesetData.spacing
       );
 
-      if (!this.tileset) {
+      if (!tileset) {
         console.error(`Failed to load tileset: ${tilesetData.name} with image: ${imageKey}`);
-        // Try with the exact tileset name match as fallback
-        this.tileset = this.tilemap.addTilesetImage(tilesetData.name, tilesetData.name);
-      }
-
-      if (this.tileset) {
-        console.log(`Tileset loaded: ${tilesetData.name} -> ${imageKey} (auto-loaded from ${tilesetData.image})`);
-        break; // Only need the first tileset for now
+        console.error(`Tilemap info:`, {
+          width: this.tilemap.width,
+          height: this.tilemap.height,
+          tilesets: this.tilemap.tilesets.length,
+          format: this.tilemap.format
+        });
+      } else {
+        console.log(`Tileset loaded: ${tilesetData.name} -> ${imageKey} (firstgid: ${tilesetData.firstgid})`);
       }
     }
+
+    // For backward compatibility, store the first tileset
+    this.tileset = this.tilemap.tilesets[0] || null;
   }
 
   /**
@@ -229,7 +266,7 @@ export class TiledMap {
    * Uses layer order from JSON and renderstring to determine entity placement
    */
   private createLayers(): void {
-    if (!this.mapData || !this.tilemap || !this.tileset) return;
+    if (!this.mapData || !this.tilemap) return;
 
     // Parse renderstring to find entity position
     const entityLayerPosition = this.getEntityLayerPosition();
@@ -238,7 +275,13 @@ export class TiledMap {
     let layerIndex = 0;
     for (const layerData of this.mapData.layers) {
       if (layerData.type === 'tilelayer' && layerData.visible) {
-        const layer = this.tilemap.createLayer(layerData.name, this.tileset, 0, 0);
+        // Skip Meta layer - it contains only metadata (obstacles, zones)
+        if (layerData.name === 'Meta') {
+          console.log(`Skipping Meta layer: ${layerData.name} (metadata only)`);
+          continue;
+        }
+        // Use all tilesets - Phaser automatically handles multiple tilesets based on firstgid
+        const layer = this.tilemap.createLayer(layerData.name, this.tilemap.tilesets, 0, 0);
 
         if (layer) {
           // Set layer properties
@@ -270,6 +313,19 @@ export class TiledMap {
         }
 
         layerIndex++;
+      } else if (layerData.type === 'objectgroup') {
+        // Handle object layers (like Entities)
+        console.log(`Found object layer: ${layerData.name} with ${layerData.objects?.length || 0} objects`);
+
+        if (layerData.name === 'Entities') {
+          // For now, just log the entities - full implementation would spawn them
+          console.log('Entity objects found:', layerData.objects?.map(obj => ({
+            name: obj.name,
+            type: obj.type,
+            x: obj.x,
+            y: obj.y
+          })));
+        }
       }
     }
 
@@ -561,6 +617,96 @@ export class TiledMap {
   }
 
   /**
+   * Get tile ID at coordinates (equivalent to Java gettile)
+   * @param x Tile X coordinate
+   * @param y Tile Y coordinate
+   * @param layer Layer index (0 for first layer)
+   * @returns Tile ID or 0 if no tile
+   */
+  public gettile(x: number, y: number, layer: number = 0): number {
+    if (!this.tilemap || !this.mapData) return 0;
+
+    // Get layer by index
+    const layerData = this.mapData.layers[layer];
+    if (!layerData || layerData.type !== 'tilelayer') return 0;
+
+    const phaserLayer = this.layers[layerData.name];
+    if (!phaserLayer) return 0;
+
+    const tile = phaserLayer.getTileAt(x, y);
+    return tile ? tile.index : 0;
+  }
+
+  /**
+   * Set tile ID at coordinates (equivalent to Java settile)
+   * @param x Tile X coordinate
+   * @param y Tile Y coordinate
+   * @param layer Layer index (0 for first layer)
+   * @param tileId New tile ID
+   */
+  public settile(x: number, y: number, layer: number, tileId: number): void {
+    if (!this.tilemap || !this.mapData) return;
+
+    // Get layer by index
+    const layerData = this.mapData.layers[layer];
+    if (!layerData || layerData.type !== 'tilelayer') return;
+
+    const phaserLayer = this.layers[layerData.name];
+    if (!phaserLayer) return;
+
+    // Set the tile
+    phaserLayer.putTileAt(tileId, x, y);
+  }
+
+  /**
+   * Set obstacle at coordinates (equivalent to Java setobs)
+   * @param x Tile X coordinate
+   * @param y Tile Y coordinate
+   * @param value Obstacle value (0 = no obstacle, non-zero = obstacle)
+   */
+  public setobs(x: number, y: number, value: number): void {
+    if (!this.obstructionMap) {
+      this.obstructionMap = new Map<string, number>();
+    }
+
+    const key = `${x},${y}`;
+    if (value === 0) {
+      this.obstructionMap.delete(key);
+    } else {
+      this.obstructionMap.set(key, value);
+    }
+  }
+
+  // Add obstruction map for manual obstacle tracking
+  private obstructionMap: Map<string, number> = new Map();
+
+  /**
+   * Get obstacle value at coordinates (override of existing getObs)
+   * @param x Tile X coordinate
+   * @param y Tile Y coordinate
+   * @returns Obstacle value (0 = no obstacle, non-zero = obstacle)
+   */
+  public getObs(x: number, y: number): boolean {
+    // Check manual obstruction map first
+    if (this.obstructionMap) {
+      const key = `${x},${y}`;
+      const value = this.obstructionMap.get(key);
+      if (value !== undefined) {
+        return value !== 0;
+      }
+    }
+
+    // Fallback to bounds checking
+    if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
+      return true; // Out of bounds = obstructed
+    }
+
+    // Could check specific obstruction tiles or layers
+    // For now, assume no obstruction if not in manual map
+    return false;
+  }
+
+  /**
    * Cleanup map resources
    */
   public destroy(): void {
@@ -580,5 +726,6 @@ export class TiledMap {
     this.mapData = null;
     this.animatedTiles = [];
     this.animatedTileCount = 0;
+    this.obstructionMap.clear();
   }
 }

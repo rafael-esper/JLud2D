@@ -85,9 +85,9 @@ export class Entity {
   /**
    * Initialize entity sprite in Phaser scene
    */
-  public async initSprite(scene: Phaser.Scene, depth?: number): Promise<void> {
-    if (this.chrname && !this.chr) {
-      this.chr = await CHR.loadChr(scene, this.chrname);
+  public async initSprite(scene: Phaser.Scene, depth?: number, basePath?: string): Promise<void> {
+    if (this.chrname && !this.chr && basePath) {
+      this.chr = await CHR.loadChr(scene, this.chrname, basePath);
 
       // Create sprite
       if (this.chr && this.chr.getImageName()) {
@@ -100,6 +100,9 @@ export class Entity {
           // Set depth based on map's entity depth or use default
           const entityDepth = depth !== undefined ? depth : 5; // Default entity depth
           this.sprite.setDepth(entityDepth);
+
+          // Set blend mode to handle transparency better
+          this.sprite.setBlendMode(Phaser.BlendModes.NORMAL);
 
           // Set initial frame
           this.updateFrame();
@@ -297,6 +300,11 @@ export class Entity {
 
   public isAutoface(): boolean { return this.properties.autoface || false; }
   public setAutoface(autoface: boolean): void { this.properties.autoface = autoface; }
+
+  // Animation frame control
+  public getFrame(): number { return this.frame; }
+  public setFrame(frame: number): void { this.frame = frame; }
+  public setSpecframe(frame: number): void { this.specframe = frame; }
 
   public isObstruction(): boolean { return this.properties.obstruction || false; }
   public setObstruction(obstruction: boolean): void { this.properties.obstruction = obstruction; }

@@ -4,11 +4,11 @@
  * Features: Beach tileset, animated water tiles, island exploration
  */
 
-import { GameConfig } from '../config/GameConfig';
-import { InputManager, ControlsConfig } from '../config/Controls';
-import { FPSDisplay } from '../utils/FPSDisplay';
-import { MainEngine } from '../core/MainEngine';
-import { DemoUI } from '../utils/DemoUI';
+import { GameConfig } from '../../config/GameConfig';
+import { InputManager, ControlsConfig } from '../../config/Controls';
+import { FPSDisplay } from '../../utils/FPSDisplay';
+import { MainEngine } from '../../core/MainEngine';
+import { DemoUI } from '../../utils/DemoUI';
 
 export class Demo1Scene extends Phaser.Scene {
   private config: GameConfig;
@@ -22,10 +22,10 @@ export class Demo1Scene extends Phaser.Scene {
 
   preload() {
     // Load tilemap JSON - tileset image will be auto-loaded by TiledMap
-    this.load.tilemapTiledJSON('island-map', 'src/demos/island.map.json');
+    this.load.tilemapTiledJSON('island-map', 'src/demos/demo1/island.map.json');
 
     // Load character animation JSON - sprite image will be auto-loaded by CHR
-    this.load.json('maxim-anim', 'src/demos/maxim.anim.json');
+    this.load.json('maxim-anim', 'src/demos/demo1/maxim.anim.json');
 
     // Create loading text
     DemoUI.createLoadingText(this, 'Loading Island World...');
@@ -41,8 +41,8 @@ export class Demo1Scene extends Phaser.Scene {
 
   async create() {
     // Load map and initialize entities
-    this.tiledMap = await MainEngine.loadAndInitMap(this, 'island.map.json');
-    await MainEngine.mapinit(this, 'maxim.anim.json');
+    this.tiledMap = await MainEngine.loadAndInitMap(this, 'island.map.json', 'src/demos/demo1');
+    await MainEngine.mapinit(this, 'maxim.anim.json', 'src/demos/demo1');
 
     // Create UI
     DemoUI.createTitle(this, 'Demo 1 - Island World');

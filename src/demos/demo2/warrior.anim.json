@@ -1,0 +1,14 @@
+{
+  "totalframes" : 28,
+  "fxsize" : 32,
+  "fysize" : 32,
+  "hx" : 8,
+  "hy" : 8,
+  "hw" : 16,
+  "hh" : 16,
+  "idle" : [ 0, 1, 7, 4, 10 ],
+  "animbuf" : [ null, "F0W10F1W15F2W10", "F6W10F7W15F8W10", "F3W10F4W15F5W10", "F9W10F10W15F11W10"],
+  "imageName" : "warrior.png",
+  "columns" : 12,
+  "spacing" : 1
+}

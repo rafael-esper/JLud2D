@@ -37,8 +37,8 @@ export class MainEngine {
    * Allocate and create a new entity
    * Equivalent to Java AllocateEntity()
    */
-  public static async AllocateEntity(scene: Phaser.Scene, x: number, y: number, chr: string): Promise<number> {
-    const entity = new Entity(Math.floor(x / 16), Math.floor(y / 16), chr);
+  public static async AllocateEntity(scene: Phaser.Scene, x: number, y: number, chr: string, basePath: string): Promise<number> {
+    const entity = new Entity(x, y, chr);
     entity.setIndex(MainEngine.numentities);
 
     // Get entity depth from current map
@@ -48,13 +48,12 @@ export class MainEngine {
     }
 
     // Initialize the entity sprite with proper depth
-    await entity.initSprite(scene, entityDepth);
+    await entity.initSprite(scene, entityDepth, basePath);
 
     // Add to entity list
     MainEngine.entities.push(entity);
     const entityIndex = MainEngine.numentities++;
 
-    console.log(`Entity allocated: ${chr} at (${Math.floor(x / 16)}, ${Math.floor(y / 16)}) -> index ${entityIndex}, depth: ${entityDepth}`);
     return entityIndex;
   }
 
@@ -62,8 +61,8 @@ export class MainEngine {
    * Spawn entity at tile coordinates
    * Equivalent to Java Script.entityspawn()
    */
-  public static async entityspawn(scene: Phaser.Scene, x: number, y: number, chrname: string): Promise<number> {
-    return await MainEngine.AllocateEntity(scene, x * 16, y * 16, chrname);
+  public static async entityspawn(scene: Phaser.Scene, x: number, y: number, chrname: string, basePath: string): Promise<number> {
+    return await MainEngine.AllocateEntity(scene, x, y, chrname, basePath);
   }
 
   /**
@@ -81,7 +80,6 @@ export class MainEngine {
     MainEngine.player = entityIndex;
     MainEngine.myself = MainEngine.entities[entityIndex];
 
-    console.log(`Player set to entity ${entityIndex} (${MainEngine.myself.getChrname()})`);
     return MainEngine.myself;
   }
 
@@ -243,7 +241,6 @@ export class MainEngine {
     }
     MainEngine.current_map = null;
 
-    console.log('MainEngine: Cleanup completed');
   }
 
   /**
@@ -272,6 +269,45 @@ export class MainEngine {
    */
   public static getPlayerStep(): number {
     return MainEngine.playerstep;
+  }
+
+  /**
+   * Execute player movement sequence (simplified version of Java playermove)
+   * @param sequence Animation sequence string (e.g., "Z12 W3 Z13 W3 H")
+   */
+  public static playermove(sequence: string): void {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    // Parse and execute animation sequence with proper timing
+    // Commands: Z## = set frame ##, W## = wait ## frames, H = halt/stop
+    const commands = sequence.split(' ');
+    let currentDelay = 0;
+
+    for (let i = 0; i < commands.length; i++) {
+      const command = commands[i];
+
+      if (command.startsWith('Z')) {
+        const frameNum = parseInt(command.substring(1));
+        if (!isNaN(frameNum)) {
+          // Schedule frame change at current delay
+          setTimeout(() => {
+            player.setSpecframe(frameNum);
+          }, currentDelay);
+        }
+      } else if (command.startsWith('W')) {
+        const waitFrames = parseInt(command.substring(1));
+        if (!isNaN(waitFrames)) {
+          currentDelay += waitFrames * 16; // Convert frames to milliseconds (assuming 60fps)
+        }
+      } else if (command === 'H') {
+        // Reset to normal animation after total sequence
+        setTimeout(() => {
+          player.setSpecframe(-1); // -1 means use normal animation
+        }, currentDelay);
+        break;
+      }
+    }
   }
 
   /**
@@ -310,15 +346,9 @@ export class MainEngine {
     const startX = MainEngine.current_map.getStartX() * MainEngine.current_map.getTileWidth();
     const startY = MainEngine.current_map.getStartY() * MainEngine.current_map.getTileHeight();
 
+
     // Center camera on start position with proper clamping
     MainEngine.setCameraPosition(startX, startY);
-
-    console.log('MainEngine Camera setup:', {
-      mapSize: `${mapWidth}x${mapHeight}`,
-      cameraViewport: `${cameraWidth}x${cameraHeight}`,
-      startPosition: `${startX}, ${startY}`,
-      tilesVisible: `${Math.floor(cameraWidth / MainEngine.current_map.getTileWidth())}x${Math.floor(cameraHeight / MainEngine.current_map.getTileHeight())}`
-    });
   }
 
   /**
@@ -386,23 +416,89 @@ export class MainEngine {
     const player = MainEngine.getPlayer();
     if (!player) return;
 
-    // Get player center position
-    const playerX = player.getPixelX() + (player.getHotW() / 2);
-    const playerY = player.getPixelY() + (player.getHotH() / 2);
+    // Handle different camera tracking modes
+    switch (MainEngine.cameratracking) {
+      case 1: // Standard following mode
+        {
+          // Get player center position
+          const playerX = player.getPixelX() + (player.getHotW() / 2);
+          const playerY = player.getPixelY() + (player.getHotH() / 2);
 
-    // Set camera to follow player (with same clamping as manual movement)
-    MainEngine.setCameraPosition(playerX, playerY);
+          // Set camera to follow player (with same clamping as manual movement)
+          MainEngine.setCameraPosition(playerX, playerY);
+        }
+        break;
+
+      case 3: // Screen Transition mode (Golden Axe Warrior style)
+        {
+          if (!MainEngine.current_scene || !MainEngine.current_config) return;
+
+          const camera = MainEngine.current_scene.cameras.main;
+          const screenWidth = MainEngine.current_config.xRes;
+          const screenHeight = MainEngine.current_config.yRes;
+
+          // Get player center position
+          const playerX = player.getPixelX() + (player.getHotW() / 2);
+          const playerY = player.getPixelY() + (player.getHotH() / 2);
+
+          // Get current camera center
+          const currentCameraX = camera.centerX;
+          const currentCameraY = camera.centerY;
+
+          // Debug screen transition mode (only log occasionally to avoid spam)
+          if (Math.random() < 0.01) { // 1% chance to log
+          }
+
+          // Calculate screen boundaries for current camera position
+          const leftBound = currentCameraX - screenWidth / 2;
+          const rightBound = currentCameraX + screenWidth / 2;
+          const topBound = currentCameraY - screenHeight / 2;
+          const bottomBound = currentCameraY + screenHeight / 2;
+
+          // Check if player has moved outside current screen boundaries
+          let newCameraX = currentCameraX;
+          let newCameraY = currentCameraY;
+
+          // Horizontal screen transitions
+          if (playerX < leftBound) {
+            // Move camera one screen to the left
+            newCameraX = currentCameraX - screenWidth;
+          } else if (playerX > rightBound) {
+            // Move camera one screen to the right
+            newCameraX = currentCameraX + screenWidth;
+          }
+
+          // Vertical screen transitions
+          if (playerY < topBound) {
+            // Move camera one screen up
+            newCameraY = currentCameraY - screenHeight;
+          } else if (playerY > bottomBound) {
+            // Move camera one screen down
+            newCameraY = currentCameraY + screenHeight;
+          }
+
+          // Apply screen transition if needed
+          if (newCameraX !== currentCameraX || newCameraY !== currentCameraY) {
+            MainEngine.setCameraPosition(newCameraX, newCameraY);
+          }
+        }
+        break;
+
+      default:
+        // No camera tracking
+        break;
+    }
   }
 
   /**
    * Load map and initialize - combines map loading with initialization
    */
-  public static async loadAndInitMap(scene: Phaser.Scene, mapFilename: string): Promise<any> {
+  public static async loadAndInitMap(scene: Phaser.Scene, mapFilename: string, basePath: string): Promise<any> {
     // Import TiledMap here to avoid circular dependencies
     const { TiledMap } = await import('../domain/TiledMap');
 
     // Load the tilemap
-    const tiledMap = await TiledMap.loadMap(scene, mapFilename);
+    const tiledMap = await TiledMap.loadMap(scene, mapFilename, basePath);
 
     if (tiledMap) {
       // Start the map
@@ -410,12 +506,6 @@ export class MainEngine {
 
       // Set current map reference
       MainEngine.setCurrentMap(tiledMap);
-
-      console.log('MainEngine: Map loaded and started:', {
-        size: `${tiledMap.getWidth()}x${tiledMap.getHeight()}`,
-        tileSize: `${tiledMap.getTileWidth()}x${tiledMap.getTileHeight()}`,
-        startPos: `${tiledMap.getStartX()}, ${tiledMap.getStartY()}`
-      });
     } else {
       console.error('MainEngine: Failed to load TiledMap');
     }
@@ -427,7 +517,7 @@ export class MainEngine {
    * Map initialization - equivalent to Demo1.mapinit()
    * Spawns the player character and sets up camera tracking
    */
-  public static async mapinit(scene: Phaser.Scene, chrname: string): Promise<void> {
+  public static async mapinit(scene: Phaser.Scene, chrname: string, basePath: string): Promise<void> {
     if (!MainEngine.current_map) {
       console.error('MainEngine.mapinit: current_map not set');
       return;
@@ -444,7 +534,7 @@ export class MainEngine {
     }
 
     // Spawn player entity (equivalent to entityspawn + setplayer)
-    const playerIndex = await MainEngine.entityspawn(scene, gotox, gotoy, chrname);
+    const playerIndex = await MainEngine.entityspawn(scene, gotox, gotoy, chrname, basePath);
     MainEngine.setplayer(playerIndex);
 
     // Enable camera tracking (equivalent to cameratracking = 1)
@@ -459,10 +549,10 @@ export class MainEngine {
       // Center camera on player initially
       const playerPixelX = player.getPixelX();
       const playerPixelY = player.getPixelY();
+
       MainEngine.setCameraPosition(playerPixelX, playerPixelY);
     }
 
-    console.log('MainEngine: mapinit completed - player spawned and camera tracking enabled');
   }
 
   /**
