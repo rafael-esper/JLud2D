@@ -27,11 +27,64 @@ export class MainEngine {
   // Game state
   protected static invc: number = 0; // Script/cutscene active flag
   protected static current_map: any = null; // TiledMap instance
+  protected static entitiespaused: boolean = false; // For screen transitions
 
   // Camera system
   protected static current_scene: Phaser.Scene | null = null;
   protected static current_config: any = null;
   protected static cameraSpeed: number = 4;
+  protected static screenTransitioning: boolean = false;
+
+  // System path for resource loading (like Java systemclass)
+  protected static systemPath: string = '';
+
+  /**
+   * Set system path for resource loading (like Java setSystemPath)
+   */
+  public static setSystemPath(path: string): void {
+    MainEngine.systemPath = path;
+    console.log(`System path set to: ${path}`);
+  }
+
+  /**
+   * Initialize main engine with demo-specific config (like Java initMainEngine)
+   */
+  public static async initMainEngine(mapname?: string): Promise<any> {
+    try {
+      // Load config from system path (like Java Config.loadConfig)
+      const configPath = `${MainEngine.systemPath}/config.json`;
+      console.log(`Loading config from: ${configPath}`);
+
+      const response = await fetch(configPath);
+      if (!response.ok) {
+        throw new Error(`Failed to load config from ${configPath}`);
+      }
+
+      const configData = await response.json();
+      const { GameConfig } = await import('../config/GameConfig');
+      const config = new GameConfig(configData);
+
+      console.log('Config loaded:', config);
+
+      // Use mapname from parameter or fallback to config (like Java)
+      if (!mapname || mapname === '') {
+        mapname = config.mapName;
+        console.log(`Mapname from config file: ${mapname}`);
+      }
+
+      // Store config
+      MainEngine.current_config = config;
+
+      return { config, mapname };
+    } catch (error) {
+      console.error('Error in initMainEngine:', error);
+      // Fallback to default config
+      const { GameConfig } = await import('../config/GameConfig');
+      const config = new GameConfig();
+      MainEngine.current_config = config;
+      return { config, mapname: mapname || '' };
+    }
+  }
 
   /**
    * Allocate and create a new entity
@@ -87,11 +140,23 @@ export class MainEngine {
    * Update all entities - called every frame
    */
   public static updateEntities(): void {
+    // Skip entity updates when entities are paused (during screen transitions)
+    if (MainEngine.entitiespaused) {
+      return;
+    }
+
     for (let i = 0; i < MainEngine.numentities; i++) {
       if (MainEngine.entities[i].isActive()) {
         MainEngine.entities[i].think();
       }
     }
+  }
+
+  /**
+   * Pause/unpause entities (for screen transitions)
+   */
+  public static setEntitiesPaused(paused: boolean): void {
+    MainEngine.entitiespaused = paused;
   }
 
   /**
@@ -432,6 +497,134 @@ export class MainEngine {
   }
 
   /**
+   * Handle screen transition mode (mode 3) like Java implementation
+   */
+  private static handleScreenTransition(): void {
+    if (!MainEngine.current_scene || !MainEngine.current_config) return;
+    if (MainEngine.screenTransitioning) return; // Already in transition
+
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    const camera = MainEngine.current_scene.cameras.main;
+    const screenWidth = MainEngine.current_config.xRes;
+    const screenHeight = MainEngine.current_config.yRes;
+
+    // Initialize camera to player's screen if not properly aligned
+    const playerPixelX = player.getPixelX();
+    const playerPixelY = player.getPixelY();
+
+    // Calculate which screen the player is on
+    const playerScreenX = Math.floor(playerPixelX / screenWidth);
+    const playerScreenY = Math.floor(playerPixelY / screenHeight);
+
+    // Calculate the center of the player's current screen
+    const expectedCameraX = (playerScreenX * screenWidth) + (screenWidth / 2);
+    const expectedCameraY = (playerScreenY * screenHeight) + (screenHeight / 2);
+
+    // If camera is not aligned to a screen boundary, align it first
+    const currentCameraX = camera.centerX;
+    const currentCameraY = camera.centerY;
+
+    const cameraOffsetX = Math.abs(currentCameraX - expectedCameraX);
+    const cameraOffsetY = Math.abs(currentCameraY - expectedCameraY);
+
+    // If camera is not properly aligned (tolerance of 4 pixels), snap it to player's screen
+    if (cameraOffsetX > 4 || cameraOffsetY > 4) {
+      MainEngine.setCameraPosition(expectedCameraX, expectedCameraY);
+      return; // Wait one frame before checking transitions
+    }
+
+    // Now check for screen transitions
+    // Get current camera screen position (top-left corner equivalent to Java xwin, ywin)
+    const xwin = camera.centerX - screenWidth / 2;
+    const ywin = camera.centerY - screenHeight / 2;
+
+    // Calculate player position relative to current screen boundaries
+    const relativeX = playerPixelX - xwin;
+    const relativeY = playerPixelY - ywin;
+
+    let scrollDirection = '';
+    let scrollX = 0;
+    let scrollY = 0;
+
+    // Check boundaries like Java (with -8 pixel threshold)
+    if (relativeX <= -8) {
+      scrollDirection = 'left';
+      scrollX = -screenWidth;
+    } else if (relativeX >= screenWidth) {
+      scrollDirection = 'right';
+      scrollX = screenWidth;
+    } else if (relativeY <= -8) {
+      scrollDirection = 'up';
+      scrollY = -screenHeight;
+    } else if (relativeY >= screenHeight) {
+      scrollDirection = 'down';
+      scrollY = screenHeight;
+    }
+
+    // If transition needed, perform animated scroll
+    if (scrollDirection) {
+      MainEngine.performScreenTransition(scrollX, scrollY, scrollDirection);
+    }
+  }
+
+  /**
+   * Perform animated screen transition like Java implementation
+   */
+  private static performScreenTransition(scrollX: number, scrollY: number, direction: string): void {
+    if (!MainEngine.current_scene) return;
+
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    MainEngine.screenTransitioning = true;
+
+    // Pause entities during transition (like Java setentitiespaused(true))
+    MainEngine.setEntitiesPaused(true);
+
+    // Snap player to tile boundary (like Java)
+    player.setx(Math.floor(player.getx()));
+    player.sety(Math.floor(player.gety()));
+
+    const camera = MainEngine.current_scene.cameras.main;
+    const startX = camera.centerX;
+    const startY = camera.centerY;
+    const targetX = startX + scrollX;
+    const targetY = startY + scrollY;
+
+    // Calculate transition duration based on Java's 4-pixel increments
+    // At 60fps, move 4 pixels per frame = 240 pixels per second
+    const distance = Math.sqrt(scrollX * scrollX + scrollY * scrollY);
+    const duration = (distance / 4) * (1000 / 60); // Convert to milliseconds
+
+    // Create smooth camera transition using Phaser tween
+    MainEngine.current_scene.tweens.add({
+      targets: { x: startX, y: startY },
+      x: targetX,
+      y: targetY,
+      duration: duration,
+      ease: 'Linear',
+      onUpdate: (tween: Phaser.Tweens.Tween) => {
+        const value = tween.getValue();
+        const currentX = (value as any).x;
+        const currentY = (value as any).y;
+
+        // Update camera position
+        camera.setScroll(currentX - camera.width / 2, currentY - camera.height / 2);
+      },
+      onComplete: () => {
+        // Ensure final position is exact
+        camera.setScroll(targetX - camera.width / 2, targetY - camera.height / 2);
+
+        // Resume entities (like Java setentitiespaused(false))
+        MainEngine.setEntitiesPaused(false);
+        MainEngine.screenTransitioning = false;
+      }
+    });
+  }
+
+  /**
    * Handle camera tracking - follow the player
    * Equivalent to Demo1Scene.handleCameraTracking()
    */
@@ -454,56 +647,7 @@ export class MainEngine {
 
       case 3: // Screen Transition mode (Golden Axe Warrior style)
         {
-          if (!MainEngine.current_scene || !MainEngine.current_config) return;
-
-          const camera = MainEngine.current_scene.cameras.main;
-          const screenWidth = MainEngine.current_config.xRes;
-          const screenHeight = MainEngine.current_config.yRes;
-
-          // Get player center position
-          const playerX = player.getPixelX() + (player.getHotW() / 2);
-          const playerY = player.getPixelY() + (player.getHotH() / 2);
-
-          // Get current camera center
-          const currentCameraX = camera.centerX;
-          const currentCameraY = camera.centerY;
-
-          // Debug screen transition mode (only log occasionally to avoid spam)
-          if (Math.random() < 0.01) { // 1% chance to log
-          }
-
-          // Calculate screen boundaries for current camera position
-          const leftBound = currentCameraX - screenWidth / 2;
-          const rightBound = currentCameraX + screenWidth / 2;
-          const topBound = currentCameraY - screenHeight / 2;
-          const bottomBound = currentCameraY + screenHeight / 2;
-
-          // Check if player has moved outside current screen boundaries
-          let newCameraX = currentCameraX;
-          let newCameraY = currentCameraY;
-
-          // Horizontal screen transitions
-          if (playerX < leftBound) {
-            // Move camera one screen to the left
-            newCameraX = currentCameraX - screenWidth;
-          } else if (playerX > rightBound) {
-            // Move camera one screen to the right
-            newCameraX = currentCameraX + screenWidth;
-          }
-
-          // Vertical screen transitions
-          if (playerY < topBound) {
-            // Move camera one screen up
-            newCameraY = currentCameraY - screenHeight;
-          } else if (playerY > bottomBound) {
-            // Move camera one screen down
-            newCameraY = currentCameraY + screenHeight;
-          }
-
-          // Apply screen transition if needed
-          if (newCameraX !== currentCameraX || newCameraY !== currentCameraY) {
-            MainEngine.setCameraPosition(newCameraX, newCameraY);
-          }
+          MainEngine.handleScreenTransition();
         }
         break;
 

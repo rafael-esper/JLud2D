@@ -31,15 +31,18 @@ export class Demo1Scene extends Phaser.Scene {
     DemoUI.createLoadingText(this, 'Loading Island World...');
   }
 
-  init(data: { config: GameConfig }) {
-    this.config = data.config;
+  async init(data: { demoPath: string }) {
+    MainEngine.setSystemPath(data.demoPath);
+    const { config } = await MainEngine.initMainEngine();
+    this.config = config;
+  }
+
+  async create() {
     this.inputManager = new InputManager(this, new ControlsConfig());
     this.fpsDisplay = new FPSDisplay(this);
 
     MainEngine.setCurrentScene(this, this.config);
-  }
 
-  async create() {
     // Load map and initialize entities
     this.tiledMap = await MainEngine.loadAndInitMap(this, 'island.map.json', 'src/demos/demo1');
     await MainEngine.mapinit(this, 'maxim.anim.json', 'src/demos/demo1');

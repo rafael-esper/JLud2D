@@ -47,15 +47,18 @@ export class Demo2Scene extends Phaser.Scene {
     DemoUI.createLoadingText(this, 'Loading Golden Axe Warrior...');
   }
 
-  init(data: { config: GameConfig }) {
-    this.config = data.config;
+  async init(data: { demoPath: string }) {
+    MainEngine.setSystemPath(data.demoPath);
+    const { config } = await MainEngine.initMainEngine();
+    this.config = config;
+  }
+
+  async create() {
     this.inputManager = new InputManager(this, new ControlsConfig());
     this.fpsDisplay = new FPSDisplay(this);
 
     MainEngine.setCurrentScene(this, this.config);
-  }
 
-  async create() {
     // Load map and initialize entities
     this.tiledMap = await MainEngine.loadAndInitMap(this, 'goldw.map.json', 'src/demos/demo2');
     await MainEngine.mapinit(this, 'warrior.anim.json', 'src/demos/demo2');
@@ -79,8 +82,8 @@ export class Demo2Scene extends Phaser.Scene {
 
     }
 
-    // Set to standard following mode (mode 1) for testing
-    MainEngine.setCameraTracking(1);
+    // Set to screen transition mode (mode 3) for Golden Axe Warrior style
+    MainEngine.setCameraTracking(3);
 
     // Create UI
     this.createUI();

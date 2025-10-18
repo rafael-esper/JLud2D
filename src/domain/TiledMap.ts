@@ -712,15 +712,6 @@ export class TiledMap {
   // Add obstruction map for manual obstacle tracking
   private obstructionMap: Map<string, number> = new Map();
 
-  /**
-   * Get obstacle value at coordinates (Java getobs equivalent)
-   * @param x Tile X coordinate
-   * @param y Tile Y coordinate
-   * @returns true if obstructed, false if passable
-   */
-  public getObs(x: number, y: number): boolean {
-    return this.getobs(x, y);
-  }
 
   /**
    * Get obstacle at tile coordinates (Java getobs method)

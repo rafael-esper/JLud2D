@@ -129,11 +129,11 @@ export class MenuScene extends Phaser.Scene {
     switch (this.selectedDemo) {
       case 0: // Demo 1
         console.log('Starting Demo1Scene');
-        this.scene.start('Demo1Scene', { config: this.config });
+        this.scene.start('Demo1Scene', { demoPath: 'src/demos/demo1' });
         break;
       case 1: // Demo 2
         console.log('Starting Demo2Scene');
-        this.scene.start('Demo2Scene', { config: this.config });
+        this.scene.start('Demo2Scene', { demoPath: 'src/demos/demo2' });
         break;
       case 2: // Settings
         console.log('Starting SettingsScene');
