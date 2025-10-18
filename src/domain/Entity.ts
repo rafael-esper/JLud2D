@@ -122,9 +122,16 @@ export class Entity {
   public think(): void {
     if (!this.active) return;
 
-    // Handle movement
-    if (!this.ready()) {
-      this.moveTick();
+    // Java-style speed accumulation system
+    this.speedct += this.getSpeed();
+    const numTicks = Math.floor(this.speedct / 100);
+    this.speedct %= 100;
+
+    // Execute movement ticks based on speed (but keep smooth pixel movement)
+    for (let i = 0; i < numTicks; i++) {
+      if (!this.ready()) {
+        this.moveTick();
+      }
     }
 
     this.updateFrame();

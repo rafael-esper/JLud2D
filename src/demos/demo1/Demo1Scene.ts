@@ -47,6 +47,9 @@ export class Demo1Scene extends Phaser.Scene {
     this.tiledMap = await MainEngine.loadAndInitMap(this, 'island.map.json', 'src/demos/demo1');
     await MainEngine.mapinit(this, 'maxim.anim.json', 'src/demos/demo1');
 
+    const player = MainEngine.getPlayer();
+    if (player) player.setSpeed(150); // 1.5x speed
+
     // Create UI
     DemoUI.createTitle(this, 'Demo 1 - Island World');
     DemoUI.createInstructions(this, 'WASD/Arrows: Move Character | ESC: Back to Menu');
