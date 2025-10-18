@@ -175,11 +175,12 @@ export class Entity {
    * Update facing direction based on movement
    */
   private updateFacing(dx: number, dy: number): void {
-    if (Math.abs(dx) > Math.abs(dy)) {
-      // Horizontal movement
+    // Always prioritize horizontal movement for diagonal directions
+    if (dx !== 0) {
+      // Any horizontal movement uses left/right animation
       this.properties.face = dx > 0 ? EntityDirection.EAST : EntityDirection.WEST;
     } else if (dy !== 0) {
-      // Vertical movement
+      // Pure vertical movement only
       this.properties.face = dy > 0 ? EntityDirection.SOUTH : EntityDirection.NORTH;
     }
   }

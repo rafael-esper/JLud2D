@@ -559,7 +559,7 @@ export class MainEngine {
     MainEngine.setPlayerStep(4);
     const player = MainEngine.getPlayer();
     if (player) {
-      player.setSpeed(200); // Pixels per second - much slower, more reasonable
+      player.setSpeed(100); // Reduced speed for better animation timing
 
       // Center camera on player initially
       const playerPixelX = player.getPixelX();
