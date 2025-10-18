@@ -56,6 +56,7 @@ export class Entity {
   private framect: number = 0;
   private specframe: number = -1;
   private frame: number = 0;
+  private idleTimer: number = 0;
 
   // Character rendering
   private chr: CHR | null = null;
@@ -193,14 +194,25 @@ export class Entity {
 
       // Use Java logic: idle frame when ready, walking frame when moving
       if (this.ready()) {
-        // Use idle frame for current direction (but preserve framect for resume)
-        const idleFrames = this.chr.getIdle();
-        this.frame = idleFrames[direction] || 0;
+        // Increment idle timer
+        this.idleTimer++;
+
+        // Only show idle frame after being stopped for a few frames
+        if (this.idleTimer > 5) {
+          const idleFrames = this.chr.getIdle();
+          this.frame = idleFrames[direction] || 0;
+        } else {
+          // Keep showing walking animation frame to avoid jumps
+          this.frame = this.chr.getFrame(direction, this.framect);
+        }
       } else {
+        // Reset idle timer when moving
+        this.idleTimer = 0;
         // Use walking animation frame
         this.frame = this.chr.getFrame(direction, this.framect);
       }
     }
+
 
     // Update sprite frame
     if (this.sprite && this.chr) {
