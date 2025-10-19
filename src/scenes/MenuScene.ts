@@ -10,7 +10,7 @@ export class MenuScene extends Phaser.Scene {
   private config: GameConfig;
   private inputManager: InputManager;
   private selectedDemo: number = 0;
-  private menuItems: string[] = ['Demo 1 - Island World', 'Demo 2 - Golden Axe Warrior', 'Settings', 'Exit'];
+  private menuItems: string[] = ['Demo 1 - Island World', 'Demo 2 - Golden Axe Warrior', 'Demo 3 - Alex Kidd', 'Settings', 'Exit'];
   private menuTexts: Phaser.GameObjects.Text[] = [];
 
   constructor() {
@@ -135,11 +135,15 @@ export class MenuScene extends Phaser.Scene {
         console.log('Starting Demo2Scene');
         this.scene.start('Demo2Scene', { demoPath: 'src/demos/demo2' });
         break;
-      case 2: // Settings
+      case 2: // Demo 3
+        console.log('Starting AkScene');
+        this.scene.start('AkScene', { demoPath: 'src/demos/ak' });
+        break;
+      case 3: // Settings
         console.log('Starting SettingsScene');
         this.scene.start('SettingsScene', { config: this.config });
         break;
-      case 3: // Exit
+      case 4: // Exit
         console.log('Exiting game');
         if (confirm('Exit game?')) {
           window.close();

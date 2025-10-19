@@ -1,7 +1,7 @@
 /**
- * Demo 1 Scene - Island World Demo
- * Port of Java demo1 with Tiled tilemap rendering
- * Features: Beach tileset, animated water tiles, island exploration
+ * Ak Scene - Alex Kidd Platformer Demo
+ * Port of Java AK.java with side-scrolling platformer mechanics
+ * Features: Physics-based movement, multiple player states, tile-based collision
  */
 
 import { GameConfig } from '../../config/GameConfig';
@@ -10,21 +10,21 @@ import { FPSDisplay } from '../../utils/FPSDisplay';
 import { MainEngine } from '../../core/MainEngine';
 import { DemoUI } from '../../utils/DemoUI';
 
-export class Demo1Scene extends Phaser.Scene {
+export class AkScene extends Phaser.Scene {
   private config: GameConfig;
   private inputManager: InputManager;
   private fpsDisplay: FPSDisplay;
   private tiledMap: any = null;
 
   constructor() {
-    super({ key: 'Demo1Scene' });
+    super({ key: 'AkScene' });
   }
 
   preload() {
-    this.load.tilemapTiledJSON('island-map', 'src/demos/demo1/island.map.json');
-    this.load.json('maxim-anim', 'src/demos/demo1/maxim.anim.json');
+    this.load.tilemapTiledJSON('level01-map', 'src/demos/ak/level01.map.json');
+    this.load.json('ak-anim', 'src/demos/ak/Ak.anim.json');
 
-    DemoUI.createLoadingText(this, 'Loading Island World...');
+    DemoUI.createLoadingText(this, 'Loading Alex Kidd Demo...');
   }
 
   async init(data: { demoPath: string }) {
@@ -39,23 +39,18 @@ export class Demo1Scene extends Phaser.Scene {
 
     MainEngine.setCurrentScene(this, this.config);
 
-    // Load map and initialize entities
-    this.tiledMap = await MainEngine.loadAndInitMap(this, 'island.map.json', 'src/demos/demo1');
-    await MainEngine.mapinit(this, 'maxim.anim.json', 'src/demos/demo1');
+    // Load map and initialize player
+    this.tiledMap = await MainEngine.loadAndInitMap(this, 'level01.map.json', 'src/demos/ak');
+    await MainEngine.mapinit(this, 'Ak.anim.json', 'src/demos/ak');
 
-    const player = MainEngine.getPlayer();
-    if (player) player.setSpeed(150); // 1.5x speed
-
-    // Create UI
-    DemoUI.createTitle(this, 'Demo 1 - Island World');
-    DemoUI.createInstructions(this, 'WASD/Arrows: Move Character | ESC: Back to Menu');
-
-    // Setup camera and FPS display
+    // Set camera to follow player
+    //MainEngine.setCameraTracking(1);
     MainEngine.setupCamera();
+
     this.fpsDisplay.setVisible(this.config.showFPS);
   }
 
-  update(delta: number) {
+   update(delta: number): void {
     this.inputManager.updateControls();
     this.fpsDisplay.update();
 
@@ -73,4 +68,5 @@ export class Demo1Scene extends Phaser.Scene {
       this.scene.start('MenuScene', { config: this.config });
     }
   }
+
 }

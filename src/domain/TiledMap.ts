@@ -777,13 +777,21 @@ export class TiledMap {
     const tileX = x >> 4; // x / 16
     const tileY = y >> 4; // y / 16
 
-    // Get tile from Meta layer
+    // Get tile from Meta layer - use same approach as getobs method
     if (!this.mapData || !this.mapData.layers || this.mapData.layers.length === 0) {
       return false;
     }
 
-    const metaLayerIndex = this.mapData.layers.length - TiledMap.META_LAYER;
-    if (metaLayerIndex < 0 || metaLayerIndex >= this.mapData.layers.length) {
+    // Find the Meta layer by name (same as getobs method)
+    let metaLayerIndex = -1;
+    for (let i = 0; i < this.mapData.layers.length; i++) {
+      if (this.mapData.layers[i].name === 'Meta') {
+        metaLayerIndex = i;
+        break;
+      }
+    }
+
+    if (metaLayerIndex === -1) {
       return false;
     }
 

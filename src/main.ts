@@ -9,6 +9,7 @@ import { MenuScene } from './scenes/MenuScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { Demo1Scene } from './demos/demo1/Demo1Scene';
 import { Demo2Scene } from './demos/demo2/Demo2Scene';
+import { AkScene } from './demos/ak/AkScene';
 import { ResponsiveScaler } from './utils/ResponsiveScaler';
 
 class Game {
@@ -63,7 +64,8 @@ class Game {
       MenuScene,
       SettingsScene,
       Demo1Scene,
-      Demo2Scene
+      Demo2Scene,
+      AkScene
     ];
 
     // Create the game

@@ -170,7 +170,11 @@ export class Entity {
 
     // Update sprite position
     if (this.sprite && this.chr) {
-      this.chr.render(this.sprite, this.x, this.y, this.frame);
+      const frameToUse = this.specframe >= 0 ? this.specframe : this.frame;
+      // Only render if we have a valid frame number
+      if (frameToUse !== undefined && frameToUse !== null && !isNaN(frameToUse)) {
+        this.chr.render(this.sprite, this.x, this.y, frameToUse);
+      }
     }
   }
 
@@ -223,7 +227,11 @@ export class Entity {
 
     // Update sprite frame
     if (this.sprite && this.chr) {
-      this.chr.render(this.sprite, this.x, this.y, this.frame);
+      const frameToUse = this.specframe >= 0 ? this.specframe : this.frame;
+      // Only render if we have a valid frame number
+      if (frameToUse !== undefined && frameToUse !== null && !isNaN(frameToUse)) {
+        this.chr.render(this.sprite, this.x, this.y, frameToUse);
+      }
     }
   }
 
@@ -270,7 +278,11 @@ export class Entity {
 
     // Sprite is automatically rendered by Phaser
     // Just ensure it's positioned correctly
-    this.chr.render(this.sprite, this.x, this.y, this.frame);
+    const frameToUse = this.specframe >= 0 ? this.specframe : this.frame;
+    // Only render if we have a valid frame number
+    if (frameToUse !== undefined && frameToUse !== null && !isNaN(frameToUse)) {
+      this.chr.render(this.sprite, this.x, this.y, frameToUse);
+    }
   }
 
   // Position getters/setters (tile coordinates)
