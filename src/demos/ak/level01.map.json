@@ -580,8 +580,8 @@
         }, 
         {
          "name":"startX",
-         "type":"qlonglong",
-         "value":5
+         "type":"string",
+         "value":"2"
         }, 
         {
          "name":"startY",

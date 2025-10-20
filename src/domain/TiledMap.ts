@@ -38,6 +38,8 @@ export interface TilesetData {
   spacing?: number;
   firstgid: number;
   tiles?: AnimatedTile[];
+  // Java port: pixel-level obstruction data
+  obsPixels?: Uint8Array;
 }
 
 export interface MapData {
@@ -467,15 +469,6 @@ export class TiledMap {
     // Could check specific obstruction tiles or layers
     // For now, assume no obstruction
     return false;
-  }
-
-  /**
-   * Get obstruction at pixel coordinates
-   */
-  public getObsPixel(x: number, y: number): boolean {
-    const tileX = Math.floor(x / this.tilewidth);
-    const tileY = Math.floor(y / this.tileheight);
-    return this.getObs(tileX, tileY);
   }
 
   // Getters

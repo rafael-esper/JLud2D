@@ -286,8 +286,8 @@ export class Entity {
   }
 
   // Position getters/setters (tile coordinates)
-  public getx(): number { return Math.floor(this.x / 16); }
-  public gety(): number { return Math.floor(this.y / 16); }
+  public getx(): number { return this.x / 16; }
+  public gety(): number { return this.y / 16; }
 
   public setx(x: number): void {
     this.x = x * 16;
