@@ -78,7 +78,7 @@ export class Entity {
   private follow: Entity | null = null;
 
   constructor(x: number, y: number, chrname: string = '') {
-    this.setxy(x, y);
+    this.setxy(x*16, y*16);
     this.chrname = chrname;
     this.properties.chrname = chrname;
   }
@@ -286,32 +286,37 @@ export class Entity {
     }
   }
 
-  // Position getters/setters (Java-compatible: getx/gety return pixel coordinates)
-  public getx(): number { return this.x; }
-  public gety(): number { return this.y; }
+  // Position getters/setters return pixel coordinates
+  public getx(): number { 
+    return this.x; 
+  }
+
+  public gety(): number { 
+    return this.y; 
+  }
 
   public setx(x: number): void {
-    this.x = x * 16;
+    this.x = x;
     this.clearWaypoints();
   }
 
   public sety(y: number): void {
-    this.y = y * 16;
+    this.y = y;
     this.clearWaypoints();
   }
 
   public setxy(x: number, y: number): void {
-    this.x = x * 16;
-    this.y = y * 16;
+    this.x = x;
+    this.y = y;
     this.clearWaypoints();
   }
 
   public incx(amount: number = 1): void {
-    this.x += amount * 16;
+    this.x += amount;
   }
 
   public incy(amount: number = 1): void {
-    this.y += amount * 16;
+    this.y += amount;
   }
 
 

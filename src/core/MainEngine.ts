@@ -583,10 +583,6 @@ export class MainEngine {
     // Pause entities during transition (like Java setentitiespaused(true))
     MainEngine.setEntitiesPaused(true);
 
-    // Snap player to tile boundary (like Java)
-    player.setx(Math.floor(player.getx() / 16));
-    player.sety(Math.floor(player.gety() / 16));
-
     const camera = MainEngine.current_scene.cameras.main;
     const startX = camera.centerX;
     const startY = camera.centerY;
