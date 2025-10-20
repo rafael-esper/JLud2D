@@ -44,8 +44,13 @@ public class Config {
     	URL resource = Config.class.getResource("/" + CONFIG_FILENAME);
         if(resource != null) {
             log.info("Found local Config file (config.json).");
-            Config config = loadConfig(resource);
-            return config;
+            try {
+                Config config = loadConfigJson(resource);
+                return config;
+            } catch (IOException e) {
+                log.error("Error loading local config file: " + e.getLocalizedMessage());
+                e.printStackTrace();
+            }
         }
         
         log.info("Reading standard config file (JAR!/" + configFilePath + ").");

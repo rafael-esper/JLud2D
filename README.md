@@ -44,6 +44,7 @@ Here is an example of a map script used when talking with an entity:
 
 ## Getting Started: I want to play
 
+### Running Pre-built JARs (Original Method)
 You can download just the demo / game you want to play and execute it with Java 8 command line:
 ```
 java -jar Demo.jar
@@ -51,7 +52,50 @@ java -jar Demo.jar
 
 They are located in the /redist folder.
 
-*Some important notes*
+### Running from Source (Updated Method)
+
+**Prerequisites:**
+- Maven installed
+- Java 8+ (tested with Java 21)
+
+**Build the project:**
+```bash
+mvn clean compile
+```
+
+**Copy demo assets to classpath:**
+```bash
+# For Demo1 (Island World)
+mkdir -p target/classes/demos/demo1 && cp src/demos/demo1/* target/classes/demos/demo1/
+
+# For Demo2 (Golden Warrior)
+mkdir -p target/classes/demos/demo2 && cp src/demos/demo2/* target/classes/demos/demo2/
+
+# For Alex Kidd Demo
+mkdir -p target/classes/demos/ak && cp -r src/demos/ak/* target/classes/demos/ak/
+
+# For Phantasy Star Demo
+mkdir -p target/classes/demos/ps && cp -r src/demos/ps/* target/classes/demos/ps/
+```
+
+**Run demos with proper Java module access:**
+```bash
+# Demo1 - Island World
+MAVEN_OPTS="--add-opens java.desktop/java.awt.image=ALL-UNNAMED --add-opens java.desktop/java.awt.color=ALL-UNNAMED --add-opens java.desktop/java.awt=ALL-UNNAMED --add-opens java.desktop/sun.java2d=ALL-UNNAMED --add-opens java.desktop/sun.awt.image=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED" mvn exec:java -Dexec.mainClass="demos.demo1.Demo1"
+
+# Demo2 - Golden Warrior
+MAVEN_OPTS="--add-opens java.desktop/java.awt.image=ALL-UNNAMED --add-opens java.desktop/java.awt.color=ALL-UNNAMED --add-opens java.desktop/java.awt=ALL-UNNAMED --add-opens java.desktop/sun.java2d=ALL-UNNAMED --add-opens java.desktop/sun.awt.image=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED" mvn exec:java -Dexec.mainClass="demos.demo2.Demo2"
+
+# Alex Kidd Demo
+MAVEN_OPTS="--add-opens java.desktop/java.awt.image=ALL-UNNAMED --add-opens java.desktop/java.awt.color=ALL-UNNAMED --add-opens java.desktop/java.awt=ALL-UNNAMED --add-opens java.desktop/sun.java2d=ALL-UNNAMED --add-opens java.desktop/sun.awt.image=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED" mvn exec:java -Dexec.mainClass="demos.ak.AK"
+
+# Phantasy Star Demo
+MAVEN_OPTS="--add-opens java.desktop/java.awt.image=ALL-UNNAMED --add-opens java.desktop/java.awt.color=ALL-UNNAMED --add-opens java.desktop/java.awt=ALL-UNNAMED --add-opens java.desktop/sun.java2d=ALL-UNNAMED --add-opens java.desktop/sun.awt.image=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED" mvn exec:java -Dexec.mainClass="demos.ps.Phantasy"
+```
+
+**Note:** The `--add-opens` flags are required for Java 9+ to allow the older Gson library to access private fields via reflection.
+
+*Game Controls:*
 - F5 for sound off/on
 - F6 for full screen
 - F7/F8 to increase/decrease frame delay.
