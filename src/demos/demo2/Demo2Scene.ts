@@ -112,8 +112,8 @@ export class Demo2Scene extends Phaser.Scene {
     MainEngine.setScriptActive(true);
     if (this.axeSwing) this.axeSwing.play();
 
-    const xx = Math.floor(player.getPixelX() / 16);
-    const yy = Math.floor(player.getPixelY() / 16);
+    const xx = Math.floor(player.getx() / 16);
+    const yy = Math.floor(player.gety() / 16);
     let targetX = xx;
     let targetY = yy;
     let animSequence = '';

@@ -247,10 +247,11 @@ export class Entity {
    * Set waypoint relative to current position
    */
   public setWaypointRelative(x: number, y: number, changeface: boolean = true): void {
-    this.setWaypoint(this.getx() + x, this.gety() + y);
+    // Convert pixel coordinates to tile coordinates for setWaypoint
+    this.setWaypoint((this.getx() + x) / 16, (this.gety() + y) / 16);
 
     if (changeface && this.properties.autoface) {
-      this.updateFacing(x * 16, y * 16);
+      this.updateFacing(x, y);
     }
   }
 
@@ -285,9 +286,9 @@ export class Entity {
     }
   }
 
-  // Position getters/setters (tile coordinates)
-  public getx(): number { return this.x / 16; }
-  public gety(): number { return this.y / 16; }
+  // Position getters/setters (Java-compatible: getx/gety return pixel coordinates)
+  public getx(): number { return this.x; }
+  public gety(): number { return this.y; }
 
   public setx(x: number): void {
     this.x = x * 16;

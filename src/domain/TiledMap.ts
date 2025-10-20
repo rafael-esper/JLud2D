@@ -708,12 +708,12 @@ export class TiledMap {
       return true;
     }
 
-    // Get tile from Meta layer (last layer minus META_LAYER offset)
+    // Check Meta layer for obstructions (simple version)
     if (!this.mapData || !this.mapData.layers || this.mapData.layers.length === 0) {
       return false;
     }
 
-    // Find the Meta layer by name instead of using offset calculation
+    // Find Meta layer by name
     let metaLayerIndex = -1;
     for (let i = 0; i < this.mapData.layers.length; i++) {
       if (this.mapData.layers[i].name === 'Meta') {
@@ -723,156 +723,25 @@ export class TiledMap {
     }
 
     if (metaLayerIndex === -1) {
-      return false;
+      return false; // No Meta layer found
     }
 
-    const t = this.gettile(x, y, metaLayerIndex);
-    return this.isObs(t);
+    // Get tile from Meta layer
+    const metaTile = this.gettile(x, y, metaLayerIndex);
+
+    // Any non-zero tile in Meta layer is considered an obstruction
+    return metaTile > 0;
   }
 
   /**
    * Get obstacle at pixel coordinates (Java getobspixel method)
    */
   public getobspixel(x: number, y: number): boolean {
-    // Handle wrapping for horizontal axis
-    if (!this.getHorizontalWrappable() && (x < 0 || Math.floor(x / this.tilewidth) >= this.getWidth())) {
-      return true;
-    }
-
-    // Handle wrapping for vertical axis
-    if (!this.getVerticalWrappable() && (y < 0 || Math.floor(y / this.tileheight) >= this.getHeight())) {
-      return true;
-    }
-
-    // Apply horizontal wrapping
-    if (this.getHorizontalWrappable() && x < 0) {
-      x += (this.getWidth() * this.tilewidth);
-    }
-    if (this.getHorizontalWrappable() && Math.floor(x / this.tilewidth) >= this.getWidth()) {
-      x -= (this.getWidth() * this.tilewidth);
-    }
-
-    // Apply vertical wrapping
-    if (this.getVerticalWrappable() && y < 0) {
-      y += (this.getHeight() * this.tileheight);
-    }
-    if (this.getVerticalWrappable() && Math.floor(y / this.tileheight) >= this.getHeight()) {
-      y -= (this.getHeight() * this.tileheight);
-    }
-
-    // Convert to tile coordinates
-    const tileX = x >> 4; // x / 16
-    const tileY = y >> 4; // y / 16
-
-    // Get tile from Meta layer - use same approach as getobs method
-    if (!this.mapData || !this.mapData.layers || this.mapData.layers.length === 0) {
-      return false;
-    }
-
-    // Find the Meta layer by name (same as getobs method)
-    let metaLayerIndex = -1;
-    for (let i = 0; i < this.mapData.layers.length; i++) {
-      if (this.mapData.layers[i].name === 'Meta') {
-        metaLayerIndex = i;
-        break;
-      }
-    }
-
-    if (metaLayerIndex === -1) {
-      return false;
-    }
-
-    const t = this.gettile(tileX, tileY, metaLayerIndex);
-    if (!this.isObs(t)) {
-      return false;
-    }
-
-    // For detailed pixel-level obstruction, would need Meta tileset GetObs method
-    // For now, if tile is obstructed, entire tile is obstructed
-    return true;
+    const tileX = Math.floor(x / this.tilewidth);
+    const tileY = Math.floor(y / this.tileheight);
+    return this.getobs(tileX, tileY);
   }
 
-  /**
-   * Check if a tile ID represents an obstruction (Java isObs method)
-   */
-  private isObs(t: number): boolean {
-    // If tile is 0 (empty), not obstructed
-    if (t === 0) {
-      return false;
-    }
-
-    const metaTileset = this.getMetaTileset();
-    if (!metaTileset) {
-      return false;
-    }
-
-    const firstGid = metaTileset.firstgid;
-
-    // Check if tile is in Meta tileset range
-    if (t >= firstGid) {
-      // Tile is from Meta tileset - check if it's an obstruction tile
-      const metaTileId = t - firstGid + 1; // Convert to 1-based tile ID within tileset
-      const inRange = metaTileId >= 1 && metaTileId <= TiledMap.ZONE_OFFSET;
-      return inRange;
-    } else if (t > 0) {
-      // Tile is from another tileset - assume any non-zero tile in Meta layer is an obstruction
-      // This handles cases where Meta layer uses tiles from the main tileset for obstructions
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Get the Meta tileset (equivalent to Java getMetaTileset)
-   */
-  private getMetaTileset(): TilesetData | null {
-    if (!this.mapData || !this.mapData.tilesets) {
-      return null;
-    }
-
-    // Find the Meta tileset - typically the last one or named "Meta"
-    for (const tileset of this.mapData.tilesets) {
-      if (tileset.name.toLowerCase().includes('meta')) {
-        return tileset;
-      }
-    }
-
-    // If no Meta tileset found by name, use the last tileset
-    if (this.mapData.tilesets.length > 0) {
-      return this.mapData.tilesets[this.mapData.tilesets.length - 1];
-    }
-
-    return null;
-  }
-
-  /**
-   * Get horizontal wrapping property
-   */
-  public getHorizontalWrappable(): boolean {
-    return this.horizontalWrappable;
-  }
-
-  /**
-   * Get vertical wrapping property
-   */
-  public getVerticalWrappable(): boolean {
-    return this.verticalWrappable;
-  }
-
-  /**
-   * Set horizontal wrapping property
-   */
-  public setHorizontalWrappable(wrappable: boolean): void {
-    this.horizontalWrappable = wrappable;
-  }
-
-  /**
-   * Set vertical wrapping property
-   */
-  public setVerticalWrappable(wrappable: boolean): void {
-    this.verticalWrappable = wrappable;
-  }
 
   /**
    * Cleanup map resources

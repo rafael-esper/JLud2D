@@ -307,18 +307,18 @@ export class AkScene extends Phaser.Scene {
 
     if (this.condition == Condition.WALK || this.condition == Condition.MOTO || this.condition == Condition.SURF) { // normal
       if (direction == AkScene.WEST) {
-        console.log("DEBUG left: Player position - X: " + player.getPixelX() + ", Y: " + player.getPixelY());
+        console.log("DEBUG left: Player position - X: " + player.getx() + ", Y: " + player.gety());
         for (a = 7 + vo; a < 28; a += 2) {
-          if (this.tiledMap.getobspixel(player.getPixelX() + 8,
-              player.getPixelY() + a))
+          if (this.tiledMap.getobspixel(player.getx() + 8,
+              player.gety() + a))
             return true;
         }
       } // left
       if (direction == AkScene.EAST) {
-        console.log("DEBUG right: Player position - X: " + player.getPixelX() + ", Y: " + player.getPixelY());
+        console.log("DEBUG right: Player position - X: " + player.getx() + ", Y: " + player.gety());
         for (a = 7 + vo; a < 28; a += 2) {
-          if (this.tiledMap.getobspixel(player.getPixelX() + 24,
-              player.getPixelY() + a))
+          if (this.tiledMap.getobspixel(player.getx() + 24,
+              player.gety() + a))
             return true;
         }
       } // right
@@ -327,38 +327,38 @@ export class AkScene extends Phaser.Scene {
         return false; // end of stair
       if (direction == AkScene.NORTH) {
         for (a = 11; a < 20; a += 2) {
-          if (this.tiledMap.getobspixel((player.getPixelX()) + a,
-              (player.getPixelY()) + (6 + vo)))
+          if (this.tiledMap.getobspixel((player.getx()) + a,
+              (player.gety()) + (6 + vo)))
             return true;
         }
       } // up
 
       if (direction == AkScene.SOUTH) {
         for (a = 11 - ho; a < 20 + ho; a += 2) {
-          if (this.tiledMap.getobspixel((player.getPixelX()) + a,
-              (player.getPixelY()) + (28)))
+          if (this.tiledMap.getobspixel((player.getx()) + a,
+              (player.gety()) + (28)))
             return true;
         }
       } // down
       if (direction == AkScene.SOUTH && this.condition == Condition.SURF) {
         for (a = 11 - ho; a < 20; a += 2) {
-          if (this.tiledMap.getzone(((player.getPixelX()) + a) >> 4,
-              ((player.getPixelY()) + 28) >> 4) == 6)
+          if (this.tiledMap.getzone(((player.getx()) + a) >> 4,
+              ((player.gety()) + 28) >> 4) == 6)
             return true;
         }
       }
 
       if (direction == 4) {
         for (a = 11; a < 20; a += 2) {
-          if (this.tiledMap.getobspixel((player.getPixelX()) + a - 6,
-              ((player.getPixelY()) + 28 + 6)))
+          if (this.tiledMap.getobspixel((player.getx()) + a - 6,
+              ((player.gety()) + 28 + 6)))
             return true;
         }
       } // face0 + lack of floor
       if (direction == 5) {
         for (a = 11; a < 20; a += 2) {
-          if (this.tiledMap.getobspixel((player.getPixelX()) + a + 16,
-              ((player.getPixelY()) + 28 + 6)))
+          if (this.tiledMap.getobspixel((player.getx()) + a + 16,
+              ((player.gety()) + 28 + 6)))
             return true;
         }
       } // face1 + lack of floor
@@ -366,36 +366,36 @@ export class AkScene extends Phaser.Scene {
     } else if (this.condition == Condition.SWIM) { // swimming
       if (direction == AkScene.WEST) {
         for (a = 12; a < 24; a += 2) {
-          if (this.tiledMap.getobspixel((player.getPixelX()) + 7,
-              (player.getPixelY()) + a))
+          if (this.tiledMap.getobspixel((player.getx()) + 7,
+              (player.gety()) + a))
             return true;
         }
       }
       if (direction == AkScene.EAST) {
         for (a = 12; a < 24; a += 2) {
-          if (this.tiledMap.getobspixel((player.getPixelX()) + 25,
-              (player.getPixelY()) + a))
+          if (this.tiledMap.getobspixel((player.getx()) + 25,
+              (player.gety()) + a))
             return true;
         }
       }
       if (direction == AkScene.NORTH) {
         for (a = 8; a < 22; a += 2) {
-          if (this.tiledMap.getzone(((player.getPixelX()) + a) >> 4,
-              ((player.getPixelY()) + 8) >> 4) == 6)
+          if (this.tiledMap.getzone(((player.getx()) + a) >> 4,
+              ((player.gety()) + 8) >> 4) == 6)
             return true;
         }
       }
       if (direction == AkScene.NORTH) {
         for (a = 8; a < 26; a += 2) {
-          if (this.tiledMap.getobspixel((player.getPixelX()) + a,
-              (player.getPixelY()) + (8)))
+          if (this.tiledMap.getobspixel((player.getx()) + a,
+              (player.gety()) + (8)))
             return true;
         }
       }
       if (direction == AkScene.SOUTH) {
         for (a = 8; a < 26; a += 2) {
-          if (this.tiledMap.getobspixel((player.getPixelX()) + a,
-              (player.getPixelY()) + (25)))
+          if (this.tiledMap.getobspixel((player.getx()) + a,
+              (player.gety()) + (25)))
             return true;
         }
       }
@@ -499,28 +499,28 @@ export class AkScene extends Phaser.Scene {
 
     if (this.state == Status.STOPPED) {
       if (this.condition == Condition.WALK || this.condition == Condition.FLY) { // idle
-        this.setDimensions(player.getPixelX() + 12, player.getPixelY() + 6, 8, 20);
+        this.setDimensions(player.getx() + 12, player.gety() + 6, 8, 20);
         return 1 - player.getFace();
       }
     }
 
     if (this.state == Status.DUCKING || this.condition == Condition.STAR) { // ducking
-      this.setDimensions(player.getPixelX() + 12, player.getPixelY() + 12, 8, 16);
+      this.setDimensions(player.getx() + 12, player.gety() + 12, 8, 16);
       return 40 - player.getFace();
     }
 
     if (this.condition == Condition.WALK && this.state == Status.WALKING) { // running
-      this.setDimensions(player.getPixelX() + 12, player.getPixelY() + 6, 8, 20);
+      this.setDimensions(player.getx() + 12, player.gety() + 6, 8, 20);
       return 9 - (3 * player.getFace()) + (this.playerframe >> 1);
     }
 
     if (this.condition == Condition.SWIM) { // swimming
-      this.setDimensions(player.getPixelX() + 10, player.getPixelY() + 11, 13, 12);
+      this.setDimensions(player.getx() + 10, player.gety() + 11, 13, 12);
       return 15 - (3 * player.getFace()) + Math.floor(this.playerframe / 3);
     }
 
     if (this.condition == Condition.WALK && (this.state == Status.JUMPING || this.state == Status.FALLING)) {
-      this.setDimensions(player.getPixelX() + 10, player.getPixelY() + 8, 12, 20);
+      this.setDimensions(player.getx() + 10, player.gety() + 8, 12, 20);
       return 3 - player.getFace();
     }
 

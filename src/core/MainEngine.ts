@@ -208,19 +208,19 @@ export class MainEngine {
       // Calculate target position for obstruction check
       const currentX = MainEngine.myself.getx();
       const currentY = MainEngine.myself.gety();
-      const targetX = currentX + moveX;
-      const targetY = currentY + moveY;
+      const targetX = currentX + (moveX * 16); // Convert tile movement to pixels
+      const targetY = currentY + (moveY * 16); // Convert tile movement to pixels
 
-      // Check for obstructions at target position
+      // Check for obstructions at target position using pixel coordinates
       let canMove = true;
       if (MainEngine.current_map) {
-        canMove = !MainEngine.current_map.getobs(targetX, targetY);
+        canMove = !MainEngine.current_map.getobspixel(targetX, targetY);
       }
 
       // Only move if target position is not obstructed (like Java dist != 0 check)
       if (canMove) {
-        // Set waypoint for movement (don't change face again since we already set it)
-        MainEngine.myself.setWaypointRelative(moveX, moveY, false);
+        // Set waypoint for movement (convert tile movement to pixels)
+        MainEngine.myself.setWaypointRelative(moveX * 16, moveY * 16, false);
       }
 
       // Update last player direction for diagonal handling
@@ -511,8 +511,8 @@ export class MainEngine {
     const screenHeight = MainEngine.current_config.yRes;
 
     // Initialize camera to player's screen if not properly aligned
-    const playerPixelX = player.getPixelX();
-    const playerPixelY = player.getPixelY();
+    const playerPixelX = player.getx();
+    const playerPixelY = player.gety();
 
     // Calculate which screen the player is on
     const playerScreenX = Math.floor(playerPixelX / screenWidth);
@@ -584,8 +584,8 @@ export class MainEngine {
     MainEngine.setEntitiesPaused(true);
 
     // Snap player to tile boundary (like Java)
-    player.setx(Math.floor(player.getx()));
-    player.sety(Math.floor(player.gety()));
+    player.setx(Math.floor(player.getx() / 16));
+    player.sety(Math.floor(player.gety() / 16));
 
     const camera = MainEngine.current_scene.cameras.main;
     const startX = camera.centerX;
@@ -637,8 +637,8 @@ export class MainEngine {
       case 1: // Standard following mode
         {
           // Get player center position
-          const playerX = player.getPixelX() + (player.getHotW() / 2);
-          const playerY = player.getPixelY() + (player.getHotH() / 2);
+          const playerX = player.getx() + (player.getHotW() / 2);
+          const playerY = player.gety() + (player.getHotH() / 2);
 
           // Set camera to follow player (with same clamping as manual movement)
           MainEngine.setCameraPosition(playerX, playerY);
@@ -714,8 +714,8 @@ export class MainEngine {
       player.setSpeed(100); // Reduced speed for better animation timing
 
       // Center camera on player initially
-      const playerPixelX = player.getPixelX();
-      const playerPixelY = player.getPixelY();
+      const playerPixelX = player.getx();
+      const playerPixelY = player.gety();
 
       MainEngine.setCameraPosition(playerPixelX, playerPixelY);
     }
