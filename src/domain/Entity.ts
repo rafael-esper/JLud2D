@@ -22,7 +22,7 @@ export type Direction = typeof EntityDirection[keyof typeof EntityDirection];
 
 export interface EntityProperties {
   autoface?: boolean;
-  face?: number;
+  face: number;
   activationEvent?: string;
   chrname?: string;
   obstruction?: boolean;
@@ -328,7 +328,7 @@ export class Entity {
   public setChrname(chrname: string): void { this.chrname = chrname; }
 
   // Properties
-  public getFace(): number { return this.properties.face || EntityDirection.SOUTH; }
+  public getFace(): number { return this.properties.face; }
   public setFace(direction: number): void { this.properties.face = direction; }
 
   public getSpeed(): number { return this.properties.speed || 100; }

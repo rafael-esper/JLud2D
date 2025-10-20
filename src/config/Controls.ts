@@ -269,6 +269,38 @@ export class InputManager {
     this.up = this.down = this.left = this.right = false;
     this.b1 = this.b2 = this.b3 = this.b4 = false;
   }
+
+  /**
+   * Force unpress a specific key (Java equivalent: unpress method)
+   */
+  public unpress(key: number): void {
+    switch (key) {
+      case 1: // up
+        this.up = false;
+        break;
+      case 2: // down
+        this.down = false;
+        break;
+      case 3: // left
+        this.left = false;
+        break;
+      case 4: // right
+        this.right = false;
+        break;
+      case 5: // b1/action1
+        this.b1 = false;
+        break;
+      case 6: // b2/action2
+        this.b2 = false;
+        break;
+      case 7: // b3/action3
+        this.b3 = false;
+        break;
+      case 8: // b4/action4
+        this.b4 = false;
+        break;
+    }
+  }
 }
 
 export default ControlsConfig;

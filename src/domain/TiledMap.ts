@@ -526,7 +526,6 @@ export class TiledMap {
 
     // Initialize animated tiles array
     this.animatedTiles = [];
-    this.animatedTileCount = 0;
 
     // Get tileset data with animations
     for (const tilesetData of this.mapData.tilesets) {
@@ -565,17 +564,12 @@ export class TiledMap {
                 firstgid: tilesetData.firstgid,
                 elapsedTime: 0
               });
-
-              this.animatedTileCount++;
-
-              console.log(`Found animated tile at (${x}, ${y}): tile ${tile.index}, local ID ${localTileId}, ${animatedTile.animation.length} frames`);
             }
           }
         }
       }
     }
 
-    console.log(`Total animated tiles found in map: ${this.animatedTileCount}`);
   }
 
   /**

@@ -260,6 +260,9 @@ export class CHR {
       return;
     }
 
+    // Set origin to top-left for exact positioning like original Java code
+    sprite.setOrigin(0, 0);
+
     // Set position accounting for hotspot
     sprite.setPosition(x - this.hx, y - this.hy);
 
