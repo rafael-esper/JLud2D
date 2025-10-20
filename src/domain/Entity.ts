@@ -314,9 +314,6 @@ export class Entity {
     this.y += amount * 16;
   }
 
-  // Pixel coordinates (for precise positioning)
-  public getPixelX(): number { return this.x; }
-  public getPixelY(): number { return this.y; }
 
   // Waypoint getters
   public getWaypointx(): number { return Math.floor(this.waypointx / 16); }
