@@ -5,11 +5,7 @@
  */
 
 import { MainEngine } from '../../core/MainEngine';
-
-// Enums (matching AkScene)
-export enum Condition { WALK, SWIM, MOTO, SURF, HELI, FLY, STAR, ROPE, SHIW }
-export enum Status { STOPPED, WALKING, JUMPING, FALLING, DUCKING }
-export enum Action { NONE, PUNCHING, TREMBLING }
+import { Condition, Status, Action } from './AkMovement';
 
 export class AkActions {
   // Punch-related state
@@ -69,7 +65,7 @@ export class AkActions {
     let ge: number, he: number = 0;
 
     if (state === Status.WALKING) {
-      if (condition === Condition.WALK || condition === Condition.SHIW) {
+      if (condition === Condition.WALK) {
         newVelocity = friction * velocity / 10;
         console.log(`AkActions: velocity adjusted for walking: ${newVelocity}`);
       }
