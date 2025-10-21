@@ -250,6 +250,13 @@ export class MainEngine {
   }
 
   /**
+   * Get current map
+   */
+  public static getCurrentMap(): any {
+    return MainEngine.current_map;
+  }
+
+  /**
    * Get player entity index
    */
   public static getPlayerIndex(): number {

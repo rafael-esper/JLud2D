@@ -59,8 +59,7 @@ export class TiledMap {
   // Java constants ported from MapTiledJSON.java
   private static readonly META_LAYER = 2; // Meta layer offset from end
   private static readonly ENTITY_LAYER = 1; // Entity layer offset from end
-    private static readonly OBS_OFFSET = 20; // Obs offset for tile IDs
-  private static readonly ZONE_OFFSET = 60; // Zone offset for tile IDs
+  private static readonly ZONE_OFFSET = 19; // Obs offset for tile IDs
 
   // Map properties
   private width: number = 30;
@@ -447,32 +446,6 @@ export class TiledMap {
     return tile ? tile.index : 0;
   }
 
-  /**
-   * Set tile at position for specific layer
-   */
-  public setTile(x: number, y: number, layerName: string, tileIndex: number): void {
-    const layer = this.layers[layerName];
-    if (!layer || x < 0 || y < 0 || x >= this.width || y >= this.height) {
-      return;
-    }
-
-    layer.putTileAt(tileIndex, x, y);
-  }
-
-  /**
-   * Check if position is obstructed
-   * For now, simplified - could be enhanced with obstruction layers
-   */
-  public getObs(x: number, y: number): boolean {
-    if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
-      return true; // Out of bounds is obstructed
-    }
-
-    // Could check specific obstruction tiles or layers
-    // For now, assume no obstruction
-    return false;
-  }
-
   // Getters
   public getWidth(): number { return this.width; }
   public getHeight(): number { return this.height; }
@@ -640,20 +613,43 @@ export class TiledMap {
    * @param x Tile X coordinate
    * @param y Tile Y coordinate
    * @param layer Layer index (0 for first layer)
-   * @param tileId New tile ID
+   * @param index New tile index
    */
-  public settile(x: number, y: number, layer: number, tileId: number): void {
-    if (!this.tilemap || !this.mapData) return;
+  public settile(x: number, y: number, layer: number, index: number): void {
+    if (!this.mapData || layer >= this.mapData.layers.length) {
+      return;
+    }
 
     // Get layer by index
     const layerData = this.mapData.layers[layer];
-    if (!layerData || layerData.type !== 'tilelayer') return;
+    if (!layerData || layerData.type !== 'tilelayer' || !layerData.data) {
+      return;
+    }
 
+    // Bounds check
+    if (x < 0 || y < 0 || x >= layerData.width || y >= layerData.height) {
+      return;
+    }
+
+    // Calculate array index
+    const arrayIndex = y * layerData.width + x;
+
+    // Apply Java logic: index == 0 ? 0: index+1
+    const tileId = index === 0 ? 0 : index+1;
+
+    // Set directly in the data array (like setobs method)
+    layerData.data[arrayIndex] = tileId;
+
+    // Also update the Phaser layer if it exists (Meta layer is hidden anyway)
     const phaserLayer = this.layers[layerData.name];
-    if (!phaserLayer) return;
+    if (phaserLayer) {
+      try {
+        phaserLayer.putTileAt(tileId, x, y);
+      } catch (error) {
+        // Ignore Phaser layer update errors for Meta layer - raw data update is sufficient
+      }
+    }
 
-    // Set the tile
-    phaserLayer.putTileAt(tileId, x, y);
   }
 
   /**
@@ -734,7 +730,7 @@ export class TiledMap {
   public isObs(t: number): boolean {
        const firstGid = this.getMetaTileset().getFirstGid();
        // Check if tile is in obstruction range (firstGid + 1 to firstGid + ZONE_OFFSET)
-       if (t >= firstGid + 1 && t <= firstGid + TiledMap.OBS_OFFSET) {
+       if (t >= firstGid + 1 && t <= firstGid + TiledMap.ZONE_OFFSET) {
         return true;
        }
 
@@ -763,7 +759,7 @@ export class TiledMap {
    */
   private tileToZone(t: number): number {
     const firstGid = this.getMetaTileset().getFirstGid();
-    return (t - firstGid - TiledMap.OBS_OFFSET);
+    return (t - firstGid - TiledMap.ZONE_OFFSET);
   }
 
   /**
@@ -774,7 +770,7 @@ export class TiledMap {
       return 0;
     }
     const firstGid = this.getMetaTileset().getFirstGid();
-    return (zone + firstGid + TiledMap.OBS_OFFSET);
+    return (zone + firstGid + TiledMap.ZONE_OFFSET);
   }
 
   /**
@@ -790,7 +786,7 @@ export class TiledMap {
    */
   private getTileProperty(tileId: number, propertyName: string): any {
     if (!this.mapData || !this.mapData.tilesets) {
-      return undefined;
+      return 0;
     }
 
     // Find which tileset contains this tile ID
@@ -816,7 +812,7 @@ export class TiledMap {
       }
     }
 
-    return undefined;
+    return 0;
   }
 
   /**
@@ -831,6 +827,40 @@ export class TiledMap {
     };
   }
 
+  /**
+   * Get zone number at tile coordinates (Java getzone method)
+   */
+  public getzone(x: number, y: number): number {
+    if (x < 0 || y < 0 || x >= this.getWidth() || y >= this.getHeight()) {
+      return 0;
+    }
+
+    // Get Meta layer tile
+    const metaLayerIndex = this.mapData.layers.length - TiledMap.META_LAYER;
+    if (metaLayerIndex < 0 || metaLayerIndex >= this.mapData.layers.length) {
+      return 0;
+    }
+
+    const t = this.gettile(x, y, metaLayerIndex);
+
+    // If it's a zone tile, return the zone number
+    if (this.isZone(t)) {
+      return this.tileToZone(t);
+    }
+
+    return 0; // No zone
+  }
+
+  /**
+   * Set zone number at tile coordinates (Java setzone method)
+   */
+  public setzone(x: number, y: number, z: number): void {
+    if (x < 0 || y < 0 || x >= this.getWidth() || y >= this.getHeight()) {
+      return;
+    }
+    const metaLayerIndex = this.mapData.layers.length - TiledMap.META_LAYER;
+    this.settile(x, y, metaLayerIndex, z === 0 ? 0 : this.zoneToTile(z));
+  }
 
   /**
    * Cleanup map resources

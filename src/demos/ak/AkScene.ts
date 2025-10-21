@@ -9,6 +9,7 @@ import { InputManager, ControlsConfig } from '../../config/Controls';
 import { FPSDisplay } from '../../utils/FPSDisplay';
 import { MainEngine } from '../../core/MainEngine';
 import { DemoUI } from '../../utils/DemoUI';
+import { AkActions } from './AkActions';
 
 // Enums (TypeScript equivalent of Java static enums)
 enum Condition { WALK, SWIM, MOTO, SURF, HELI, FLY, STAR, ROPE }
@@ -59,6 +60,13 @@ export class AkScene extends Phaser.Scene {
     this.load.tilemapTiledJSON('level01-map', 'src/demos/ak/level01.map.json');
     this.load.json('ak-anim', 'src/demos/ak/Ak.anim.json');
 
+    // Load sound effects for events
+    this.load.audio('star-sound', 'src/demos/ak/res/sound/Star.wav');
+    this.load.audio('collect-sound', 'src/demos/ak/res/sound/Item.wav');
+    this.load.audio('gold-sound', 'src/demos/ak/res/sound/Gold.wav');
+    this.load.audio('punch-sound', 'src/demos/ak/res/sound/Punch.wav');
+    this.load.audio('rock-sound', 'src/demos/ak/res/sound/Rock.wav');
+
     DemoUI.createLoadingText(this, 'Loading Alex Kidd Demo...');
   }
 
@@ -89,6 +97,9 @@ export class AkScene extends Phaser.Scene {
     this.debugGraphics = this.add.graphics();
     this.debugGraphics.setDepth(1000); // High depth to render on top
 
+    // Initialize AkActions sound system
+    //FIXME AkActions.initSounds(this);
+
     this.fpsDisplay.setVisible(this.config.showFPS);
   }
 
@@ -99,8 +110,7 @@ export class AkScene extends Phaser.Scene {
     // Update tile animations
     if (this.tiledMap) {
       this.tiledMap.updateAnimations(delta);
-    }
-    
+    }    
 
     this.controlKeys();
 
@@ -114,10 +124,6 @@ export class AkScene extends Phaser.Scene {
     const player = MainEngine.getPlayer();
     if (player && player.getChr()) {
       player.setSpecframe(playerFrame);
-    }
-
-    if (player) {
-      // Force entity to update its sprite position
       player.draw();
     }
 
@@ -134,11 +140,7 @@ export class AkScene extends Phaser.Scene {
       this.debugGraphics.strokeRect(rectX, rectY, rectWidth, rectHeight);
     }
 
-    // Update engine
-    //MainEngine.updateEntities();
-    //MainEngine.handleCameraTracking();
-
-    //MainEngine.updateEngine(this.inputManager);
+    MainEngine.handleCameraTracking();
 
     // Back to menu
     if (this.inputManager.justPressed('b4')) {
@@ -185,6 +187,22 @@ export class AkScene extends Phaser.Scene {
         this.controlRope();
         break;
     }
+
+    // Handle punch controls after condition switch
+    const punchResult = AkActions.handlePunchControls(
+      this.condition,
+      this.inputManager.justPressed('b1'),
+      this.inputManager.left,
+      this.inputManager.right,
+      this.state,
+      this.velocity,
+      this.friction,
+      this.action
+    );
+
+    this.state = punchResult.state;
+    this.velocity = punchResult.velocity;
+    this.action = punchResult.action;
 
     if (!this.inputManager.left && !this.inputManager.right && this.state == Status.WALKING && this.condition != Condition.SURF) {
       this.state = Status.STOPPED;
@@ -302,7 +320,6 @@ export class AkScene extends Phaser.Scene {
 
     if (this.condition == Condition.WALK || this.condition == Condition.MOTO || this.condition == Condition.SURF) { // normal
       if (direction == AkScene.WEST) {
-        console.log("DEBUG left: Player position - X: " + player.getx() + ", Y: " + player.gety());
         for (a = 7 + vo; a < 28; a += 2) {
           if (this.tiledMap.getobspixel(player.getx() + 8,
               player.gety() + a))
@@ -310,7 +327,6 @@ export class AkScene extends Phaser.Scene {
         }
       } // left
       if (direction == AkScene.EAST) {
-        console.log("DEBUG right: Player position - X: " + player.getx() + ", Y: " + player.gety());
         for (a = 7 + vo; a < 28; a += 2) {
           if (this.tiledMap.getobspixel(player.getx() + 24,
               player.gety() + a))
@@ -491,6 +507,12 @@ export class AkScene extends Phaser.Scene {
 
     const player = MainEngine.getPlayer();
     if (!player) return 0;
+
+    // Check for punch action frame
+    const punchFrame = AkActions.getPlayerFrame(this.action, this.condition);
+    if (punchFrame !== null) {
+      return punchFrame;
+    }
 
     if (this.state == Status.STOPPED) {
       if (this.condition == Condition.WALK || this.condition == Condition.FLY) { // idle
