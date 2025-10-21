@@ -57,7 +57,9 @@ export interface MapData {
 
 export class TiledMap {
   // Java constants ported from MapTiledJSON.java
-  private static readonly META_LAYER = 1; // Meta layer offset from end
+  private static readonly META_LAYER = 2; // Meta layer offset from end
+  private static readonly ENTITY_LAYER = 1; // Entity layer offset from end
+    private static readonly OBS_OFFSET = 20; // Obs offset for tile IDs
   private static readonly ZONE_OFFSET = 60; // Zone offset for tile IDs
 
   // Map properties
@@ -714,23 +716,10 @@ export class TiledMap {
     }
 
     // Find Meta layer by name
-    let metaLayerIndex = -1;
-    for (let i = 0; i < this.mapData.layers.length; i++) {
-      if (this.mapData.layers[i].name === 'Meta') {
-        metaLayerIndex = i;
-        break;
-      }
-    }
-
-    if (metaLayerIndex === -1) {
-      return false; // No Meta layer found
-    }
-
-    // Get tile from Meta layer
+    let metaLayerIndex = this.mapData.layers.length - TiledMap.META_LAYER;
     const metaTile = this.gettile(x, y, metaLayerIndex);
 
-    // Any non-zero tile in Meta layer is considered an obstruction
-    return metaTile > 0;
+    return this.isObs(metaTile);
   }
 
   /**
@@ -740,6 +729,106 @@ export class TiledMap {
     const tileX = Math.floor(x / this.tilewidth);
     const tileY = Math.floor(y / this.tileheight);
     return this.getobs(tileX, tileY);
+  }
+
+  public isObs(t: number): boolean {
+       const firstGid = this.getMetaTileset().getFirstGid();
+       // Check if tile is in obstruction range (firstGid + 1 to firstGid + ZONE_OFFSET)
+       if (t >= firstGid + 1 && t <= firstGid + TiledMap.OBS_OFFSET) {
+        return true;
+       }
+
+       // Check if it's a zone tile with method 1 (obstruction method)
+       if (this.isZone(t) && this.isObstructionZone(this.tileToZone(t))) {
+        return true;
+       }
+
+       return false;
+  }
+
+  /**
+   * Check if tile ID represents a zone
+   */
+  private isZone(t: number): boolean {
+    const tZone = this.tileToZone(t);
+    if (tZone > 0) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Zone Tiles start at 20 and goes until 220
+   * This returns 0 (no zone) to 200.
+   */
+  private tileToZone(t: number): number {
+    const firstGid = this.getMetaTileset().getFirstGid();
+    return (t - firstGid - TiledMap.OBS_OFFSET);
+  }
+
+  /**
+   * Convert zone number to tile ID 
+   */
+  private zoneToTile(zone: number): number {
+    if (zone === 0) {
+      return 0;
+    }
+    const firstGid = this.getMetaTileset().getFirstGid();
+    return (zone + firstGid + TiledMap.OBS_OFFSET);
+  }
+
+  /**
+   * Check if zone has obstruction property set
+   */
+  private isObstructionZone(zone: number): boolean {
+    const tileId = this.zoneToTile(zone);
+    return this.getTileProperty(tileId, "isObstruction") === true;
+  }
+
+  /**
+   * Get a custom property from a tile
+   */
+  private getTileProperty(tileId: number, propertyName: string): any {
+    if (!this.mapData || !this.mapData.tilesets) {
+      return undefined;
+    }
+
+    // Find which tileset contains this tile ID
+    for (const tileset of this.mapData.tilesets) {
+      if (tileId >= tileset.firstgid && tileId < tileset.firstgid + tileset.tilecount) {
+        // Get local tile ID within this tileset
+        const localTileId = tileId - tileset.firstgid;
+
+        // Check if tileset has tile properties
+        if (tileset.tiles) {
+          for (const tile of tileset.tiles) {
+            if (tile.id === localTileId && tile.properties) {
+              // Find the property
+              for (const prop of tile.properties) {
+                if (prop.name === propertyName) {
+                  return prop.value;
+                }
+              }
+            }
+          }
+        }
+        break; // Found the tileset, no need to continue
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Get the meta tileset (typically the last tileset in the tilesets array)
+   */
+  private getMetaTileset(): { getFirstGid(): number } {
+    // The meta tileset should be the last tileset
+    const lastTileset = this.mapData.tilesets[this.mapData.tilesets.length - 1];
+
+    return {
+      getFirstGid: () => lastTileset ? lastTileset.firstgid : 1
+    };
   }
 
 

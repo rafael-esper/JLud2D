@@ -125,16 +125,11 @@ export class AkScene extends Phaser.Scene {
     if (this.config.debug && player && this.debugGraphics) {
       this.debugGraphics.clear();
 
-      // Get player current position in pixels (Entity's internal pixel coordinates)
-      const playerX = player.getx();
-      const playerY = player.gety();
-
       // Draw simple rectangle around player sprite (32x32 frame size from Ak.anim.json)
       const rectX = this.akidd_px;
       const rectY = this.akidd_py;
       const rectWidth = this.akidd_vx;  // Frame width from Ak.anim.json
       const rectHeight = this.akidd_vy; // Frame height from Ak.anim.json
-      console.log(rectX, rectY, rectWidth, rectHeight);
       this.debugGraphics.lineStyle(2, 0x0000ff, 1); // Blue outline
       this.debugGraphics.strokeRect(rectX, rectY, rectWidth, rectHeight);
     }
