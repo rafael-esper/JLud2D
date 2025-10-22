@@ -88,12 +88,15 @@ export class AkScene extends Phaser.Scene {
     // Update tile animations
     if (this.tiledMap) {
       this.tiledMap.updateAnimations(delta);
-    }    
+    }
 
-    this.movement.processControls();
-    this.movement.update();
+    // Safety check: ensure movement system is initialized
+    if (this.movement) {
+      this.movement.processControls();
+      this.movement.update();
+    }
 
-    const playerFrame = this.showPlayer();
+    const playerFrame = this.movement ? this.showPlayer() : 0;
 
     // Update player sprite frame (Phaser equivalent of screen.render/showpage)
     const player = MainEngine.getPlayer();
@@ -125,12 +128,6 @@ export class AkScene extends Phaser.Scene {
   }
 
 
-
-
-
-
-
-
   // Set player collision dimensions
   private setDimensions(px: number, py: number, vx: number, vy: number): void {
     this.akidd_px = px;
@@ -138,7 +135,6 @@ export class AkScene extends Phaser.Scene {
     this.akidd_vx = vx;
     this.akidd_vy = vy;
   }
-
 
 
   // Show player animation and set collision dimensions

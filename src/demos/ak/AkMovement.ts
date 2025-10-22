@@ -22,13 +22,16 @@ export class AkMovement {
   private vertical: number = 0;
   private alt: number = 0;
 
+  // Zone tracking
+  private static zonecalled: number = 0;
+
   // Physics constants
   private static readonly SPEED: number = 3;
   private static readonly MAXJUMP: number = 48;
   private static readonly MAXVEL: number = 15;
   private static readonly FALL: number = 6;
-  private static readonly GRAV_EF: number = 50;
-  private static readonly GRAV: number = 5;
+  private static readonly GRAV_EF: number = 40;
+  private static readonly GRAV: number = 4;
 
   // Direction constants
   private static readonly WEST: number = 0;
@@ -74,6 +77,8 @@ export class AkMovement {
       this.state = Status.STOPPED;
       this.velocity = 0;
     }
+
+    this.processZones();
 
     switch (this.condition) {
       case Condition.WALK:
@@ -228,113 +233,93 @@ export class AkMovement {
     const player = MainEngine.getPlayer();
     if (!player) return false;
 
-    let a: number, ho: number = 0, vo: number = 0;
+		let startX = 8;
+		let startY = 6;
+		let endX = startX + 16;
+		let endY = startY + 22; 
 
-    if (this.condition == Condition.STAR)
-      vo = 6;
-    if (this.condition == Condition.MOTO || this.condition == Condition.SURF)
-      ho = 4;
+		if(this.condition == Condition.SWIM) { // FIXME Swim Zone NORTH
+			startX-=4; endX+=2;
+			startY+=5; //endY--;
+		}
+		
+		if(this.condition == Condition.HELI) {
+			startX-=2; endX+=4;
+			startY--; endY+=9;			
+		}
 
-    if (this.condition == Condition.WALK || this.condition == Condition.MOTO || this.condition == Condition.SURF) { // normal
-      if (direction == AkMovement.WEST) {
-        for (a = 7 + vo; a < 28; a += 2) {
-          if (this.tiledMap.getobspixel(player.getx() + 8,
-              player.gety() + a))
-            return true;
-        }
-      } // left
-      if (direction == AkMovement.EAST) {
-        for (a = 7 + vo; a < 28; a += 2) {
-          if (this.tiledMap.getobspixel(player.getx() + 24,
-              player.gety() + a))
-            return true;
-        }
-      } // right
+    let tolerance = 1;
 
-      if (direction == AkMovement.NORTH && this.processZones() == 12)
-        return false; // end of stair
-      if (direction == AkMovement.NORTH) {
-        for (a = 11; a < 20; a += 2) {
-          if (this.tiledMap.getobspixel((player.getx()) + a,
-              (player.gety()) + (6 + vo)))
-            return true;
-        }
-      } // up
+		if (direction == AkMovement.WEST) {
+			for (let py = startY + tolerance; py < endY - tolerance; py += 2) {
+				if (this.tiledMap.getobspixel((player.getx() + startX), player.gety() + py))
+					return true;
+			}
+		} // left
+		if (direction == AkMovement.EAST) {
+			for (let py = startY + tolerance; py < endY - tolerance; py += 2) {
+				if (this.tiledMap.getobspixel((player.getx() + endX), player.gety() + py))
+					return true;
+			}
+		} // right
 
-      if (direction == AkMovement.SOUTH) {
-        for (a = 11 - ho; a < 20 + ho; a += 2) {
-          if (this.tiledMap.getobspixel((player.getx()) + a,
-              (player.gety()) + (28)))
-            return true;
-        }
-      } // down
-      if (direction == AkMovement.SOUTH && this.condition == Condition.SURF) {
-        for (a = 11 - ho; a < 20; a += 2) {
-          if (this.tiledMap.getzone(((player.getx()) + a) >> 4,
-              ((player.gety()) + 28) >> 4) == 6)
-            return true;
-        }
-      }
+		if (direction == AkMovement.NORTH) {
+			for (let px = startX + tolerance; px < endX - tolerance; px += 2) {
+				if (this.tiledMap.getobspixel((player.getx() + px), player.gety() + startY))
+					return true;
+				if(this.tiledMap.getzone((player.getx() + px)>>4, (player.gety() + startY)>>4) == AkActions.ZONE_SWIM)
+					return true;
+			}
+		} // up
 
-      if (direction == 4) {
-        for (a = 11; a < 20; a += 2) {
-          if (this.tiledMap.getobspixel((player.getx()) + a - 6,
-              ((player.gety()) + 28 + 6)))
-            return true;
-        }
-      } // face0 + lack of floor
-      if (direction == 5) {
-        for (a = 11; a < 20; a += 2) {
-          if (this.tiledMap.getobspixel((player.getx()) + a + 16,
-              ((player.gety()) + 28 + 6)))
-            return true;
-        }
-      } // face1 + lack of floor
+		if (direction == AkMovement.SOUTH) {
+			for (let px = startX + tolerance; px < endX - tolerance; px += 2) {
+				if (this.tiledMap.getobspixel((player.getx() + px), player.gety() + endY))
+					return true;
+			}
+		} // down
 
-    } else if (this.condition == Condition.SWIM) { // swimming
-      if (direction == AkMovement.WEST) {
-        for (a = 12; a < 24; a += 2) {
-          if (this.tiledMap.getobspixel((player.getx()) + 7,
-              (player.gety()) + a))
-            return true;
+		return false;
+  }
+
+  // Process zones method (ported from Java)
+  private processZones(): number {
+
+    const player = MainEngine.getPlayer();
+    const currentMap = MainEngine.getCurrentMap();
+
+    if (!player || !currentMap) {
+      return 0;
+    }
+
+    let c: number = 0, z: number = 0;
+    let zx: number, zy: number;
+
+    if (this.condition == Condition.WALK)
+      c = 8; // walking
+    if (this.condition == Condition.SWIM)
+      c = 12; // swimming
+
+    for (let a = 13; a < 17; a += 2) {
+      for (let b = c; b < 26; b += 2) {
+        zx = (player.getx() + a) >> 4;
+        zy = (player.gety() + b) >> 4;
+        if (this.action == Action.PUNCHING)
+          zx = (player.getx() + a + 8) >> 4;
+        z = currentMap.getzone(zx, zy);
+
+        if (z != 0 && AkMovement.zonecalled != z) {
+          AkMovement.zonecalled = z;
+          AkActions.callEvent(z, zx, zy);
+          return z;
         }
-      }
-      if (direction == AkMovement.EAST) {
-        for (a = 12; a < 24; a += 2) {
-          if (this.tiledMap.getobspixel((player.getx()) + 25,
-              (player.gety()) + a))
-            return true;
-        }
-      }
-      if (direction == AkMovement.NORTH) {
-        for (a = 8; a < 22; a += 2) {
-          if (this.tiledMap.getzone(((player.getx()) + a) >> 4,
-              ((player.gety()) + 8) >> 4) == 6)
-            return true;
-        }
-      }
-      if (direction == AkMovement.NORTH) {
-        for (a = 8; a < 26; a += 2) {
-          if (this.tiledMap.getobspixel((player.getx()) + a,
-              (player.gety()) + (8)))
-            return true;
-        }
-      }
-      if (direction == AkMovement.SOUTH) {
-        for (a = 8; a < 26; a += 2) {
-          if (this.tiledMap.getobspixel((player.getx()) + a,
-              (player.gety()) + (25)))
-            return true;
+        if (z == 0 && AkMovement.zonecalled != 0) {
+          AkMovement.zonecalled = 0;
         }
       }
     }
-    return false;
-  }
 
-  // Placeholder for processZones
-  private processZones(): number {
-    //console.log("processZones - Non-implemented yet");
-    return 0;
+    return z;
   }
 
   private unpress(key: number): void {

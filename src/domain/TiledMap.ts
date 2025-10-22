@@ -609,7 +609,7 @@ export class TiledMap {
   }
 
   /**
-   * Set tile ID at coordinates (equivalent to Java settile)
+   * Set tile ID at coordinates 
    * @param x Tile X coordinate
    * @param y Tile Y coordinate
    * @param layer Layer index (0 for first layer)
@@ -619,7 +619,7 @@ export class TiledMap {
     if (!this.mapData || layer >= this.mapData.layers.length) {
       return;
     }
-
+    console.log("RBP", x, y, layer, index)
     // Get layer by index
     const layerData = this.mapData.layers[layer];
     if (!layerData || layerData.type !== 'tilelayer' || !layerData.data) {
@@ -635,7 +635,7 @@ export class TiledMap {
     const arrayIndex = y * layerData.width + x;
 
     // Apply Java logic: index == 0 ? 0: index+1
-    const tileId = index === 0 ? 0 : index+1;
+    const tileId = index === 0 ? 0 : index + 1;
 
     // Set directly in the data array (like setobs method)
     layerData.data[arrayIndex] = tileId;
@@ -770,14 +770,14 @@ export class TiledMap {
       return 0;
     }
     const firstGid = this.getMetaTileset().getFirstGid();
-    return (zone + firstGid + TiledMap.ZONE_OFFSET);
+    return (zone + (firstGid-1) + TiledMap.ZONE_OFFSET);
   }
 
   /**
    * Check if zone has obstruction property set
    */
   private isObstructionZone(zone: number): boolean {
-    const tileId = this.zoneToTile(zone);
+    const tileId = this.zoneToTile(zone+1);
     return this.getTileProperty(tileId, "isObstruction") === true;
   }
 

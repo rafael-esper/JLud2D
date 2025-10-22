@@ -11,8 +11,6 @@ export class AkActions {
   // Punch-related state
   private static pdelay: number = 0;
   private static hasBrac: boolean = false;
-  private static zx: number = 0;
-  private static zy: number = 0;
 
   // Additional action state
   private static tdelay: number = 0;
@@ -21,21 +19,21 @@ export class AkActions {
   private static Gold: number = 0;
 
   // Constants for zones and tiles
-  private static readonly ZONE_GOLD1 = 1;
-  private static readonly ZONE_GOLD2 = 2;
-  private static readonly ZONE_ROCK = 3;
-  private static readonly ZONE_STAR = 4;
-  private static readonly ZONE_RICE = 5;
-  private static readonly ZONE_SWIM = 6;
-  private static readonly ZONE_ITEM = 7;
-  private static readonly ZONE_SKULL = 8;
-  private static readonly ZONE_DEATH = 9;
-  private static readonly ZONE_WIND_IN = 10;
-  private static readonly ZONE_WIND_OUT = 11;
-  private static readonly ZONE_STAIR = 12;
-  private static readonly ZONE_MOTO_SHOP = 13;
-  private static readonly ZONE_BRACELET = 14;
-  private static readonly ZONE_HELI_SHOP = 15;
+  static readonly ZONE_GOLD1 = 1;
+  static readonly ZONE_GOLD2 = 2;
+  static readonly ZONE_ROCK = 3;
+  static readonly ZONE_STAR = 4;
+  static readonly ZONE_RICE = 5;
+  static readonly ZONE_SWIM = 6;
+  static readonly ZONE_ITEM = 7;
+  static readonly ZONE_SKULL = 8;
+  static readonly ZONE_DEATH = 9;
+  static readonly ZONE_WIND_IN = 10;
+  static readonly ZONE_WIND_OUT = 11;
+  static readonly ZONE_STAIR = 12;
+  static readonly ZONE_MOTO_SHOP = 13;
+  static readonly ZONE_BRACELET = 14;
+  static readonly ZONE_HELI_SHOP = 15;
 
   private static readonly TILE_LAYER = 1;
   private static readonly TILE_GOLD_BIG = 12;    // Example tile ID for big gold
@@ -58,7 +56,6 @@ export class AkActions {
     friction: number,
     action: Action
   ): { velocity: number; action: Action } {
-    console.log(`AkActions: punch() called - state=${state}, condition=${condition}, velocity=${velocity}, pdelay=${this.pdelay}`);
 
     let newVelocity = velocity;
     let newAction = action;
@@ -67,12 +64,10 @@ export class AkActions {
     if (state === Status.WALKING) {
       if (condition === Condition.WALK) {
         newVelocity = friction * velocity / 10;
-        console.log(`AkActions: velocity adjusted for walking: ${newVelocity}`);
       }
     }
 
     if (this.pdelay === 0 && condition !== Condition.HELI && condition !== Condition.SURF) {
-      console.log(`AkActions: Starting punch action`);
       if (!this.hasBrac) {
         //FIXME this.playsound(this.snd[3]);
       }
@@ -81,18 +76,18 @@ export class AkActions {
 
       const player = MainEngine.getPlayer();
       if (player) {
-        console.log(`AkActions: Player at (${player.getx()}, ${player.gety()}), face=${player.getFace()}`);
-        ge = this.getpunch(player.getFace() * 32, condition);
-        console.log(`AkActions: getpunch returned zone: ${ge}`);
+
+        // Calculate punch coordinates
+        const HoOffset = player.getFace() * 32;
+        const zx = (player.getx() + HoOffset) >> 4;
+        const zy = (player.gety() + 16) >> 4; // Use same offset as getpunch loop start
+
+
+        ge = this.getpunch(HoOffset, condition, zx, zy);
         if (ge >= 3 && ge <= 8) { // Events that are processed by punch
-          console.log(`AkActions: Calling event ${ge}`);
-          this.callEvent(ge);
-        } else {
-          console.log(`AkActions: No event triggered (zone ${ge} out of range 3-8)`);
-        }
-      } else {
-        console.log(`AkActions: No player found`);
-      }
+          this.callEvent(ge, zx, zy);
+        } 
+      } 
     }
 
     this.pdelay++;
@@ -102,25 +97,22 @@ export class AkActions {
     }
 
     if (this.pdelay >= 6 + he) {
-      console.log(`AkActions: Punch completed, resetting pdelay`);
       this.pdelay = 0;
       if (newAction === Action.PUNCHING) {
         newAction = Action.NONE;
       }
     }
 
-    console.log(`AkActions: punch() result - velocity=${newVelocity}, action=${newAction}, pdelay=${this.pdelay}`);
     return { velocity: newVelocity, action: newAction };
   }
 
   /**
    * Get punch collision detection (Java getpunch method)
    */
-  private static getpunch(HoOffset: number, condition: Condition): number {
-    console.log(`AkActions: getpunch() called - HoOffset=${HoOffset}, condition=${condition}`);
+  private static getpunch(HoOffset: number, condition: Condition, zx: number, zy: number): number {
 
     let a: number, UpOffset: number;
-    UpOffset = 16;
+    UpOffset = 12;
 
     if (condition === Condition.MOTO) {
       UpOffset -= 12;
@@ -135,29 +127,22 @@ export class AkActions {
       return 0;
     }
 
-    this.zx = (player.getx() + HoOffset) >> 4;
-    console.log(`AkActions: zx calculated as ${this.zx} (from player.x=${player.getx()} + HoOffset=${HoOffset})`);
-
-    for (a = UpOffset; a < 28; a += 2) {
-      this.zy = (player.gety() + a) >> 4;
-      const zone = currentMap.getzone(this.zx, this.zy);
-      console.log(`AkActions: checking position (${this.zx}, ${this.zy}) [a=${a}], zone=${zone}`);
+    for (a = UpOffset; a < 32; a += 2) {
+      const currentZy = (player.gety() + a) >> 4;
+      const zone = currentMap.getzone(zx, currentZy);
 
       if (zone >= 3) {
-        console.log(`AkActions: getpunch() found zone ${zone} at (${this.zx}, ${this.zy})`);
         return zone; // to avoid gold sacks
       }
     }
 
-    console.log(`AkActions: getpunch() found no zones, returning 0`);
     return 0;
   }
 
   /**
    * Call event handler (Java callEvent method)
    */
-  private static callEvent(num: number): void {
-    console.log(`AkActions: callEvent(${num}) called at position (${this.zx}, ${this.zy})`);
+  public static callEvent(num: number, zx: number, zy: number): void {
 
     const currentMap = MainEngine.getCurrentMap();
     if (!currentMap) {
@@ -165,78 +150,62 @@ export class AkActions {
       return;
     }
 
-    console.log(`AkActions: Event ${num} triggered at (${this.zx}, ${this.zy})`);
-
-    // Check current tile and zone before processing
-    const currentTile = currentMap.gettile(this.zx, this.zy, AkActions.TILE_LAYER);
-    const currentZone = currentMap.getzone(this.zx, this.zy);
-    const currentObs = currentMap.getobs(this.zx, this.zy);
-    console.log(`AkActions: Before event - tile=${currentTile}, zone=${currentZone}, obs=${currentObs}`);
+    console.log(`AkActions: Event ${num} triggered at (${zx}, ${zy})`);
 
     switch (num) {
       case this.ZONE_GOLD1: // Gold I
-        console.log(`AkActions: Processing ZONE_GOLD1 event`);
-        currentMap.settile(this.zx, this.zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
-        currentMap.setzone(this.zx, this.zy, AkActions.NULL_ZONE);
+        currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
+        currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
         //FIXME this.playsound(this.snd[2]);
         this.Gold += 20;
         console.log(`AkActions: Collected Gold I (+20), Total: ${this.Gold}`);
         break;
 
       case this.ZONE_GOLD2: // Gold II
-        console.log(`AkActions: Processing ZONE_GOLD2 event`);
-        currentMap.settile(this.zx, this.zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
-        currentMap.setzone(this.zx, this.zy, AkActions.NULL_ZONE);
+        currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
+        currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
         //FIXME this.playsound(this.snd[2]);
         this.Gold += 10;
-        console.log(`AkActions: Collected Gold II (+10), Total: ${this.Gold}`);
         break;
 
       case this.ZONE_ROCK: // Rock
-        console.log(`AkActions: Processing ZONE_ROCK event`);
         //FIXME this.playsound(this.snd[4]);
 
         // Determine rock type based on background tile
-        const backgroundTile = currentMap.gettile(this.zx, this.zy, 1);
-        console.log(`AkActions: Background tile is ${backgroundTile}`);
+        const backgroundTile = currentMap.gettile(zx, zy, 1);
         if (backgroundTile === 32 || backgroundTile === 52) {
-          this.addSprite(this.zx << 4, this.zy << 4, 3); // cave rock
-          console.log(`AkActions: Adding cave rock sprite`);
+          this.addSprite(zx << 4, zy << 4, 3); // cave rock
         } else if (backgroundTile === 65) {
-          this.addSprite(this.zx, this.zy << 4, 2); // sea rock
-          console.log(`AkActions: Adding sea rock sprite`);
+          this.addSprite(zx, zy << 4, 2); // sea rock
         } else {
-          this.addSprite(this.zx << 4, this.zy << 4, 1); // common rock
-          console.log(`AkActions: Adding common rock sprite`);
+          this.addSprite(zx << 4, zy << 4, 1); // common rock
         }
 
-        currentMap.settile(this.zx, this.zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
-        currentMap.setzone(this.zx, this.zy, AkActions.NULL_ZONE);
-        currentMap.setobs(this.zx, this.zy, 0);
-        console.log(`AkActions: Rock broken at (${this.zx}, ${this.zy}) - tile, zone, and obstruction cleared`);
+        currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
+        currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
+        currentMap.setobs(zx, zy, 0);
+        console.log(`AkActions: Rock broken at (${zx}, ${zy}) - tile, zone, and obstruction cleared`);
         break;
 
       case this.ZONE_STAR: // Star
         console.log(`AkActions: Processing ZONE_STAR event`);
         //FIXME this.playsound(this.snd[5]);
-        currentMap.setobs(this.zx, this.zy, 0);
-        console.log(`AkActions: Star obstruction cleared`);
+        currentMap.setobs(zx, zy, 0);
 
         // Random gold generation (0 or 1)
         const randomValue = this.random(0, 1);
-        console.log(`AkActions: Random value for star: ${randomValue}`);
+        console.log(`RBP: Random value for star: ${randomValue}`);
         if (randomValue === 0) {
-          currentMap.settile(this.zx, this.zy, this.TILE_LAYER, this.TILE_GOLD_BIG);
-          currentMap.setzone(this.zx, this.zy, this.ZONE_GOLD1);
-          console.log(`AkActions: Star created Big Gold at (${this.zx}, ${this.zy})`);
+          currentMap.settile(zx, zy, this.TILE_LAYER, this.TILE_GOLD_BIG);
+          currentMap.setzone(zx, zy, this.ZONE_GOLD1);
+          console.log(`AkActions: Star created Big Gold at (${zx}, ${zy})`);
         } else {
-          currentMap.settile(this.zx, this.zy, this.TILE_LAYER, this.TILE_GOLD_SMALL);
-          currentMap.setzone(this.zx, this.zy, this.ZONE_GOLD2);
-          console.log(`AkActions: Star created Small Gold at (${this.zx}, ${this.zy})`);
+          currentMap.settile(zx, zy, this.TILE_LAYER, this.TILE_GOLD_SMALL);
+          currentMap.setzone(zx, zy, this.ZONE_GOLD2);
+          console.log(`AkActions: Star created Small Gold at (${zx}, ${zy})`);
         }
 
-        this.addSprite(this.zx << 4, this.zy << 4, 0); // star effect
-        console.log(`AkActions: Star effect sprite added`);
+        this.addSprite(zx << 4, zy << 4, 0); // star effect
         break;
 
       case 7:
@@ -251,11 +220,6 @@ export class AkActions {
         console.log(`AkActions: Unhandled event ${num}`);
     }
 
-    // Check state after processing
-    const afterTile = currentMap.gettile(this.zx, this.zy, this.TILE_LAYER);
-    const afterZone = currentMap.getzone(this.zx, this.zy);
-    const afterObs = currentMap.getobs(this.zx, this.zy);
-    console.log(`AkActions: After event - tile=${afterTile}, zone=${afterZone}, obs=${afterObs}`);
   }
 
   /**
@@ -462,8 +426,6 @@ export class AkActions {
     this.pdelay = 0;
     this.tdelay = 0;
     this.hasBrac = false;
-    this.zx = 0;
-    this.zy = 0;
     this.Gold = 0;
     this.playerDimensions = { x: 0, y: 0, width: 0, height: 0 };
   }
