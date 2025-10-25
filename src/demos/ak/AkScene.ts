@@ -55,8 +55,7 @@ export class AkScene extends Phaser.Scene {
     this.inputManager = new InputManager(this, new ControlsConfig());
     this.fpsDisplay = new FPSDisplay(this);
 
-    // Set FPS to 30 for Alex Kidd demo (matching original)
-    this.game.loop.targetFps = 30;
+    this.game.loop.targetFps = 60;
 
     MainEngine.setCurrentScene(this, this.config);
 
@@ -106,16 +105,18 @@ export class AkScene extends Phaser.Scene {
     }
 
     // Debug: Draw blue rectangle around player
-    if (this.config.debug && player && this.debugGraphics) {
-      this.debugGraphics.clear();
+    if (this.debugGraphics) {
+      this.debugGraphics.clear(); // Always clear first
 
-      // Draw simple rectangle around player sprite (32x32 frame size from Ak.anim.json)
-      const rectX = this.akidd_px;
-      const rectY = this.akidd_py;
-      const rectWidth = this.akidd_vx;  // Frame width from Ak.anim.json
-      const rectHeight = this.akidd_vy; // Frame height from Ak.anim.json
-      this.debugGraphics.lineStyle(2, 0x0000ff, 1); // Blue outline
-      this.debugGraphics.strokeRect(rectX, rectY, rectWidth, rectHeight);
+      if (AkMovement.getDebug() && player) {
+        // Draw simple rectangle around player sprite (32x32 frame size from Ak.anim.json)
+        const rectX = this.akidd_px;
+        const rectY = this.akidd_py;
+        const rectWidth = this.akidd_vx;  // Frame width from Ak.anim.json
+        const rectHeight = this.akidd_vy; // Frame height from Ak.anim.json
+        this.debugGraphics.lineStyle(2, 0x0000ff, 1); // Blue outline
+        this.debugGraphics.strokeRect(rectX, rectY, rectWidth, rectHeight);
+      }
     }
 
     MainEngine.handleCameraTracking();

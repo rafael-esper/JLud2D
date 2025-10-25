@@ -26,6 +26,11 @@ export class AkMovement {
   private static zonecalled: number = 0;
   private tdelay: number = 0;
 
+  // Debug/cheat variables
+  private gameSpeed: number = 2; // Default speed (matches original gameSpeed = 2)
+  private static debug: boolean = false;
+  private static invencible: number = 0;
+
   // Physics constants
   private static readonly SPEED: number = 3;
   private static readonly MAXJUMP: number = 48;
@@ -65,6 +70,15 @@ export class AkMovement {
   getVertical(): number { return this.vertical; }
   getAlt(): number { return this.alt; }
 
+  // Debug getters
+  getGameSpeed(): number { return this.gameSpeed; }
+  static getDebug(): boolean { return AkMovement.debug; }
+  static getInvencible(): number { return AkMovement.invencible; }
+
+  // Debug setters
+  static setDebug(value: boolean): void { AkMovement.debug = value; }
+  static setInvencible(value: number): void { AkMovement.invencible = value; }
+
   // Main movement update method
   update(): void {
     if (this.condition == Condition.WALK || this.condition == Condition.MOTO || this.condition == Condition.SURF) {
@@ -74,6 +88,9 @@ export class AkMovement {
 
   // Control input processing
   processControls(): void {
+    // Process debug controls first
+    this.processDebugControls();
+
     if (this.inputManager.right && this.inputManager.left && this.state == Status.WALKING) {
       this.state = Status.STOPPED;
       this.velocity = 0;
@@ -333,6 +350,111 @@ export class AkMovement {
 
   private unpress(key: number): void {
     this.inputManager.unpress(key);
+  }
+
+  // Process debug controls (ported from Java)
+  private processDebugControls(): void {
+    // Game speed controls (1-5 keys)
+    if (this.inputManager.justPressed('1')) {
+      this.gameSpeed = 0;
+      console.log("Game speed set to 0");
+    }
+    if (this.inputManager.justPressed('2')) {
+      this.gameSpeed = 1;
+      console.log("Game speed set to 1");
+    }
+    if (this.inputManager.justPressed('3')) {
+      this.gameSpeed = 2;
+      console.log("Game speed set to 2");
+    }
+    if (this.inputManager.justPressed('4')) {
+      this.gameSpeed = 3;
+      console.log("Game speed set to 3");
+    }
+    if (this.inputManager.justPressed('5')) {
+      this.gameSpeed = 4;
+      console.log("Game speed set to 4");
+    }
+
+    // Debug mode toggle (O key)
+    if (this.inputManager.justPressed('O')) {
+      AkMovement.debug = !AkMovement.debug;
+      console.log(`Debug mode ${AkMovement.debug ? 'activated' : 'deactivated'}`);
+    }
+
+    // Enable bracelet (B key)
+    if (this.inputManager.justPressed('B')) {
+      AkActions.setHasBrac(true);
+      console.log("Bracelet enabled");
+    }
+
+    // Fly condition (F key)
+    if (this.inputManager.justPressed('F')) {
+      this.condition = Condition.FLY;
+      this.state = Status.STOPPED;
+      console.log("Fly condition activated");
+    }
+
+    // Helicopter condition (H key)
+    if (this.inputManager.justPressed('H')) {
+      this.condition = Condition.HELI;
+      console.log("Helicopter condition activated");
+      // TODO: playmusic(load(MUSIC_SWIM))
+    }
+
+    // Invincibility (I key)
+    if (this.inputManager.justPressed('I')) {
+      AkMovement.invencible = 100000;
+      console.log("Invincibility activated");
+    }
+
+    // Kill player (K key)
+    if (this.inputManager.justPressed('K')) {
+      console.log("Kill player triggered");
+      // TODO: hitPlayer(2)
+    }
+
+    // Level menu (L key)
+    if (this.inputManager.justPressed('L')) {
+      console.log("Level menu triggered");
+      // TODO: Prog = selectLevelMenu(6, 4); DoLevel();
+    }
+
+    // Motorcycle condition (M key)
+    if (this.inputManager.justPressed('M')) {
+      this.condition = Condition.MOTO;
+      console.log("Motorcycle condition activated");
+      // TODO: playmusic(load(MUSIC_MOTO))
+    }
+
+    // Normal condition with gold (N key)
+    if (this.inputManager.justPressed('N')) {
+      AkActions.setGold(AkActions.getGold() + 200);
+      this.setNormalCondition(Condition.WALK);
+      console.log(`Normal condition with +200 gold. Total: ${AkActions.getGold()}`);
+    }
+
+    // Print/screenshot (P key)
+    if (this.inputManager.justPressed('P')) {
+      console.log("Screenshot triggered");
+      // TODO: Implement screenshot functionality
+      // Original: copyimagetoclipboard(screen) or VImage implementation
+    }
+
+    // Star condition (T key, using T instead of S since S conflicts with movement)
+    if (this.inputManager.justPressed('T')) {
+      this.condition = Condition.STAR;
+      console.log("Star condition activated");
+    }
+  }
+
+  // Helper method to set normal condition
+  private setNormalCondition(newCondition: Condition): void {
+    this.condition = newCondition;
+    this.state = Status.STOPPED;
+    this.velocity = 0;
+    this.vertical = 0;
+    this.alt = 0;
   }
 
   // Trembling action (ported from Java)
