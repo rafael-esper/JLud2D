@@ -84,8 +84,11 @@ export class AkActions {
 
 
         ge = this.getpunch(HoOffset, condition, zx, zy);
-        if (ge >= 3 && ge <= 8) { // Events that are processed by punch
-          this.callEvent(ge, zx, zy);
+        if (ge >= 3 && ge <= 8) { // Events that are processed by punch (Rock=3, Star=4, Rice=5, Swim=6, Item=7, Skull=8)
+          const resultAction = this.callEvent(ge, zx, zy);
+          if (resultAction) {
+            newAction = resultAction;
+          }
         } 
       } 
     }
@@ -142,7 +145,7 @@ export class AkActions {
   /**
    * Call event handler (Java callEvent method)
    */
-  public static callEvent(num: number, zx: number, zy: number): void {
+  public static callEvent(num: number, zx: number, zy: number): Action | null {
 
     const currentMap = MainEngine.getCurrentMap();
     if (!currentMap) {
@@ -208,18 +211,49 @@ export class AkActions {
         this.addSprite(zx << 4, zy << 4, 0); // star effect
         break;
 
-      case 7:
-        // TODO: Handle event 7
-        console.log(`AkActions: Event 7 not implemented yet`);
+      case this.ZONE_RICE: // Rice (zone 5)
+        console.log(`AkActions: Processing ZONE_RICE event`);
+        currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
+        currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
+        // TODO: Implement DoLevel() equivalent
+        console.log(`AkActions: Rice collected - DoLevel() not implemented yet`);
         break;
-      case 8:
-        // TODO: Handle event 8
-        console.log(`AkActions: Event 8 not implemented yet`);
+
+      case this.ZONE_SWIM: // Swim (zone 6)
+        console.log(`AkActions: Processing ZONE_SWIM event`);
+        // TODO: Implement condition and state change logic
+        console.log(`AkActions: Swim zone entered - condition change not implemented yet`);
         break;
+
+      case this.ZONE_ITEM: // Item (zone 7)
+        console.log(`AkActions: Processing ZONE_ITEM event`);
+        //FIXME this.playsound(this.snd[4]);
+        currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
+        currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
+        currentMap.setobs(zx, zy, 0);
+        this.addSprite(zx << 4, zy << 4, 0);
+        console.log(`AkActions: Item collected at (${zx}, ${zy})`);
+        break;
+
+      case this.ZONE_SKULL: // Skull (zone 8)
+        console.log(`AkActions: Processing ZONE_SKULL event`);
+        //FIXME this.playsound(this.snd[4]);
+        currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
+        currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
+        currentMap.setobs(zx, zy, 0);
+        this.addSprite(zx << 4, zy << 4, 0);
+        if (!this.hasBrac) {
+          console.log(`AkActions: Skull effect - setting action to TREMBLING`);
+          return Action.TREMBLING;
+        }
+        console.log(`AkActions: Skull processed at (${zx}, ${zy})`);
+        break;
+
       default:
         console.log(`AkActions: Unhandled event ${num}`);
     }
 
+    return null;
   }
 
   /**

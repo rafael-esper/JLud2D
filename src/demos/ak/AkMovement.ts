@@ -24,6 +24,7 @@ export class AkMovement {
 
   // Zone tracking
   private static zonecalled: number = 0;
+  private tdelay: number = 0;
 
   // Physics constants
   private static readonly SPEED: number = 3;
@@ -132,6 +133,11 @@ export class AkMovement {
     if (!this.inputManager.left && !this.inputManager.right && this.state == Status.WALKING && this.condition != Condition.SURF) {
       this.state = Status.STOPPED;
       this.velocity = this.friction * this.velocity / 10;
+    }
+
+    // Handle trembling action
+    if (this.action == Action.TREMBLING || this.tdelay > 0) {
+      this.tremble();
     }
   }
 
@@ -310,7 +316,10 @@ export class AkMovement {
 
         if (z != 0 && AkMovement.zonecalled != z) {
           AkMovement.zonecalled = z;
-          AkActions.callEvent(z, zx, zy);
+          const resultAction = AkActions.callEvent(z, zx, zy);
+          if (resultAction) {
+            this.action = resultAction;
+          }
           return z;
         }
         if (z == 0 && AkMovement.zonecalled != 0) {
@@ -324,6 +333,27 @@ export class AkMovement {
 
   private unpress(key: number): void {
     this.inputManager.unpress(key);
+  }
+
+  // Trembling action (ported from Java)
+  private tremble(): void {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    this.velocity = 0;
+    this.action = Action.TREMBLING;
+    this.tdelay++;
+
+    if (this.tdelay % 2 == 0)
+      player.incx(1);
+    else
+      player.incx(-1);
+
+    if (this.tdelay >= 30) {
+      this.tdelay = 0;
+      if (this.action == Action.TREMBLING)
+        this.action = Action.NONE;
+    }
   }
 
   // Helper functions for movement calculations

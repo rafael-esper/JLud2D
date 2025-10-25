@@ -148,7 +148,7 @@ export class InputManager {
     this.cursors = this.scene.input.keyboard.createCursorKeys();
 
     // Create WASD keys
-    this.wasd = this.scene.input.keyboard.addKeys('W,S,A,D,SPACE,ESC,ENTER,SHIFT,CTRL');
+    this.wasd = this.scene.input.keyboard.addKeys('W,S,A,D,SPACE,ESC,ENTER,SHIFT,CTRL,Z,X,C');
   }
 
   private setupGamepad(): void {
@@ -197,9 +197,9 @@ export class InputManager {
     this.right = this.cursors.right.isDown || this.wasd.D.isDown;
 
     // Actions
-    this.b1 = this.wasd.SPACE.isDown || this.wasd.ENTER.isDown;
-    this.b2 = this.wasd.SHIFT.isDown;
-    this.b3 = this.wasd.CTRL.isDown;
+    this.b1 = this.wasd.SPACE.isDown || this.wasd.ENTER.isDown || this.wasd.Z.isDown;
+    this.b2 = this.wasd.SHIFT.isDown || this.wasd.X.isDown;
+    this.b3 = this.wasd.CTRL.isDown || this.wasd.C.isDown;
     this.b4 = this.wasd.ESC.isDown;
   }
 
