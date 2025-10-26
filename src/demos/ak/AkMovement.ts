@@ -357,8 +357,8 @@ export class AkMovement {
 		let endY = startY + 22; 
 
 		if(this.condition == Condition.SWIM) { // FIXME Swim Zone NORTH
-			startX-=4; endX+=2;
-			startY+=5; //endY--;
+			startX-=2; endX+=1;
+			startY+=3; endY-=3;
 		}
 		
 		if(this.condition == Condition.HELI) {
@@ -501,6 +501,13 @@ export class AkMovement {
     if (this.inputManager.justPressed('I')) {
       AkMovement.invencible = 100000;
       console.log("Invincibility activated");
+    }
+
+    // Motorcycle condition (J key)
+    if (this.inputManager.justPressed('J')) {
+      this.condition = Condition.SWIM;
+      console.log("Swim condition activated");
+      // TODO: playmusic(load(MUSIC_MOTO))
     }
 
     // Kill player (K key)

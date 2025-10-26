@@ -10,7 +10,7 @@ import { FPSDisplay } from '../../utils/FPSDisplay';
 import { MainEngine } from '../../core/MainEngine';
 import { DemoUI } from '../../utils/DemoUI';
 import { AkActions } from './AkActions';
-import { AkMovement, Condition, Status } from './AkMovement';
+import { AkMovement, Condition, Status, Action } from './AkMovement';
 
 export class AkScene extends Phaser.Scene {
   private config: GameConfig;
@@ -189,6 +189,35 @@ export class AkScene extends Phaser.Scene {
     if (this.movement.getCondition() == Condition.WALK && (this.movement.getState() == Status.JUMPING || this.movement.getState() == Status.FALLING)) {
       this.setDimensions(player.getx() + 10, player.gety() + 8, 12, 20);
       return 3 - player.getFace();
+    }
+
+    if (this.movement.getCondition() == Condition.HELI) {
+      this.setDimensions(player.getx() + 6, player.gety() + 4, 20, 26);
+      return 31 + ((1 - player.getFace()) * 4) + Math.floor(this.playerframe / 3);
+    }
+
+    if (this.movement.getCondition() == Condition.SURF) {
+      return 27 + ((1 - player.getFace()) * 2) + Math.floor(this.playerframe / 3);
+    }
+
+    if (this.movement.getCondition() == Condition.MOTO) {
+      if (this.movement.getState() == Status.STOPPED || this.movement.getState() == Status.WALKING) {
+        this.setDimensions(player.getx() + 9, player.gety() + 7, 14, 20);
+        return 21 + ((1 - player.getFace()) * 3) + Math.floor(this.playerframe / 3);
+      } else {
+        this.setDimensions(player.getx() + 9, player.gety() + 5, 14, 26);
+        return 23 + ((1 - player.getFace()) * 3);
+      }
+    }
+
+    if (this.movement.getAction() == Action.PUNCHING) { // punching
+      if (this.movement.getCondition() == Condition.SWIM) {
+        this.setDimensions(player.getx() + 10, player.gety() + 11, 13, 12);
+        return 17 - (player.getFace() * 3); // swimming
+      } else {
+        this.setDimensions(player.getx() + 12, player.gety() + 6, 8, 20);
+        return 5 - player.getFace(); // walking
+      }
     }
 
     return 0;

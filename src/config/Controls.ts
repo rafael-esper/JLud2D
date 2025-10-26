@@ -137,12 +137,14 @@ export class InputManager {
   public keyF: boolean = false;
   public keyH: boolean = false;
   public keyI: boolean = false;
+  public keyJ: boolean = false;
   public keyK: boolean = false;
   public keyL: boolean = false;
   public keyM: boolean = false;
   public keyN: boolean = false;
   public keyP: boolean = false;
   public keyT: boolean = false;
+  public keyV: boolean = false;
 
   // Previous frame states for edge detection
   private prevUp: boolean = false;
@@ -165,12 +167,14 @@ export class InputManager {
   private prevKeyF: boolean = false;
   private prevKeyH: boolean = false;
   private prevKeyI: boolean = false;
+  private prevKeyJ: boolean = false;
   private prevKeyK: boolean = false;
   private prevKeyL: boolean = false;
   private prevKeyM: boolean = false;
   private prevKeyN: boolean = false;
   private prevKeyP: boolean = false;
   private prevKeyT: boolean = false;
+  private prevKeyV: boolean = false;
 
   constructor(scene: Phaser.Scene, config: ControlsConfig) {
     this.scene = scene;
@@ -186,7 +190,7 @@ export class InputManager {
     this.cursors = this.scene.input.keyboard.createCursorKeys();
 
     // Create keyboard keys
-    this.wasd = this.scene.input.keyboard.addKeys('W,S,A,D,SPACE,ESC,ENTER,SHIFT,CTRL,Z,X,C,ONE,TWO,THREE,FOUR,FIVE,O,F,H,I,K,L,M,N,P,T,B');
+    this.wasd = this.scene.input.keyboard.addKeys('W,S,A,D,SPACE,ESC,ENTER,SHIFT,CTRL,Z,X,C,ONE,TWO,THREE,FOUR,FIVE,O,F,H,I,J,K,L,M,N,P,T,B,V');
   }
 
   private setupGamepad(): void {
@@ -229,12 +233,14 @@ export class InputManager {
     this.prevKeyF = this.keyF;
     this.prevKeyH = this.keyH;
     this.prevKeyI = this.keyI;
+    this.prevKeyJ = this.keyJ;
     this.prevKeyK = this.keyK;
     this.prevKeyL = this.keyL;
     this.prevKeyM = this.keyM;
     this.prevKeyN = this.keyN;
     this.prevKeyP = this.keyP;
     this.prevKeyT = this.keyT;
+    this.prevKeyV = this.keyV;
 
     // Update keyboard states
     this.updateKeyboard();
@@ -271,12 +277,14 @@ export class InputManager {
     this.keyF = this.wasd.F.isDown;
     this.keyH = this.wasd.H.isDown;
     this.keyI = this.wasd.I.isDown;
+    this.keyJ = this.wasd.J.isDown;
     this.keyK = this.wasd.K.isDown;
     this.keyL = this.wasd.L.isDown;
     this.keyM = this.wasd.M.isDown;
     this.keyN = this.wasd.N.isDown;
     this.keyP = this.wasd.P.isDown;
     this.keyT = this.wasd.T.isDown;
+    this.keyV = this.wasd.V.isDown;
   }
 
   private updateGamepad(): void {
@@ -307,7 +315,7 @@ export class InputManager {
   /**
    * Check if key was just pressed this frame
    */
-  public justPressed(key: 'up' | 'down' | 'left' | 'right' | 'b1' | 'b2' | 'b3' | 'b4' | '1' | '2' | '3' | '4' | '5' | 'O' | 'B' | 'F' | 'H' | 'I' | 'K' | 'L' | 'M' | 'N' | 'P' | 'T'): boolean {
+  public justPressed(key: 'up' | 'down' | 'left' | 'right' | 'b1' | 'b2' | 'b3' | 'b4' | '1' | '2' | '3' | '4' | '5' | 'O' | 'B' | 'F' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'P' | 'T' | 'V'): boolean {
     switch (key) {
       case 'up': return this.up && !this.prevUp;
       case 'down': return this.down && !this.prevDown;
@@ -327,12 +335,14 @@ export class InputManager {
       case 'F': return this.keyF && !this.prevKeyF;
       case 'H': return this.keyH && !this.prevKeyH;
       case 'I': return this.keyI && !this.prevKeyI;
+      case 'J': return this.keyJ && !this.prevKeyJ;
       case 'K': return this.keyK && !this.prevKeyK;
       case 'L': return this.keyL && !this.prevKeyL;
       case 'M': return this.keyM && !this.prevKeyM;
       case 'N': return this.keyN && !this.prevKeyN;
       case 'P': return this.keyP && !this.prevKeyP;
       case 'T': return this.keyT && !this.prevKeyT;
+      case 'V': return this.keyV && !this.prevKeyV;
       default: return false;
     }
   }
