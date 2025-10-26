@@ -6,6 +6,7 @@
 
 import { MainEngine } from '../../core/MainEngine';
 import { Condition, Status, Action } from './AkMovement';
+import { Sound } from '../../domain/Sound';
 
 export class AkActions {
   // Punch-related state
@@ -69,7 +70,7 @@ export class AkActions {
 
     if (this.pdelay === 0 && condition !== Condition.HELI && condition !== Condition.SURF) {
       if (!this.hasBrac) {
-        //FIXME this.playsound(this.snd[3]);
+        Sound.playSound('snd_punch');
       }
       this.unpress(1);
       newAction = Action.PUNCHING;
@@ -159,7 +160,7 @@ export class AkActions {
       case this.ZONE_GOLD1: // Gold I
         currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
         currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
-        //FIXME this.playsound(this.snd[2]);
+        Sound.playSound('snd_gold');
         this.Gold += 20;
         console.log(`AkActions: Collected Gold I (+20), Total: ${this.Gold}`);
         break;
@@ -167,12 +168,12 @@ export class AkActions {
       case this.ZONE_GOLD2: // Gold II
         currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
         currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
-        //FIXME this.playsound(this.snd[2]);
+        Sound.playSound('snd_gold');
         this.Gold += 10;
         break;
 
       case this.ZONE_ROCK: // Rock
-        //FIXME this.playsound(this.snd[4]);
+        Sound.playSound('snd_rock');
 
         // Determine rock type based on background tile
         const backgroundTile = currentMap.gettile(zx, zy, 1);
@@ -192,7 +193,7 @@ export class AkActions {
 
       case this.ZONE_STAR: // Star
         console.log(`AkActions: Processing ZONE_STAR event`);
-        //FIXME this.playsound(this.snd[5]);
+        Sound.playSound('snd_star');
         currentMap.setobs(zx, zy, 0);
 
         // Random gold generation (0 or 1)
@@ -227,7 +228,7 @@ export class AkActions {
 
       case this.ZONE_ITEM: // Item (zone 7)
         console.log(`AkActions: Processing ZONE_ITEM event`);
-        //FIXME this.playsound(this.snd[4]);
+        Sound.playSound('snd_item');
         currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
         currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
         currentMap.setobs(zx, zy, 0);
@@ -237,7 +238,7 @@ export class AkActions {
 
       case this.ZONE_SKULL: // Skull (zone 8)
         console.log(`AkActions: Processing ZONE_SKULL event`);
-        //FIXME this.playsound(this.snd[4]);
+        Sound.playSound('snd_hit');
         currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
         currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
         currentMap.setobs(zx, zy, 0);

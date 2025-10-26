@@ -35,12 +35,17 @@ export class AkScene extends Phaser.Scene {
     this.load.tilemapTiledJSON('level01-map', 'src/demos/ak/level01.map.json');
     this.load.json('ak-anim', 'src/demos/ak/Ak.anim.json');
 
-    // Load sound effects for events
-    this.load.audio('star-sound', 'src/demos/ak/res/sound/Star.wav');
-    this.load.audio('collect-sound', 'src/demos/ak/res/sound/Item.wav');
-    this.load.audio('gold-sound', 'src/demos/ak/res/sound/Gold.wav');
-    this.load.audio('punch-sound', 'src/demos/ak/res/sound/Punch.wav');
-    this.load.audio('rock-sound', 'src/demos/ak/res/sound/Rock.wav');
+    // Load sound effects (matching Java snd array indices)
+    this.load.audio('snd_mapa', 'src/demos/ak/res/sound/Mapa.mp3');     // snd[1] - Background music
+    this.load.audio('snd_gold', 'src/demos/ak/res/sound/Gold.wav');     // snd[2] - Gold collection
+    this.load.audio('snd_punch', 'src/demos/ak/res/sound/Punch.wav');   // snd[3] - Punch/attack
+    this.load.audio('snd_rock', 'src/demos/ak/res/sound/Rock.wav');     // snd[4] - Rock breaking
+    this.load.audio('snd_star', 'src/demos/ak/res/sound/Star.wav');     // snd[5] - Star effect
+    this.load.audio('snd_death', 'src/demos/ak/res/sound/Death.wav');   // snd[6] - Death/damage
+    this.load.audio('snd_hit', 'src/demos/ak/res/sound/Hit.wav');       // snd[7] - Hit effect
+    this.load.audio('snd_brac', 'src/demos/ak/res/sound/Brac.wav');     // snd[8] - Bracelet
+    this.load.audio('snd_item', 'src/demos/ak/res/sound/Item.wav');     // snd[9] - Item collection
+    this.load.audio('snd_water', 'src/demos/ak/res/sound/Water.wav');   // snd[10] - Water/swimming
 
     DemoUI.createLoadingText(this, 'Loading Alex Kidd Demo...');
   }

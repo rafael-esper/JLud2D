@@ -414,6 +414,13 @@ export class MainEngine {
   }
 
   /**
+   * Get current scene reference
+   */
+  public static getCurrentScene(): Phaser.Scene | null {
+    return MainEngine.current_scene;
+  }
+
+  /**
    * Setup camera for current map
    * Equivalent to Demo1Scene.setupCamera()
    */
