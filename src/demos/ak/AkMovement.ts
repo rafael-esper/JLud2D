@@ -39,6 +39,13 @@ export class AkMovement {
   private static readonly GRAV_EF: number = 40;
   private static readonly GRAV: number = 4;
 
+  // Swimming/Flying/Vehicle constants
+  private static readonly MAXSWIM: number = 8;
+  private static readonly MAXRSWIM: number = 12;  // Fast swimming when punching
+  private static readonly MAXHELI: number = 10;
+  private static readonly MAXFLY: number = 6;
+  private static readonly MAXSTAR: number = 14;
+
   // Direction constants
   private static readonly WEST: number = 0;
   private static readonly EAST: number = 1;
@@ -83,6 +90,8 @@ export class AkMovement {
   update(): void {
     if (this.condition == Condition.WALK || this.condition == Condition.MOTO || this.condition == Condition.SURF) {
       this.movePlayer();
+    } else if (this.condition == Condition.SWIM || this.condition == Condition.HELI || this.condition == Condition.FLY || this.condition == Condition.STAR) {
+      this.movePlayerSwim();
     }
   }
 
@@ -193,7 +202,93 @@ export class AkMovement {
   }
 
   private controlSwim(): void {
-    console.log("controlSwim - Non-implemented yet");
+    // SWIMMING, HELI AND STAR control (ported from Java)
+    if (this.action == Action.TREMBLING)
+      return;
+
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    // Right movement
+    if (this.inputManager.right) {
+      this.velocity += AkMovement.SPEED;
+      if (player.getFace() != AkMovement.EAST) {
+        player.setFace(AkMovement.EAST);
+        this.velocity = this.velocity >> 2;
+      }
+    }
+
+    // Left movement
+    if (this.inputManager.left) {
+      this.velocity -= AkMovement.SPEED;
+      if (player.getFace() != AkMovement.WEST) {
+        player.setFace(AkMovement.WEST);
+        this.velocity = this.velocity >> 2;
+      }
+    }
+
+    // Up movement
+    if (this.inputManager.up) {
+      this.vertical -= 2; // condition.ordinal() / 2 in Java
+    }
+
+    // Down movement
+    if (this.inputManager.down) {
+      if (this.condition == Condition.SWIM || this.condition == Condition.FLY)
+        this.vertical += 2;
+      if (this.condition == Condition.HELI)
+        this.vertical++;
+      if (this.condition == Condition.STAR)
+        this.vertical += 3;
+    }
+
+    // Velocity decay when not pressing movement keys
+    if (!this.inputManager.right && this.velocity > 0)
+      this.velocity--;
+    if (!this.inputManager.left && this.velocity < 0)
+      this.velocity++;
+    if (!this.inputManager.up && this.vertical < 0)
+      this.vertical = 0;
+
+    // Destroy helicopter if obstacle over it
+    if (this.condition == Condition.HELI && this.getObsd(AkMovement.NORTH)) {
+      AkActions.addSprite(player.getx() - 24 + player.getFace() * 32, player.gety(), 4);
+      this.setNormalCondition(Condition.WALK);
+      this.state = Status.JUMPING;
+      player.incy(16);
+      return;
+    }
+
+    // Swimming specific logic
+    if (this.condition == Condition.SWIM) {
+      if (this.vertical <= -3)
+        this.vertical = -2;
+      if (!this.inputManager.down && this.vertical > 0)
+        this.vertical--;
+      if (this.inputManager.b1 && this.action == Action.NONE)
+        this.velocityCheck(AkMovement.MAXRSWIM);
+      else
+        this.velocityCheck(AkMovement.MAXSWIM);
+    }
+    // Helicopter logic
+    else if (this.condition == Condition.HELI) {
+      this.velocityCheck(AkMovement.MAXHELI);
+    }
+    // Flying logic
+    else if (this.condition == Condition.FLY) {
+      this.velocityCheck(AkMovement.MAXFLY);
+      this.vertical = this.sgn(this.vertical);
+    }
+    // Star logic
+    else if (this.condition == Condition.STAR) {
+      this.velocityCheck(AkMovement.MAXSTAR);
+    }
+
+    // Vertical limits
+    if (this.vertical > 3)
+      this.vertical = 3;
+    if (this.vertical < -3)
+      this.vertical = -3;
   }
 
   private controlVehicle(): void {
@@ -542,6 +637,37 @@ export class AkMovement {
           player.incy(-1);
         }
       }
+    }
+  }
+
+  // Move player for swimming conditions (ported from Java swimPlayer)
+  private movePlayerSwim(): void {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    let aa: number = 0;
+
+    // Condition-specific vertical movement
+    if (this.condition == Condition.SWIM && !this.getObsd(AkMovement.NORTH))
+      player.incy(-1);
+    if (this.condition == Condition.HELI && !this.getObsd(AkMovement.SOUTH))
+      player.incy(1);
+
+    // Horizontal movement
+    for (let i = 0; i < this.abs(this.velocity >> 2); i++) {
+      if (!this.getObsd(player.getFace()))
+        player.incx(this.sgn(this.velocity));
+    }
+
+    // Vertical movement based on vertical velocity
+    if (this.vertical > 0)
+      aa = AkMovement.SOUTH;
+    if (this.vertical < 0)
+      aa = AkMovement.NORTH;
+
+    for (let i = 0; i < this.abs(this.vertical); i++) {
+      if (!this.getObsd(aa))
+        player.incy(this.sgn(this.vertical));
     }
   }
 }

@@ -79,11 +79,17 @@ export class AkScene extends Phaser.Scene {
 
     this.fpsDisplay.setVisible(this.config.showFPS);
   }
-
+   wait = 0;
    update(delta: number): void {
     this.inputManager.updateControls();
     this.fpsDisplay.update();
 
+    if(this.wait++ > 0) {
+      this.wait = 0;
+    } else {
+      //return;
+    }
+    
     // Update tile animations
     if (this.tiledMap) {
       this.tiledMap.updateAnimations(delta);
