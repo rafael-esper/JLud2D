@@ -136,8 +136,8 @@ export class MenuScene extends Phaser.Scene {
         this.scene.start('Demo2Scene', { demoPath: 'src/demos/demo2' });
         break;
       case 2: // Demo 3
-        console.log('Starting AkScene');
-        this.scene.start('AkScene', { demoPath: 'src/demos/ak' });
+        console.log('Starting TitleScene');
+        this.scene.start('TitleScene', { demoPath: 'src/demos/ak' });
         break;
       case 3: // Settings
         console.log('Starting SettingsScene');

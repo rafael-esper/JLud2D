@@ -47,6 +47,13 @@ export class MainEngine {
   }
 
   /**
+   * Get current system path
+   */
+  public static getSystemPath(): string {
+    return MainEngine.systemPath;
+  }
+
+  /**
    * Initialize main engine with demo-specific config (like Java initMainEngine)
    */
   public static async initMainEngine(mapname?: string): Promise<any> {
