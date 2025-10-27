@@ -679,7 +679,6 @@ export class TiledMap {
     if (!this.mapData || layer >= this.mapData.layers.length) {
       return;
     }
-    console.log("RBP", x, y, layer, index)
     // Get layer by index
     const layerData = this.mapData.layers[layer];
     if (!layerData || layerData.type !== 'tilelayer' || !layerData.data) {

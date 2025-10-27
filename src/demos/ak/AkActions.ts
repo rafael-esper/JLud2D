@@ -164,7 +164,6 @@ export class AkActions {
         currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
         Sound.playSound('snd_gold');
         this.Gold += 20;
-        console.log(`AkActions: Collected Gold I (+20), Total: ${this.Gold}`);
         break;
 
       case this.ZONE_GOLD2: // Gold II
@@ -190,25 +189,20 @@ export class AkActions {
         currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
         currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
         currentMap.setobs(zx, zy, 0);
-        console.log(`AkActions: Rock broken at (${zx}, ${zy}) - tile, zone, and obstruction cleared`);
         break;
 
       case this.ZONE_STAR: // Star
-        console.log(`AkActions: Processing ZONE_STAR event`);
         Sound.playSound('snd_star');
         currentMap.setobs(zx, zy, 0);
 
         // Random gold generation (0 or 1)
         const randomValue = this.random(0, 1);
-        console.log(`RBP: Random value for star: ${randomValue}`);
         if (randomValue === 0) {
           currentMap.settile(zx, zy, this.TILE_LAYER, this.TILE_GOLD_BIG);
           currentMap.setzone(zx, zy, this.ZONE_GOLD1);
-          console.log(`AkActions: Star created Big Gold at (${zx}, ${zy})`);
         } else {
           currentMap.settile(zx, zy, this.TILE_LAYER, this.TILE_GOLD_SMALL);
           currentMap.setzone(zx, zy, this.ZONE_GOLD2);
-          console.log(`AkActions: Star created Small Gold at (${zx}, ${zy})`);
         }
 
         this.addSprite(zx << 4, zy << 4, 0); // star effect

@@ -39,6 +39,10 @@ export class AkEnemies {
         const enemyName = entity.getName();
         if (enemyName === 'Bird') {
           this.processEagle(aa, entity);
+        } else if (enemyName === 'Fish') {
+          this.processFish(aa, entity);
+        } else if (enemyName === 'Scorpion') {
+          this.processScorpion(aa, entity);
         } else if (enemyName === 'Dust') {
           this.processDust(aa, entity);
         } else if (enemyName === 'BigDust') {
@@ -57,9 +61,9 @@ export class AkEnemies {
       entity.setFace(1);
 
     // Movement based on facing direction
-    if (entity.getFace() === 0)
+    if (entity.getFace() == 0)
       entity.incx(-2);
-    if (entity.getFace() === 1)
+    if (entity.getFace() == 1)
       entity.incx(2);
 
     // Collision detection with obstructions
@@ -77,6 +81,82 @@ export class AkEnemies {
 
     // Check collision with player
     if (this.akiddCollision(1, entity.getx() + 1, entity.gety(), 22, 14))
+      this.hitPlayer(1);
+  }
+
+  /**
+   * Process Fish enemy behavior
+   */
+  private static processFish(entityIndex: number, entity: any): void {
+    // Limit face direction to 0 or 1 (left/right)
+    if (entity.getFace() > 1)
+      entity.setFace(1);
+
+    // Movement based on facing direction
+    if (entity.getFace() == 0)
+      entity.incx(-2);
+    if (entity.getFace() == 1)
+      entity.incx(2);
+
+    // Collision detection with obstructions (use separate if statements like original)
+    if (this.obstruct(entityIndex, 1, 16, 14)) // Check right direction
+      entity.setFace(0); // Turn left
+    if (this.obstruct(entityIndex, 0, 16, 14)) // Check left direction
+      entity.setFace(1); // Turn right
+
+    // Set animation frame
+    entity.setSpecframe((6 - (entity.getFace() * 2)) + Math.floor(this.monsterframe / 6));
+
+    // Check if player attacks the fish
+    if (this.attackEnemy(entityIndex, 16, 16))
+      this.killEnemy(entityIndex, 'Dust');
+
+    // Check collision with player
+    if (this.akiddCollision(1, entity.getx() + 1, entity.gety(), 14, 14))
+      this.hitPlayer(1);
+  }
+
+  /**
+   * Process Scorpion enemy behavior
+   */
+  private static processScorpion(entityIndex: number, entity: any): void {
+    // Limit face direction to 0 or 1 (left/right)
+    if (entity.getFace() > 1)
+      entity.setFace(1);
+
+    // Movement based on facing direction
+    if (entity.getFace() == 0) {
+      entity.incx(-2);
+    }
+    if (entity.getFace() == 1) {
+      entity.incx(2);
+    }
+
+    // Gravity - fall if no ground beneath
+    if (!this.obstruct(entityIndex, 3, 14, 16)) {
+      entity.incy(2); // falling
+      if (this.monsterframe === 0) console.log(`Scorpion ${entityIndex}: falling`);
+    }
+
+    // Collision detection with edges (face 4/5 check for lack of floor)
+    if (this.obstruct(entityIndex, 5, 14, 10)) { // East + lack of floor check
+      entity.setFace(0); // Turn left
+      if (this.monsterframe === 0) console.log(`Scorpion ${entityIndex}: right edge detected, turning left`);
+    }
+    if (this.obstruct(entityIndex, 4, 14, 10)) { // West + lack of floor check
+      entity.setFace(1); // Turn right
+      if (this.monsterframe === 0) console.log(`Scorpion ${entityIndex}: left edge detected, turning right`);
+    }
+
+    // Set animation frame
+    entity.setSpecframe((10 - (entity.getFace() * 2)) + Math.floor(this.monsterframe / 6));
+
+    // Check if player attacks the scorpion
+    if (this.attackEnemy(entityIndex, 14, 16))
+      this.killEnemy(entityIndex, 'Dust');
+
+    // Check collision with player
+    if (this.akiddCollision(1, entity.getx(), entity.gety(), 14, 16))
       this.hitPlayer(1);
   }
 

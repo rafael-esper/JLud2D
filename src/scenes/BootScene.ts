@@ -93,8 +93,5 @@ export class BootScene extends Phaser.Scene {
     // Create simple colored rectangles as placeholder graphics
     this.load.image('pixel', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
 
-    // You can add more asset loading here later
-    // this.load.image('tileset', 'assets/images/tileset.png');
-    // this.load.tilemapTiledJSON('map', 'assets/maps/level01.json');
   }
 }
