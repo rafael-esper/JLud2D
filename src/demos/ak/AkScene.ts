@@ -132,7 +132,7 @@ export class AkScene extends Phaser.Scene {
     const entities = MainEngine.getEntities();
     for (let i = 0; i < entities.length; i++) {
       const entity = entities[i];
-      if (entity && entity !== player && entity.getChr()) {
+      if (entity && entity !== player && entity.getChr() && entity.isActive()) {
         entity.draw();
       }
     }

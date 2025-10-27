@@ -30,7 +30,7 @@ export class AkEnemies {
 
     for (let aa = 0; aa < entities.length; aa++) {
       const entity = entities[aa];
-      if (!entity || aa === playerIndex) continue;
+      if (!entity || aa === playerIndex || !entity.isActive()) continue;
 
       // Screen limit - only process enemies within 300 pixels of player
       if (entity.getx() > player.getx() - 300 && entity.getx() < player.getx() + 300) {
@@ -39,6 +39,10 @@ export class AkEnemies {
         const enemyName = entity.getName();
         if (enemyName === 'Bird') {
           this.processEagle(aa, entity);
+        } else if (enemyName === 'Dust') {
+          this.processDust(aa, entity);
+        } else if (enemyName === 'BigDust') {
+          this.processBigDust(aa, entity);
         }
       }
     }
@@ -67,13 +71,61 @@ export class AkEnemies {
     // Set animation frame
     entity.setSpecframe((2 - (entity.getFace() * 2)) + Math.floor(this.monsterframe / 6));
 
-    // Check if player punches the eagle
-    if (this.punch(entityIndex, 28, 16))
-      this.killEnemy(entityIndex, this.DUST);
+    // Check if player attacks the eagle
+    if (this.attackEnemy(entityIndex, 28, 16))
+      this.killEnemy(entityIndex, 'Dust');
 
     // Check collision with player
     if (this.akiddCollision(1, entity.getx() + 1, entity.gety(), 22, 14))
       this.hitPlayer(1);
+  }
+
+  /**
+   * Process Dust death animation (Java Dust processing)
+   */
+  private static processDust(entityIndex: number, entity: any): void {
+    const face = entity.getFace();
+
+    if (face === 0) {
+      entity.setSpecframe(53); // small dust
+    } else if (face === 1) {
+      entity.setSpecframe(54); // big dust
+    } else if (face === 2) {
+      entity.setSpecframe(53); // small dust
+    } else {
+      // Animation complete - remove entity
+      entity.destroy();
+    }
+
+    if (this.monsterframe === 0) {
+      entity.setFace(entity.getFace() + 1);
+    }
+  }
+
+  /**
+   * Process BigDust death animation (Java BigDust processing)
+   */
+  private static processBigDust(entityIndex: number, entity: any): void {
+    const face = entity.getFace();
+
+    if (face === 0) {
+      entity.setSpecframe(53); // small dust
+    } else if (face === 1) {
+      entity.setSpecframe(54); // big dust
+    } else if (face === 2) {
+      entity.setSpecframe(55); // huge dust
+    } else if (face === 3) {
+      entity.setSpecframe(54); // big dust
+    } else if (face === 4) {
+      entity.setSpecframe(53); // small dust
+    } else {
+      // Animation complete - remove entity
+      entity.destroy();
+    }
+
+    if (this.monsterframe === 0) {
+      entity.setFace(entity.getFace() + 1);
+    }
   }
 
   /**
@@ -146,12 +198,51 @@ export class AkEnemies {
   }
 
   /**
-   * Check if player is punching this enemy
+   * Check if player is attacking this enemy (Java punch method)
    */
-  private static punch(entityIndex: number, width: number, height: number): boolean {
-    // TODO: Implement punch collision detection
-    // This should check if the player's punch area intersects with the enemy
-    //console.log(`AkEnemies: punch check for entity ${entityIndex}, size ${width}x${height}`);
+  private static attackEnemy(entityIndex: number, wx: number, wy: number): boolean {
+    const player = MainEngine.getPlayer();
+    const entities = MainEngine.getEntities();
+    const entity = entities[entityIndex];
+
+    if (!player || !entity) return false;
+
+    // Get movement system to check action and condition
+    const scene = MainEngine.getCurrentScene();
+    const movement = (scene as any).movement;
+    if (!movement) return false;
+
+    const action = movement.getAction();
+    const condition = movement.getCondition();
+
+    // Check punching, moto, or star conditions
+    if (action === Action.PUNCHING || condition === Condition.MOTO || condition === Condition.STAR) {
+      const playerX = player.getx();
+      const playerY = player.gety();
+      const playerFace = player.getFace();
+      const entityX = entity.getx();
+      const entityY = entity.gety();
+
+      // Check punch area collision
+      if ((playerX + (playerFace * 24)) >= entityX &&
+          (playerX + (playerFace * 24)) <= entityX + wx &&
+          (playerY + 14) >= entityY &&
+          (playerY + 14) <= entityY + wy) {
+        return true;
+      }
+    }
+
+    // TODO: Check bracelet and projectile attacks when sprite system is ready
+    // if (hasBrac || condition == Condition.HELI || condition == Condition.SURF) {
+    //   for (int i = 0; i < 20; i++) {
+    //     if (spe[i] > 0 && spt[i] >= 12 && spt[i] <= 15) // bracelete e tiro
+    //       if (collision(spx[i], spy[i], 8, 8, entities.get(ind).getx(), entities.get(ind).gety(), wx, wy)) {
+    //         spe[i] = 0;
+    //         return true;
+    //       }
+    //   }
+    // }
+
     return false;
   }
 
@@ -215,19 +306,28 @@ export class AkEnemies {
   }
 
   /**
-   * Kill enemy and create death effect
+   * Kill enemy and create death effect (Java killEnemy method)
    */
-  private static killEnemy(entityIndex: number, effectType: number): void {
-    // TODO: Implement enemy death logic
-    // This should remove the enemy and create a death effect sprite
-    console.log(`AkEnemies: killEnemy ${entityIndex}, effect type ${effectType}`);
-
+  private static killEnemy(entityIndex: number, dustType: string): void {
     const entities = MainEngine.getEntities();
-    if (entities[entityIndex]) {
-      // TODO: Create death effect sprite at enemy position
-      // TODO: Remove enemy from entities list or mark as dead
-      console.log(`Enemy ${entityIndex} killed`);
-    }
+    const entity = entities[entityIndex];
+    if (!entity) return;
+
+    // Stop entity movement (entitystop equivalent)
+    entity.clearWaypoints();
+
+    // Set death animation state
+    entity.setFace(0);
+    entity.setSpecframe(52);
+    entity.setSpeed(0);
+    entity.setName(dustType);
+
+    // Play hit sound effect (snd[7])
+    MainEngine.getCurrentScene()!.sound.play('snd_hit');
+
+    console.log(`Enemy ${entityIndex} killed, converted to ${dustType}`);
+
+    // TODO: Add score when scoring system is ready
   }
 
   /**
@@ -246,6 +346,11 @@ export class AkEnemies {
     // Check invincibility state
     if (AkMovement.getInvencible() > 0) {
       return; // Player is currently invincible
+    }
+
+    // Check if player is punching - invincible while attacking
+    if (movement.getAction() === Action.PUNCHING) {
+      return;
     }
 
     // Check current condition - if in STAR mode, player is invincible
