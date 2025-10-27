@@ -551,12 +551,26 @@ export class AkMovement {
   }
 
   // Helper method to set normal condition
-  private setNormalCondition(newCondition: Condition): void {
+  public setNormalCondition(newCondition: Condition): void {
+    // TODO: stopmusic();
+    // TODO: unpress(0);
     this.condition = newCondition;
     this.state = Status.STOPPED;
-    this.velocity = 0;
+    this.action = Action.NONE;
     this.vertical = 0;
     this.alt = 0;
+    AkActions.setHasBrac(false);
+
+    const player = MainEngine.getPlayer();
+    if (player) {
+      player.setFace(AkMovement.EAST);
+    }
+
+    this.velocity = 0;
+    AkActions.resetPunchDelay(); // pdelay = 0
+    AkActions.setTdelay(0); // tdelay = 0
+
+    // TODO: playmusic(load(currentMusic));
   }
 
   // Trembling action (ported from Java)

@@ -82,6 +82,9 @@ export class AkScene extends Phaser.Scene {
     // Initialize movement system
     this.movement = new AkMovement(this.tiledMap, this.inputManager);
 
+    // Set normal condition when starting the scene
+    this.movement.setNormalCondition(Condition.WALK);
+
     this.fpsDisplay.setVisible(this.config.showFPS);
   }
    wait = 0;
