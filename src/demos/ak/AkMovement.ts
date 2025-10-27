@@ -30,6 +30,7 @@ export class AkMovement {
   private gameSpeed: number = 2; // Default speed (matches original gameSpeed = 2)
   private static debug: boolean = false;
   private static invencible: number = 0;
+  private static energy: number = 3; // Player health/energy (default starting value)
 
   // Physics constants
   private static readonly SPEED: number = 3;
@@ -96,6 +97,9 @@ export class AkMovement {
 
   // Main movement update method
   update(): void {
+    // Decrement invincibility frames
+    AkMovement.decrementInvencible();
+
     if (this.condition == Condition.WALK || this.condition == Condition.MOTO || this.condition == Condition.SURF) {
       this.movePlayer();
     } else if (this.condition == Condition.SWIM || this.condition == Condition.HELI || this.condition == Condition.FLY || this.condition == Condition.STAR) {
@@ -788,5 +792,38 @@ export class AkMovement {
       this.velocity = this.sgn(this.velocity) * maxVehicle;
     if (this.abs(this.velocity) < minVehicle)
       this.velocity = this.sgn(this.velocity) * minVehicle;
+  }
+
+  // Static methods for invincibility and energy management
+  public static getInvencible(): number {
+    return AkMovement.invencible;
+  }
+
+  public static setInvencible(value: number): void {
+    AkMovement.invencible = value;
+  }
+
+  public static decrementInvencible(): void {
+    if (AkMovement.invencible > 0) {
+      AkMovement.invencible--;
+    }
+  }
+
+  public static getEnergy(): number {
+    return AkMovement.energy;
+  }
+
+  public static setEnergy(value: number): void {
+    AkMovement.energy = Math.max(0, value); // Ensure energy doesn't go below 0
+  }
+
+  public static decrementEnergy(): void {
+    if (AkMovement.energy > 0) {
+      AkMovement.energy--;
+    }
+  }
+
+  public static isInvincible(): boolean {
+    return AkMovement.invencible > 0;
   }
 }

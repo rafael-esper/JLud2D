@@ -122,7 +122,9 @@ export class AkScene extends Phaser.Scene {
     // Update player sprite frame (Phaser equivalent of screen.render/showpage)
     const player = MainEngine.getPlayer();
     if (player && player.getChr()) {
-      player.setSpecframe(playerFrame);
+      // Flicker when invincible
+      const finalFrame = (AkMovement.getInvencible() > 0 && AkMovement.getInvencible() % 2 === 0) ? 44 : playerFrame;
+      player.setSpecframe(finalFrame);
       player.draw();
     }
 
@@ -166,6 +168,16 @@ export class AkScene extends Phaser.Scene {
     this.akidd_py = py;
     this.akidd_vx = vx;
     this.akidd_vy = vy;
+  }
+
+  // Get player collision dimensions for enemy collision detection
+  public getPlayerCollisionBox(): { px: number, py: number, vx: number, vy: number } {
+    return {
+      px: this.akidd_px,
+      py: this.akidd_py,
+      vx: this.akidd_vx,
+      vy: this.akidd_vy
+    };
   }
 
 

@@ -5,7 +5,7 @@
  */
 
 import { MainEngine } from '../../core/MainEngine';
-import { Condition, Status, Action } from './AkMovement';
+import { Condition, Status, Action, AkMovement } from './AkMovement';
 
 export class AkEnemies {
   private static monsterframe: number = 0;
@@ -156,27 +156,62 @@ export class AkEnemies {
   }
 
   /**
-   * Check collision between Alex Kidd and enemy
+   * Check collision between Alex Kidd and enemy (Java akiddCollision method)
    */
-  private static akiddCollision(damage: number, x: number, y: number, width: number, height: number): boolean {
-    const player = MainEngine.getPlayer();
-    if (!player) return false;
+  private static akiddCollision(type: number, mx: number, my: number, wx: number, wy: number): boolean {
+    // ho=0;if (State=Status.DUCKING) ho+=8;
+    // px = entity.get(player).x+12;
+    // py = entity.get(player).y+6;
+    // vx = 8
+    // vy = 20
+    // if (type == 1) // passive
 
-    // Simple rectangle collision detection
-    const playerX = player.getx();
-    const playerY = player.gety();
-    const playerWidth = 32; // Assuming 32x32 player size
-    const playerHeight = 32;
+    // When punching, make him invulnerable to collision: obs: leaf, etc, should hit
+    // TODO: Implement pdelay check when punch system is ready
+    // if (pdelay > 0) return false;
 
-    // Check if rectangles overlap
-    if (playerX < x + width &&
-        playerX + playerWidth > x &&
-        playerY < y + height &&
-        playerY + playerHeight > y) {
-      return true;
+    // Get player collision dimensions from AkScene
+    // These values are set by the showPlayer() method in AkScene
+    const scene = MainEngine.getCurrentScene();
+    let akidd_px = 0, akidd_py = 0, akidd_vx = 8, akidd_vy = 20;
+
+    if (scene && typeof (scene as any).getPlayerCollisionBox === 'function') {
+      // Get the actual collision dimensions from AkScene
+      const collisionBox = (scene as any).getPlayerCollisionBox();
+      akidd_px = collisionBox.px;
+      akidd_py = collisionBox.py;
+      akidd_vx = collisionBox.vx;
+      akidd_vy = collisionBox.vy;
+    } else {
+      // Fallback: calculate default player collision box
+      const player = MainEngine.getPlayer();
+      if (player) {
+        akidd_px = player.getx() + 12;
+        akidd_py = player.gety() + 6;
+        akidd_vx = 8;
+        akidd_vy = 20;
+      }
     }
 
-    return false;
+    return this.collision(akidd_px, akidd_py, akidd_vx, akidd_vy, mx, my, wx, wy);
+  }
+
+  /**
+   * Player is touched by a monster or sprite (Java collision method)
+   */
+  private static collision(px: number, py: number, vx: number, vy: number, mx: number, my: number, wx: number, wy: number): boolean {
+    // TODO: Add debug rendering when debug mode is enabled
+    // if (debug) {
+    //   screen.rect(mx - xwin, my - ywin, mx + wx - xwin, my + wy - ywin, new Color(200, 100, 100));
+    //   screen.rect(px - xwin, py - ywin, px + vx - xwin, py + vy - ywin, new Color(100, 100, 200));
+    // }
+
+    // This formula assumes the rectangles do not intersect
+    if (mx > px + vx || mx + wx < px || my > py + vy || my + wy < py) {
+      return false;
+    } else {
+      return true;
+    }
   }
 
   /**
@@ -196,15 +231,44 @@ export class AkEnemies {
   }
 
   /**
-   * Handle player getting hit by enemy
+   * Handle player getting hit by enemy (Java hitPlayer method)
+   * @param type 1 by monster, 2 naturally, 3 fire
    */
-  private static hitPlayer(damage: number): void {
-    // TODO: Implement player damage logic
-    // This should reduce player health, play hit sound, etc.
-    console.log(`AkEnemies: Player hit for ${damage} damage`);
+  private static hitPlayer(type: number): void {
+    // Get current scene to access player state
+    const scene = MainEngine.getCurrentScene();
+    if (!scene) return;
 
-    // TODO: Check if player has invincibility frames
-    // TODO: Reduce player health
+    // Get movement system to check conditions
+    const movement = (scene as any).movement;
+    if (!movement) return;
+
+    // Check invincibility state
+    if (AkMovement.getInvencible() > 0) {
+      return; // Player is currently invincible
+    }
+
+    // Check current condition - if in STAR mode, player is invincible
+    const currentCondition = movement.getCondition();
+    if (currentCondition === Condition.STAR) {
+      return;
+    }
+
+    // If in MOTO condition and hit by monster (type 1), ignore
+    if (currentCondition === Condition.MOTO && type === 1) {
+      return;
+    }
+
+    // Set invincibility frames (120 frames = 2 seconds at 60fps)
+    AkMovement.setInvencible(120);
+
+    // Reduce energy/health
+    if (AkMovement.getEnergy() > 0) {
+      AkMovement.decrementEnergy();
+    }
+
+    console.log(`AkEnemies: Player hit by type ${type} (1=monster, 2=natural, 3=fire). Energy: ${AkMovement.getEnergy()}, Invincible frames: ${AkMovement.getInvencible()}`);
+
     // TODO: Play hit sound effect
     // TODO: Apply knockback or other effects
   }
