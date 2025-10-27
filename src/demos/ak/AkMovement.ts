@@ -46,6 +46,14 @@ export class AkMovement {
   private static readonly MAXFLY: number = 6;
   private static readonly MAXSTAR: number = 14;
 
+  // Vehicle constants
+  private static readonly MINMOTO: number = 12;
+  private static readonly MAXMOTO: number = 26;
+  private static readonly ALTMOTO: number = 56; // max jumping height with moto
+  private static readonly MINSURF: number = 10;
+  private static readonly MAXSURF: number = 25;
+  private static readonly ALTSURF: number = 50;
+
   // Direction constants
   private static readonly WEST: number = 0;
   private static readonly EAST: number = 1;
@@ -117,12 +125,12 @@ export class AkMovement {
         break;
 
       case Condition.MOTO:
-        this.controlVehicle();
+        this.controlVehicle(AkMovement.MINMOTO, AkMovement.MAXMOTO, AkMovement.ALTMOTO);
         this.vehicleAttack();
         break;
 
       case Condition.SURF:
-        this.controlVehicle();
+        this.controlVehicle(AkMovement.MINSURF, AkMovement.MAXSURF, AkMovement.ALTSURF);
         break;
 
       case Condition.HELI:
@@ -296,7 +304,29 @@ export class AkMovement {
   }
 
   private vehicleAttack(): void {
-    console.log("vehicleAttack - Non-implemented yet");
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    let punchResult: { zone: number, actualZx: number, actualZy: number };
+    const HoOffset1 = player.getFace() * 32;
+    const HoOffset2 = player.getFace() * 40;
+
+    // Calculate zone coordinates for first check
+    const zx1 = (player.getx() + HoOffset1) >> 4;
+    const zy1 = (player.gety() + 16) >> 4;
+
+    punchResult = AkActions.getpunch(HoOffset1, this.condition, zx1, zy1);
+
+    if (punchResult.zone == 0) {
+      // Calculate zone coordinates for second check
+      const zx2 = (player.getx() + HoOffset2) >> 4;
+      const zy2 = (player.gety() + 16) >> 4;
+      punchResult = AkActions.getpunch(HoOffset2, this.condition, zx2, zy2);
+    }
+
+    if (punchResult.zone >= 3 && punchResult.zone <= 8) { // Events processed by the vehicle (Rock=3, Star=4, Rice=5, Swim=6, Item=7, Skull=8)
+      AkActions.callEvent(punchResult.zone, punchResult.actualZx, punchResult.actualZy);
+    }
   }
 
   private controlRope(): void {
@@ -690,5 +720,73 @@ export class AkMovement {
       if (!this.getObsd(aa))
         player.incy(this.sgn(this.vertical));
     }
+  }
+
+  // Vehicles: Moto and Surf (ported from Java controlVehicle)
+  private controlVehicle(minVehicle: number, maxVehicle: number, altVehicle: number): void {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    if (this.state == Status.STOPPED)
+      this.state = Status.WALKING;
+
+    if (this.velocity == 0) {
+      if (player.getFace() == AkMovement.WEST)
+        this.velocity = -minVehicle;
+      if (player.getFace() == AkMovement.EAST)
+        this.velocity = minVehicle;
+    }
+
+    if (this.inputManager.right && this.velocity > 0)
+      this.velocity += AkMovement.SPEED;
+    if (this.inputManager.down && this.velocity > 0)
+      this.velocity -= AkMovement.SPEED;
+
+    if (this.inputManager.down && this.velocity < 0)
+      this.velocity += AkMovement.SPEED;
+    if (this.inputManager.left && this.velocity < 0)
+      this.velocity -= AkMovement.SPEED;
+
+    // Invert direction
+    if (this.inputManager.left && this.velocity > 0 && this.state == Status.WALKING) {
+      this.velocity = -this.velocity;
+      player.setFace(AkMovement.WEST);
+    } else if (this.inputManager.right && this.velocity < 0 && this.state == Status.WALKING) {
+      this.velocity = -this.velocity;
+      player.setFace(AkMovement.EAST);
+    }
+
+    // Destroy vehicle
+    if (this.getObsd(player.getFace()) != 0) {
+      // Check if punch area is clear
+      const HoOffset = player.getFace() * 32;
+      const zx = (player.getx() + HoOffset) >> 4;
+      const zy = (player.gety() + 16) >> 4;
+
+      if (AkActions.getpunch(HoOffset, this.condition, zx, zy).zone == 0) {
+        // Add destruction sprite
+        // TODO: addSprite equivalent
+        console.log(`Vehicle destroyed at (${player.getx() - 24 + player.getFace() * 32}, ${player.gety()})`);
+
+        if (this.condition == Condition.MOTO) {
+          this.setNormalCondition(Condition.WALK);
+          this.state = Status.JUMPING;
+          return;
+        } else {
+          // Handle SURF destruction
+          AkActions.callEvent(6, zx, zy); // callEvent(6)
+          player.incy(24);
+          return;
+        }
+      }
+    }
+
+    this.checkJumpFalling(altVehicle + this.abs(this.velocity) - maxVehicle);
+
+    // Limit max Speed
+    if (this.abs(this.velocity) > maxVehicle)
+      this.velocity = this.sgn(this.velocity) * maxVehicle;
+    if (this.abs(this.velocity) < minVehicle)
+      this.velocity = this.sgn(this.velocity) * minVehicle;
   }
 }

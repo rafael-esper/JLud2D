@@ -84,9 +84,10 @@ export class AkActions {
         const zy = (player.gety() + 16) >> 4; // Use same offset as getpunch loop start
 
 
-        ge = this.getpunch(HoOffset, condition, zx, zy);
+        const punchResult = this.getpunch(HoOffset, condition, zx, zy);
+        ge = punchResult.zone;
         if (ge >= 3 && ge <= 8) { // Events that are processed by punch (Rock=3, Star=4, Rice=5, Swim=6, Item=7, Skull=8)
-          const resultAction = this.callEvent(ge, zx, zy);
+          const resultAction = this.callEvent(ge, punchResult.actualZx, punchResult.actualZy);
           if (resultAction) {
             newAction = resultAction;
           }
@@ -112,8 +113,9 @@ export class AkActions {
 
   /**
    * Get punch collision detection (Java getpunch method)
+   * Returns an object with zone and actual coordinates where the zone was found
    */
-  private static getpunch(HoOffset: number, condition: Condition, zx: number, zy: number): number {
+  public static getpunch(HoOffset: number, condition: Condition, zx: number, zy: number): { zone: number, actualZx: number, actualZy: number } {
 
     let a: number, UpOffset: number;
     UpOffset = 12;
@@ -128,19 +130,19 @@ export class AkActions {
 
     if (!player || !currentMap) {
       console.log(`AkActions: getpunch() - missing player or map`);
-      return 0;
+      return { zone: 0, actualZx: zx, actualZy: zy };
     }
 
-    for (a = UpOffset; a < 32; a += 2) {
+    for (a = UpOffset; a < 28; a += 2) {
       const currentZy = (player.gety() + a) >> 4;
       const zone = currentMap.getzone(zx, currentZy);
 
       if (zone >= 3) {
-        return zone; // to avoid gold sacks
+        return { zone: zone, actualZx: zx, actualZy: currentZy }; // Return actual coordinates
       }
     }
 
-    return 0;
+    return { zone: 0, actualZx: zx, actualZy: zy };
   }
 
   /**
