@@ -217,9 +217,23 @@ export class AkActions {
         break;
 
       case this.ZONE_SWIM: // Swim (zone 6)
-        console.log(`AkActions: Processing ZONE_SWIM event`);
-        // TODO: Implement condition and state change logic
-        console.log(`AkActions: Swim zone entered - condition change not implemented yet`);
+        const scene = MainEngine.getCurrentScene() as any;
+        const movement = scene.movement;
+
+        // Only change to swim if not already swimming or in star mode
+        if (movement.getCondition() !== Condition.SWIM && movement.getCondition() !== Condition.STAR) {
+          movement.setNormalCondition(Condition.SWIM);
+          movement.setState(Status.STOPPED);
+
+          // Play water sound and animate player going into water
+          scene.sound.play('snd_water');
+
+          const player = MainEngine.getPlayer()!;
+          // Move player down more to reach water level
+          for (let j = 0; j < 20; j++) {
+            player.incy(2);
+          }
+        }
         break;
 
       case this.ZONE_ITEM: // Item (zone 7)

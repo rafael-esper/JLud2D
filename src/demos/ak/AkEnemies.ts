@@ -43,6 +43,12 @@ export class AkEnemies {
           this.processFish(aa, entity);
         } else if (enemyName === 'Scorpion') {
           this.processScorpion(aa, entity);
+        } else if (enemyName === 'Frog') {
+          this.processFrog(aa, entity);
+        } else if (enemyName === 'SeaHorse') {
+          this.processSeaHorse(aa, entity);
+        } else if (enemyName === 'BigFish') {
+          this.processBigFish(aa, entity);
         } else if (enemyName === 'Dust') {
           this.processDust(aa, entity);
         } else if (enemyName === 'BigDust') {
@@ -157,6 +163,152 @@ export class AkEnemies {
 
     // Check collision with player
     if (this.akiddCollision(1, entity.getx(), entity.gety(), 14, 16))
+      this.hitPlayer(1);
+  }
+
+  /**
+   * Process Frog enemy behavior
+   */
+  private static processFrog(entityIndex: number, entity: any): void {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    let frogDirection = 1;
+    if (player.getx() > entity.getx())
+      frogDirection = 0;
+
+    if (entity.getFace() <= 3) { // stopped
+      entity.setSpecframe(12 + (2 * frogDirection));
+      if (!this.obstruct(entityIndex, 3, 14, 16))
+        entity.setFace(7);
+    }
+
+    if (entity.getFace() == 3 && this.monsterframe == 0)
+      entity.incy(-10);
+    else if (entity.getFace() >= 4 && entity.getFace() <= 5) { // jumping
+      entity.incy(-(6 - entity.getFace()));
+      entity.setSpecframe(13 + (2 * frogDirection));
+      frogDirection = 10;
+    } else if (entity.getFace() >= 6 && entity.getFace() <= 7) { // falling
+      entity.incy(entity.getFace() - 5);
+      entity.setSpecframe(13 + (2 * frogDirection));
+      if (this.obstruct(entityIndex, 3, 12, 26))
+        entity.setFace(1);
+      frogDirection = 10;
+    }
+
+    if (entity.getFace() >= 8) {
+      entity.incy(10);
+      entity.setFace(0);
+    }
+
+    if (this.monsterframe == 0) {
+      entity.setFace(entity.getFace() + 1);
+    }
+
+    // Check if player attacks the frog
+    if (this.attackEnemy(entityIndex, 14, 26))
+      this.killEnemy(entityIndex, 'Dust');
+
+    // Check collision with player
+    if (this.akiddCollision(1, entity.getx(), entity.gety() + 10 - frogDirection, 14, 24))
+      this.hitPlayer(1);
+  }
+
+  /**
+   * Process SeaHorse enemy behavior
+   */
+  private static processSeaHorse(entityIndex: number, entity: any): void {
+    // Set animation frame (frames 37-38)
+    entity.setSpecframe(37 + Math.floor(this.monsterframe / 6));
+
+    // Movement based on face direction (circular pattern)
+    if (entity.getFace() == 0)
+      entity.incy(1);
+    if (entity.getFace() == 1)
+      entity.incx(-1);
+    if (entity.getFace() == 2)
+      entity.incx(-1);
+    if (entity.getFace() == 3)
+      entity.incy(1);
+    if (entity.getFace() == 4)
+      entity.incy(-1);
+    if (entity.getFace() == 5)
+      entity.incx(1);
+    if (entity.getFace() == 6)
+      entity.incx(1);
+    if (entity.getFace() == 7)
+      entity.incy(-1);
+
+    // Reset face after completing circle
+    if (entity.getFace() >= 8)
+      entity.setFace(0);
+
+    // Advance face every 12 frames
+    if (this.monsterframe == 0) {
+      entity.setFace(entity.getFace() + 1);
+    }
+
+    // Check if player attacks the seahorse
+    if (this.attackEnemy(entityIndex, 11, 15))
+      this.killEnemy(entityIndex, 'Dust');
+
+    // Check collision with player
+    if (this.akiddCollision(1, entity.getx(), entity.gety(), 11, 15))
+      this.hitPlayer(1);
+  }
+
+  /**
+   * Process BigFish enemy behavior
+   */
+  private static processBigFish(entityIndex: number, entity: any): void {
+    // Horizontal movement based on face (even = left, odd = right)
+    if (entity.getFace() % 2 == 0)
+      entity.incx(-2);
+    if (entity.getFace() % 2 == 1)
+      entity.incx(2);
+
+    // Vertical movement based on face
+    if (entity.getFace() == 0 || entity.getFace() == 1)
+      entity.incy(3);  // Moving down
+    if (entity.getFace() == 2 || entity.getFace() == 3)
+      entity.incy(-3); // Moving up
+
+    // Collision detection with walls
+    if (this.obstruct(entityIndex, 1, 24, 16)) { // Right wall
+      entity.setFace(entity.getFace() - 1);
+    }
+    if (this.obstruct(entityIndex, 0, 24, 16)) { // Left wall
+      entity.setFace(entity.getFace() + 1);
+    }
+
+    // Advance face every 12 frames
+    if (this.monsterframe == 0) {
+      entity.setFace(entity.getFace() + 2);
+    }
+
+    // Keep face in valid range (0-3)
+    if (entity.getFace() > 3)
+      entity.setFace(entity.getFace() % 2);
+
+    // Ensure face stays within bounds after collision adjustments
+    if (entity.getFace() < 0)
+      entity.setFace(entity.getFace() + 4);
+    if (entity.getFace() > 3)
+      entity.setFace(entity.getFace() % 4);
+
+    // Calculate animation frame
+    let cc = (22 - ((entity.getFace() % 2) * 2)) + Math.floor(this.monsterframe / 6);
+    if (cc < 0)
+      cc = 0;
+    entity.setSpecframe(cc);
+
+    // Check if player attacks the big fish
+    if (this.attackEnemy(entityIndex, 24, 16))
+      this.killEnemy(entityIndex, 'BigDust');
+
+    // Check collision with player
+    if (this.akiddCollision(1, entity.getx(), entity.gety(), 22, 15))
       this.hitPlayer(1);
   }
 
