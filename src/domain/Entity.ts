@@ -326,7 +326,71 @@ export class Entity {
 
   // CHR and rendering
   public getChr(): CHR | null { return this.chr; }
-  public setChr(chr: CHR): void { this.chr = chr; }
+  public getSprite(): Phaser.GameObjects.Sprite | null { return this.sprite; }
+  public setChr(chr: CHR): void {
+    this.chr = chr;
+    // If sprite exists, recreate it with new CHR texture
+    if (this.sprite && this.chr) {
+      this.recreateSprite();
+    } else if (!this.sprite && this.chr) {
+      // Create sprite if it doesn't exist yet (async call, but don't await)
+      this.createSpriteFromCHR().catch(error => {
+        console.error('Entity: Failed to create sprite from CHR:', error);
+      });
+    }
+  }
+
+  /**
+   * Create sprite from current CHR
+   */
+  private async createSpriteFromCHR(): Promise<void> {
+    if (!this.chr) return;
+
+    // Find the scene - we need to get the current scene
+    const { MainEngine } = await import('../core/MainEngine');
+    const currentScene = MainEngine.getCurrentScene();
+    if (!currentScene) {
+      console.error('Entity: No current scene to create sprite');
+      return;
+    }
+
+    // Create sprite with CHR texture
+    const textureKey = `chr-${this.chr.getImageName().replace('.png', '')}`;
+
+    try {
+      this.sprite = currentScene.add.sprite(this.x, this.y, textureKey);
+      this.sprite.setOrigin(0, 0);
+      this.sprite.setDepth(5); // Default entity depth
+
+      console.log(`Entity: Created sprite with texture key: ${textureKey}`);
+    } catch (error) {
+      console.error(`Entity: Failed to create sprite with texture ${textureKey}:`, error);
+    }
+  }
+
+  /**
+   * Recreate sprite with current CHR texture
+   */
+  private recreateSprite(): void {
+    if (!this.chr || !this.sprite) return;
+
+    const scene = this.sprite.scene;
+    const currentX = this.sprite.x;
+    const currentY = this.sprite.y;
+    const currentDepth = this.sprite.depth;
+
+    // Destroy old sprite
+    this.sprite.destroy();
+
+    // Create new sprite with CHR texture
+    const textureKey = `chr-${this.chr.getImageName().replace('.png', '')}`;
+
+    this.sprite = scene.add.sprite(currentX, currentY, textureKey);
+    this.sprite.setDepth(currentDepth);
+    this.sprite.setOrigin(0, 0);
+
+    console.log(`Entity: Recreated sprite with texture key: ${textureKey}`);
+  }
   public getChrname(): string { return this.chrname; }
   public setChrname(chrname: string): void { this.chrname = chrname; }
 

@@ -11,6 +11,8 @@ import { MainEngine } from '../../core/MainEngine';
 import { DemoUI } from '../../utils/DemoUI';
 import { AkActions } from './AkActions';
 import { AkMovement, Condition, Status, Action } from './AkMovement';
+import { AkEnemies } from './AkEnemies';
+import { CHR } from '../../domain/CHR';
 
 export class AkScene extends Phaser.Scene {
   private config: GameConfig;
@@ -68,6 +70,9 @@ export class AkScene extends Phaser.Scene {
     this.tiledMap = await MainEngine.loadAndInitMap(this, 'level01.map.json', 'src/demos/ak');
     await MainEngine.mapinit(this, 'Ak.anim.json', 'src/demos/ak');
 
+    // Load monster CHR sprites
+    await this.loadMonsterSprites();
+
     // Set camera to follow player
     MainEngine.setCameraTracking(1);
     MainEngine.setupCamera();
@@ -109,6 +114,9 @@ export class AkScene extends Phaser.Scene {
       this.movement.update();
     }
 
+    // Process enemies
+    AkEnemies.processEnemies();
+
     const playerFrame = this.movement ? this.showPlayer() : 0;
 
     // Update player sprite frame (Phaser equivalent of screen.render/showpage)
@@ -116,6 +124,15 @@ export class AkScene extends Phaser.Scene {
     if (player && player.getChr()) {
       player.setSpecframe(playerFrame);
       player.draw();
+    }
+
+    // Draw all entities
+    const entities = MainEngine.getEntities();
+    for (let i = 0; i < entities.length; i++) {
+      const entity = entities[i];
+      if (entity && entity !== player && entity.getChr()) {
+        entity.draw();
+      }
     }
 
     // Debug: Draw blue rectangle around player
@@ -224,6 +241,67 @@ export class AkScene extends Phaser.Scene {
     }
 
     return 0;
+  }
+
+  /**
+   * Load monster CHR sprites and assign to entities
+   */
+  private async loadMonsterSprites(): Promise<void> {
+    try {
+      // Load monster CHR (56 frames, 32x32 each, 7 columns, 1 row per frame)
+      const monsterChr = await CHR.loadChrFromImage(this, 'src/demos/ak/monster.png', 56, 32, 32, 7, 1);
+
+      // Load big monster CHR (6 frames, 48x64 each, 6 columns, 1 row per frame)
+      const bigChr = await CHR.loadChrFromImage(this, 'src/demos/ak/Big.png', 6, 48, 64, 6, 1);
+
+      // Assign CHR to entities based on chrname (skip the player)
+      const entities = MainEngine.getEntities();
+      const playerIndex = MainEngine.getPlayerIndex();
+
+      for (let i = 0; i < entities.length; i++) {
+        const entity = entities[i];
+
+        // Skip the player entity - Alex should keep his original CHR
+        if (i === playerIndex || !entity || !entity.getChrname()) {
+          continue;
+        }
+
+        // Only assign monster CHR to entities with .chr files (enemies)
+        const chrname = entity.getChrname();
+        if (chrname.includes('monster') || chrname.endsWith('.chr')) {
+          if (chrname.includes('monster')) {
+            entity.setChr(monsterChr);
+            console.log(`AkScene: Assigned monster CHR to entity ${i} (${chrname})`);
+          } else if (chrname.includes('Big') || chrname.includes('big')) {
+            entity.setChr(bigChr);
+            console.log(`AkScene: Assigned big CHR to entity ${i} (${chrname})`);
+          } else {
+            // Default to monster CHR for other .chr files
+            entity.setChr(monsterChr);
+            console.log(`AkScene: Assigned default monster CHR to entity ${i} (${chrname})`);
+          }
+        }
+      }
+
+      console.log('AkScene: Monster sprites loaded successfully');
+
+      // Debug: Log all entities and their properties
+      console.log('=== Entity Debug Info ===');
+      for (let i = 0; i < entities.length; i++) {
+        const entity = entities[i];
+        if (entity) {
+          console.log(`Entity ${i}:`, {
+            chrname: entity.getChrname(),
+            position: `(${entity.getx()}, ${entity.gety()})`,
+            speed: entity.getSpeed(),
+            face: entity.getFace(),
+            isPlayer: i === playerIndex
+          });
+        }
+      }
+    } catch (error) {
+      console.error('AkScene: Error loading monster sprites:', error);
+    }
   }
 
 }

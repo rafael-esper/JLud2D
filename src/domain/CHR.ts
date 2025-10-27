@@ -306,6 +306,74 @@ export class CHR {
     return this.anims[animIndex].length;
   }
 
+  /**
+   * Load CHR from an image file (like monster.png) with specified parameters
+   * Port of Java loadChrFromImage method
+   */
+  public static async loadChrFromImage(
+    scene: Phaser.Scene,
+    imagePath: string,
+    total: number,
+    xSize: number,
+    ySize: number,
+    columns: number,
+    spacing: number
+  ): Promise<CHR> {
+    console.log(`Loading CHR from Image: ${imagePath}`);
+
+    const chr = new CHR();
+    chr.fxsize = xSize;
+    chr.fysize = ySize;
+    chr.columns = columns;
+    chr.totalframes = total;
+    chr.spacing = spacing;
+    chr.anims = [];
+
+    // Set consistent hotspot positioning like player sprites
+    // Default hotspot to (0,0) for top-left positioning consistency
+    chr.hx = 0;
+    chr.hy = 0;
+    chr.hw = xSize;
+    chr.hh = ySize;
+
+    if (!imagePath) {
+      return chr;
+    }
+
+    // Extract filename from path
+    chr.imageName = imagePath.substring(imagePath.lastIndexOf('/') + 1);
+
+    await chr.loadCHRFromImage(scene, imagePath);
+
+    return chr;
+  }
+
+  /**
+   * Private method to load CHR frames from image
+   * Port of Java loadCHRFromImage method
+   */
+  private async loadCHRFromImage(scene: Phaser.Scene, imagePath: string): Promise<void> {
+    const imageKey = `chr-${this.imageName.replace('.png', '')}`;
+
+    // Load image if not already loaded
+    if (!scene.textures.exists(imageKey)) {
+      scene.load.image(imageKey, imagePath);
+
+      // Wait for the image to load
+      await new Promise<void>((resolve) => {
+        const onComplete = () => {
+          scene.load.off('complete', onComplete);
+          resolve();
+        };
+        scene.load.on('complete', onComplete);
+        scene.load.start();
+      });
+    }
+
+    // Extract frames from the sprite sheet
+    this.extractFrames(scene, imageKey);
+  }
+
   // Getters
   public getTotalframes(): number { return this.totalframes; }
   public getFxsize(): number { return this.fxsize; }

@@ -166,7 +166,7 @@
                 {
                  "height":16,
                  "id":1,
-                 "name":"Unnamed Entity 1",
+                 "name":"Bird",
                  "properties":[
                         {
                          "name":"activationEvent",
@@ -243,7 +243,7 @@
                 {
                  "height":16,
                  "id":2,
-                 "name":"Unnamed Entity 2",
+                 "name":"Bird",
                  "properties":[
                         {
                          "name":"activationEvent",
@@ -320,7 +320,7 @@
                 {
                  "height":16,
                  "id":3,
-                 "name":"Unnamed Entity 3",
+                 "name":"Bird",
                  "properties":[
                         {
                          "name":"activationEvent",
@@ -397,7 +397,7 @@
                 {
                  "height":16,
                  "id":4,
-                 "name":"Unnamed Entity 4",
+                 "name":"Bird",
                  "properties":[
                         {
                          "name":"activationEvent",
@@ -474,7 +474,7 @@
                 {
                  "height":16,
                  "id":5,
-                 "name":"Unnamed Entity 5",
+                 "name":"Bird",
                  "properties":[
                         {
                          "name":"activationEvent",

@@ -392,12 +392,12 @@ export class TiledMap {
    * Start map - equivalent to Java MapTiledJSON.startMap()
    * Sets up the map for gameplay
    */
-  public startMap(): void {
+  public async startMap(): Promise<void> {
     // Set as current map in MainEngine (will be implemented)
     // MainEngine.setCurrentMap(this);
 
     // Load entities from map if present
-    this.loadMapEntities();
+    await this.loadMapEntities();
 
     // Call startup script if present
     this.callStartupScript();
@@ -408,15 +408,75 @@ export class TiledMap {
   /**
    * Load entities from map data
    */
-  private loadMapEntities(): void {
+  private async loadMapEntities(): Promise<void> {
     if (!this.mapData) return;
+
+    // Import MainEngine here to avoid circular dependencies
+    const { MainEngine } = await import('../core/MainEngine');
 
     // Look for object layers containing entities
     for (const layer of this.mapData.layers) {
-      if (layer.type === 'objectgroup') {
-        // Process object layer for entities
-        // This would spawn entities using MainEngine.entityspawn()
-        console.log(`Found object layer: ${layer.name} - entity loading not yet implemented`);
+      if (layer.type === 'objectgroup' && layer.objects) {
+        console.log(`Processing object layer: ${layer.name} with ${layer.objects.length} objects`);
+
+        for (const obj of layer.objects) {
+          // Extract entity properties
+          const properties: any = {};
+          if (obj.properties) {
+            for (const prop of obj.properties) {
+              properties[prop.name] = prop.value;
+            }
+          }
+
+          // Check if this object has a chrname (making it an entity)
+          if (properties.chrname) {
+            // Convert pixel coordinates to tile coordinates (matching Java logic)
+            const tileX = Math.floor(obj.x / this.tilewidth);
+            const tileY = Math.floor(obj.y / this.tileheight);
+
+            console.log(`Creating entity: ${obj.name} at (${tileX}, ${tileY}) with chr: ${properties.chrname}`);
+
+            try {
+              // Spawn entity using MainEngine (no CHR loading yet)
+              const entityIndex = await MainEngine.AllocateEntity(
+                this.scene,
+                tileX,
+                tileY,
+                '', // Empty chrname to avoid CHR loading
+                this.basePath
+              );
+
+              const entity = MainEngine.getEntityByIndex(entityIndex);
+              if (entity) {
+                // Set the name from Tiled map object
+                if (obj.name) entity.setName(obj.name);
+
+                // Set the chrname for later CHR assignment
+                entity.setChrname(properties.chrname);
+
+                // Set entity properties from map data
+                if (properties.face !== undefined) entity.setFace(properties.face);
+                if (properties.speed !== undefined) entity.setSpeed(properties.speed);
+                if (properties.autoface !== undefined) entity.setAutoface(properties.autoface);
+                if (properties.obstructable !== undefined) {
+                  // Set obstructable property if needed
+                }
+
+                // Convert back to pixel coordinates (matching Java: e.setx(e.getx()*tilewidth))
+                entity.setxy(tileX * this.tilewidth, tileY * this.tileheight);
+
+                console.log(`Entity ${entityIndex} created successfully:`, {
+                  chrname: properties.chrname,
+                  position: `(${entity.getx()}, ${entity.gety()})`,
+                  face: entity.getFace(),
+                  speed: entity.getSpeed()
+                });
+              }
+            } catch (error) {
+              console.error(`Failed to create entity ${obj.name}:`, error);
+            }
+          }
+        }
       }
     }
   }

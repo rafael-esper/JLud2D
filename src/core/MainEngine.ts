@@ -288,6 +288,16 @@ export class MainEngine {
   }
 
   /**
+   * Get entity by index
+   */
+  public static getEntityByIndex(index: number): Entity | null {
+    if (index < 0 || index >= MainEngine.entities.length) {
+      return null;
+    }
+    return MainEngine.entities[index];
+  }
+
+  /**
    * Get number of entities
    */
   public static getNumEntities(): number {
@@ -686,7 +696,7 @@ export class MainEngine {
 
     if (tiledMap) {
       // Start the map
-      tiledMap.startMap();
+      await tiledMap.startMap();
 
       // Set current map reference
       MainEngine.setCurrentMap(tiledMap);
