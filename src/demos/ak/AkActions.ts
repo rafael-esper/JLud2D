@@ -237,11 +237,10 @@ export class AkActions {
         break;
 
       case this.ZONE_ITEM: // Item (zone 7)
-        console.log(`AkActions: Processing ZONE_ITEM event`);
         Sound.playSound('snd_item');
         currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
         currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
-        currentMap.setobs(zx, zy, 0);
+        currentMap.setobs(zx, zy, 0); // Remove obstruction when collected
         this.addSprite(zx << 4, zy << 4, 0);
         console.log(`AkActions: Item collected at (${zx}, ${zy})`);
         break;

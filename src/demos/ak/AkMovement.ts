@@ -303,10 +303,6 @@ export class AkMovement {
       this.vertical = -3;
   }
 
-  private controlVehicle(): void {
-    console.log("controlVehicle - Non-implemented yet");
-  }
-
   private vehicleAttack(): void {
     const player = MainEngine.getPlayer();
     if (!player) return;
@@ -761,7 +757,7 @@ export class AkMovement {
     }
 
     // Destroy vehicle
-    if (this.getObsd(player.getFace()) != 0) {
+    if (this.getObsd(player.getFace())) {
       // Check if punch area is clear
       const HoOffset = player.getFace() * 32;
       const zx = (player.getx() + HoOffset) >> 4;
@@ -794,14 +790,6 @@ export class AkMovement {
       this.velocity = this.sgn(this.velocity) * minVehicle;
   }
 
-  // Static methods for invincibility and energy management
-  public static getInvencible(): number {
-    return AkMovement.invencible;
-  }
-
-  public static setInvencible(value: number): void {
-    AkMovement.invencible = value;
-  }
 
   public static decrementInvencible(): void {
     if (AkMovement.invencible > 0) {

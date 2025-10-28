@@ -49,6 +49,10 @@ export class AkEnemies {
           this.processSeaHorse(aa, entity);
         } else if (enemyName === 'BigFish') {
           this.processBigFish(aa, entity);
+        } else if (enemyName === 'Bat') {
+          this.processBat(aa, entity);
+        } else if (enemyName === 'Owl') {
+          this.processOwl(aa, entity);
         } else if (enemyName === 'Dust') {
           this.processDust(aa, entity);
         } else if (enemyName === 'BigDust') {
@@ -309,6 +313,80 @@ export class AkEnemies {
 
     // Check collision with player
     if (this.akiddCollision(1, entity.getx(), entity.gety(), 22, 15))
+      this.hitPlayer(1);
+  }
+
+  /**
+   * Process Bat enemy behavior
+   */
+  private static processBat(entityIndex: number, entity: any): void {
+    // Limit face direction to 0 or 1 (left/right)
+    if (entity.getFace() > 1)
+      entity.setFace(1);
+
+    // Horizontal movement with collision detection
+    if (entity.getFace() == 0 && !this.obstruct(entityIndex, 0, 15, 12))
+      entity.incx(-2);
+    if (entity.getFace() == 1 && !this.obstruct(entityIndex, 1, 15, 12))
+      entity.incx(2);
+
+    // Wall collision detection (turn around when hitting walls)
+    if (this.obstruct(entityIndex, 1, 14, 10))
+      entity.setFace(0); // Turn left when hitting right wall
+    if (this.obstruct(entityIndex, 0, 14, 10))
+      entity.setFace(1); // Turn right when hitting left wall
+
+    // Vertical bobbing movement
+    if (this.monsterframe < 6)
+      entity.incy(2);  // Move down for first half
+    else
+      entity.incy(-2); // Move up for second half
+
+    // Set animation frame (30-31, changes every 6 frames)
+    entity.setSpecframe(30 + Math.floor(this.monsterframe / 6));
+
+    // Check if player attacks the bat
+    if (this.attackEnemy(entityIndex, 15, 16))
+      this.killEnemy(entityIndex, 'Dust');
+
+    // Check collision with player
+    if (this.akiddCollision(1, entity.getx() + 2, entity.gety(), 12, 8))
+      this.hitPlayer(1);
+  }
+
+  /**
+   * Process Owl enemy behavior
+   */
+  private static processOwl(entityIndex: number, entity: any): void {
+    // Limit face direction to 0 or 1 (left/right)
+    if (entity.getFace() > 1)
+      entity.setFace(1);
+
+    // Horizontal movement with collision detection (slower than bat)
+    if (entity.getFace() == 0 && !this.obstruct(entityIndex, 0, 15, 16))
+      entity.incx(-1);
+    if (entity.getFace() == 1 && !this.obstruct(entityIndex, 1, 15, 16))
+      entity.incx(1);
+
+    // Wall collision detection (turn around when hitting walls)
+    if (this.obstruct(entityIndex, 1, 15, 14))
+      entity.setFace(0); // Turn left when hitting right wall
+    if (this.obstruct(entityIndex, 0, 15, 14))
+      entity.setFace(1); // Turn right when hitting left wall
+
+    // Gravity - fall if no ground beneath
+    if (!this.obstruct(entityIndex, 3, 15, 16))
+      entity.incy(2);
+
+    // Set animation frame (28-29, changes every 6 frames)
+    entity.setSpecframe(28 + Math.floor(this.monsterframe / 6));
+
+    // Check if player attacks the owl
+    if (this.attackEnemy(entityIndex, 15, 15))
+      this.killEnemy(entityIndex, 'Dust');
+
+    // Check collision with player
+    if (this.akiddCollision(1, entity.getx(), entity.gety(), 15, 15))
       this.hitPlayer(1);
   }
 

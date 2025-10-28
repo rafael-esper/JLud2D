@@ -34,7 +34,7 @@ export class AkScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.tilemapTiledJSON('level00-map', 'src/demos/ak/level00.map.json');
+    this.load.tilemapTiledXML('level01-map', 'src/demos/ak/level01.tmx');
     this.load.json('ak-anim', 'src/demos/ak/Ak.anim.json');
 
     // Load sound effects (matching Java snd array indices)
@@ -67,7 +67,7 @@ export class AkScene extends Phaser.Scene {
     MainEngine.setCurrentScene(this, this.config);
 
     // Load map and initialize player
-    this.tiledMap = await MainEngine.loadAndInitMap(this, 'level00.map.json', 'src/demos/ak');
+    this.tiledMap = await MainEngine.loadAndInitMap(this, 'level01.tmx', 'src/demos/ak');
     await MainEngine.mapinit(this, 'Ak.anim.json', 'src/demos/ak');
 
     // Load monster CHR sprites
