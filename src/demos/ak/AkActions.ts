@@ -6,18 +6,13 @@
 
 import { MainEngine } from '../../core/MainEngine';
 import { Condition, Status, Action, AkMovement } from './AkMovement';
+import { AkCore } from './AkCore';
 import { Sound } from '../../domain/Sound';
 
 export class AkActions {
   // Punch-related state
   private static pdelay: number = 0;
-  private static hasBrac: boolean = false;
-
-  // Additional action state
   private static tdelay: number = 0;
-
-  // Game state
-  private static Gold: number = 0;
 
   // Constants for zones and tiles
   static readonly ZONE_GOLD1 = 1;
@@ -69,7 +64,7 @@ export class AkActions {
     }
 
     if (this.pdelay === 0 && condition !== Condition.HELI && condition !== Condition.SURF) {
-      if (!this.hasBrac) {
+      if (!AkCore.getHasBrac()) {
         Sound.playSound('snd_punch');
       }
       this.unpress(1);
@@ -163,14 +158,14 @@ export class AkActions {
         currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
         currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
         Sound.playSound('snd_gold');
-        this.Gold += 20;
+        AkCore.addGold(20);
         break;
 
       case this.ZONE_GOLD2: // Gold II
         currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
         currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
         Sound.playSound('snd_gold');
-        this.Gold += 10;
+        AkCore.addGold(10);
         break;
 
       case this.ZONE_ROCK: // Rock
@@ -252,7 +247,7 @@ export class AkActions {
         currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
         currentMap.setobs(zx, zy, 0);
         this.addSprite(zx << 4, zy << 4, 0);
-        if (!this.hasBrac) {
+        if (!AkCore.getHasBrac()) {
           console.log(`AkActions: Skull effect - setting action to TREMBLING`);
           return Action.TREMBLING;
         }
@@ -306,7 +301,7 @@ export class AkActions {
    * Set bracelet status
    */
   public static setHasBrac(hasBrac: boolean): void {
-    this.hasBrac = hasBrac;
+    AkCore.setHasBrac(hasBrac);
   }
 
   /**
@@ -363,7 +358,7 @@ export class AkActions {
         if (this.pdelay === 2) {
           const player = MainEngine.getPlayer();
           if (player) {
-            if (this.hasBrac && condition === Condition.WALK) {
+            if (AkCore.getHasBrac() && condition === Condition.WALK) {
               this.addSprite(
                 player.getx() + (player.getFace() * 30),
                 player.gety() + 14,
@@ -458,14 +453,14 @@ export class AkActions {
    * Get current gold amount
    */
   public static getGold(): number {
-    return this.Gold;
+    return AkCore.getGold();
   }
 
   /**
    * Set gold amount
    */
   public static setGold(amount: number): void {
-    this.Gold = amount;
+    AkCore.setGold(amount);
   }
 
   /**
@@ -473,21 +468,18 @@ export class AkActions {
    * @param type 1 by monster, 2 naturally, 3 fire
    */
   public static hitPlayer(type: number): void {
-    const scene = MainEngine.getCurrentScene();
-    const movement = (scene as any).movement;
-
     // Check invincibility state
-    if (AkMovement.getInvencible() > 0) {
+    if (AkCore.getInvincible() > 0) {
       return; // Player is currently invincible
     }
 
     // Check if player is punching - invincible while attacking
-    if (movement.getAction() === Action.PUNCHING) {
+    if (AkCore.getAction() === Action.PUNCHING) {
       return;
     }
 
     // Check current condition - if in STAR mode, player is invincible
-    const currentCondition = movement.getCondition();
+    const currentCondition = AkCore.getCondition();
     if (currentCondition === Condition.STAR) {
       return;
     }
@@ -498,17 +490,17 @@ export class AkActions {
     }
 
     // Set invincibility frames (120 frames = 2 seconds at 60fps)
-    AkMovement.setInvencible(120);
+    AkCore.setInvincible(120);
 
     // Reduce energy/health
-    if (AkMovement.getEnergy() > 0) {
-      AkMovement.decrementEnergy();
+    if (AkCore.getEnergy() > 0) {
+      AkCore.decrementEnergy();
     }
 
-    console.log(`AkActions: Player hit by type ${type} (1=monster, 2=natural, 3=fire). Energy: ${AkMovement.getEnergy()}, Invincible frames: ${AkMovement.getInvencible()}`);
+    console.log(`AkActions: Player hit by type ${type} (1=monster, 2=natural, 3=fire). Energy: ${AkCore.getEnergy()}, Invincible frames: ${AkCore.getInvincible()}`);
 
     // Die (Angel animation)
-    if (AkMovement.getEnergy() === 0 || type === 2) {
+    if (AkCore.getEnergy() === 0 || type === 2) {
       console.log(`AkActions: Player death triggered - TODO: Implement Angel death animation`);
       // TODO: Implement Angel death animation
     }
@@ -523,8 +515,8 @@ export class AkActions {
   public static reset(): void {
     this.pdelay = 0;
     this.tdelay = 0;
-    this.hasBrac = false;
-    this.Gold = 0;
+    AkCore.setHasBrac(false);
+    AkCore.setGold(0);
     this.playerDimensions = { x: 0, y: 0, width: 0, height: 0 };
   }
 }

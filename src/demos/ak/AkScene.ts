@@ -12,6 +12,7 @@ import { DemoUI } from '../../utils/DemoUI';
 import { AkActions } from './AkActions';
 import { AkMovement, Condition, Status, Action } from './AkMovement';
 import { AkEnemies } from './AkEnemies';
+import { AkCore } from './AkCore';
 import { CHR } from '../../domain/CHR';
 
 export class AkScene extends Phaser.Scene {
@@ -24,13 +25,6 @@ export class AkScene extends Phaser.Scene {
   private tiledMap: any = null;
   private debugGraphics: Phaser.GameObjects.Graphics | null = null;
   private movement: AkMovement;
-
-  // Player animation and collision dimensions
-  private playerframe: number = 0;
-  private akidd_px: number = 0;
-  private akidd_py: number = 0;
-  private akidd_vx: number = 0;
-  private akidd_vy: number = 0;
 
   constructor() {
     super({ key: 'AkScene' });
@@ -120,13 +114,13 @@ export class AkScene extends Phaser.Scene {
     // Process enemies
     AkEnemies.processEnemies();
 
-    const playerFrame = this.movement ? this.showPlayer() : 0;
+    const playerFrame = this.movement ? AkCore.showPlayer() : 0;
 
     // Update player sprite frame (Phaser equivalent of screen.render/showpage)
     const player = MainEngine.getPlayer();
     if (player && player.getChr()) {
       // Flicker when invincible
-      const finalFrame = (AkMovement.getInvencible() > 0 && AkMovement.getInvencible() % 2 === 0) ? 44 : playerFrame;
+      const finalFrame = (AkCore.getInvincible() > 0 && AkCore.getInvincible() % 2 === 0) ? 44 : playerFrame;
       player.setSpecframe(finalFrame);
       player.draw();
     }
@@ -144,14 +138,11 @@ export class AkScene extends Phaser.Scene {
     if (this.debugGraphics) {
       this.debugGraphics.clear(); // Always clear first
 
-      if (AkMovement.getDebug() && player) {
-        // Draw simple rectangle around player sprite (32x32 frame size from Ak.anim.json)
-        const rectX = this.akidd_px;
-        const rectY = this.akidd_py;
-        const rectWidth = this.akidd_vx;  // Frame width from Ak.anim.json
-        const rectHeight = this.akidd_vy; // Frame height from Ak.anim.json
+      if (AkCore.getDebug() && player) {
+        // Draw simple rectangle around player sprite using AkCore collision box
+        const collisionBox = AkCore.getPlayerCollisionBox();
         this.debugGraphics.lineStyle(2, 0x0000ff, 1); // Blue outline
-        this.debugGraphics.strokeRect(rectX, rectY, rectWidth, rectHeight);
+        this.debugGraphics.strokeRect(collisionBox.px, collisionBox.py, collisionBox.vx, collisionBox.vy);
       }
     }
 
@@ -162,100 +153,6 @@ export class AkScene extends Phaser.Scene {
       MainEngine.cleanup();
       this.scene.start('MenuScene', { config: this.config });
     }
-  }
-
-
-  // Set player collision dimensions
-  private setDimensions(px: number, py: number, vx: number, vy: number): void {
-    this.akidd_px = px;
-    this.akidd_py = py;
-    this.akidd_vx = vx;
-    this.akidd_vy = vy;
-  }
-
-  // Get player collision dimensions for enemy collision detection
-  public getPlayerCollisionBox(): { px: number, py: number, vx: number, vy: number } {
-    return {
-      px: this.akidd_px,
-      py: this.akidd_py,
-      vx: this.akidd_vx,
-      vy: this.akidd_vy
-    };
-  }
-
-
-  // Show player animation and set collision dimensions
-  private showPlayer(): number {
-    this.playerframe++;
-    if (this.playerframe >= 6)
-      this.playerframe = 0;
-
-    const player = MainEngine.getPlayer();
-    if (!player) return 0;
-
-    // Check for punch action frame
-    const punchFrame = AkActions.getPlayerFrame(this.movement.getAction(), this.movement.getCondition());
-    if (punchFrame !== null) {
-      return punchFrame;
-    }
-
-    if (this.movement.getState() == Status.STOPPED) {
-      if (this.movement.getCondition() == Condition.WALK || this.movement.getCondition() == Condition.FLY) { // idle
-        this.setDimensions(player.getx() + 12, player.gety() + 6, 8, 20);
-        return 1 - player.getFace();
-      }
-    }
-
-    if (this.movement.getState() == Status.DUCKING || this.movement.getCondition() == Condition.STAR) { // ducking
-      this.setDimensions(player.getx() + 12, player.gety() + 12, 8, 16);
-      return 40 - player.getFace();
-    }
-
-    if (this.movement.getCondition() == Condition.WALK && this.movement.getState() == Status.WALKING) { // running
-      this.setDimensions(player.getx() + 12, player.gety() + 6, 8, 20);
-      return 9 - (3 * player.getFace()) + (this.playerframe >> 1);
-    }
-
-    if (this.movement.getCondition() == Condition.SWIM) { // swimming
-      this.setDimensions(player.getx() + 10, player.gety() + 11, 13, 12);
-      return 15 - (3 * player.getFace()) + Math.floor(this.playerframe / 3);
-    }
-
-    if (this.movement.getCondition() == Condition.WALK && (this.movement.getState() == Status.JUMPING || this.movement.getState() == Status.FALLING)) {
-      this.setDimensions(player.getx() + 10, player.gety() + 8, 12, 20);
-      return 3 - player.getFace();
-    }
-
-    if (this.movement.getCondition() == Condition.HELI) {
-      this.setDimensions(player.getx() + 6, player.gety() + 4, 20, 26);
-      return 31 + ((1 - player.getFace()) * 4) + Math.floor(this.playerframe / 3);
-    }
-
-    if (this.movement.getCondition() == Condition.SURF) {
-      return 27 + ((1 - player.getFace()) * 2) + Math.floor(this.playerframe / 3);
-    }
-
-    if (this.movement.getCondition() == Condition.MOTO) {
-      if (this.movement.getState() == Status.STOPPED || this.movement.getState() == Status.WALKING) {
-        this.setDimensions(player.getx() + 9, player.gety() + 7, 14, 20);
-        return 21 + ((1 - player.getFace()) * 3) + Math.floor(this.playerframe / 3);
-      } else {
-        this.setDimensions(player.getx() + 9, player.gety() + 5, 14, 26);
-        return 23 + ((1 - player.getFace()) * 3);
-      }
-    }
-
-    if (this.movement.getAction() == Action.PUNCHING) { // punching
-      if (this.movement.getCondition() == Condition.SWIM) {
-        this.setDimensions(player.getx() + 10, player.gety() + 11, 13, 12);
-        return 17 - (player.getFace() * 3); // swimming
-      } else {
-        this.setDimensions(player.getx() + 12, player.gety() + 6, 8, 20);
-        return 5 - player.getFace(); // walking
-      }
-    }
-
-    return 0;
   }
 
   /**

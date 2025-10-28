@@ -7,6 +7,7 @@
 import { MainEngine } from '../../core/MainEngine';
 import { Condition, Status, Action, AkMovement } from './AkMovement';
 import { AkActions } from './AkActions';
+import { AkCore } from './AkCore';
 
 export class AkEnemies {
   private static monsterframe: number = 0;

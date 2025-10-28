@@ -6,6 +6,7 @@
 import { InputManager } from '../../config/Controls';
 import { MainEngine } from '../../core/MainEngine';
 import { AkActions } from './AkActions';
+import { AkCore } from './AkCore';
 
 // Enums for movement system
 export enum Condition { WALK, SWIM, MOTO, SURF, HELI, FLY, STAR, ROPE }
@@ -13,10 +14,7 @@ export enum Status { STOPPED, WALKING, JUMPING, FALLING, DUCKING }
 export enum Action { NONE, PUNCHING, TREMBLING }
 
 export class AkMovement {
-  // Movement state
-  private condition: Condition = Condition.WALK;
-  private state: Status = Status.STOPPED;
-  private action: Action = Action.NONE;
+  // Movement physics state (keep these in AkMovement as they're physics-specific)
   private velocity: number = 0;
   private friction: number = 5;
   private vertical: number = 0;
@@ -28,9 +26,6 @@ export class AkMovement {
 
   // Debug/cheat variables
   private gameSpeed: number = 2; // Default speed (matches original gameSpeed = 2)
-  private static debug: boolean = false;
-  private static invencible: number = 0;
-  private static energy: number = 3; // Player health/energy (default starting value)
 
   // Physics constants
   private static readonly SPEED: number = 3;
@@ -69,15 +64,15 @@ export class AkMovement {
     this.inputManager = inputManager;
   }
 
-  // Getters and setters for state
-  getCondition(): Condition { return this.condition; }
-  setCondition(condition: Condition): void { this.condition = condition; }
+  // Getters and setters for state - delegate to AkCore
+  getCondition(): Condition { return AkCore.getCondition(); }
+  setCondition(condition: Condition): void { AkCore.setCondition(condition); }
 
-  getState(): Status { return this.state; }
-  setState(state: Status): void { this.state = state; }
+  getState(): Status { return AkCore.getState(); }
+  setState(state: Status): void { AkCore.setState(state); }
 
-  getAction(): Action { return this.action; }
-  setAction(action: Action): void { this.action = action; }
+  getAction(): Action { return AkCore.getAction(); }
+  setAction(action: Action): void { AkCore.setAction(action); }
 
   getVelocity(): number { return this.velocity; }
   setVelocity(velocity: number): void { this.velocity = velocity; }
@@ -88,21 +83,21 @@ export class AkMovement {
 
   // Debug getters
   getGameSpeed(): number { return this.gameSpeed; }
-  static getDebug(): boolean { return AkMovement.debug; }
-  static getInvencible(): number { return AkMovement.invencible; }
+  static getDebug(): boolean { return AkCore.getDebug(); }
+  static getInvencible(): number { return AkCore.getInvincible(); }
 
-  // Debug setters
-  static setDebug(value: boolean): void { AkMovement.debug = value; }
-  static setInvencible(value: number): void { AkMovement.invencible = value; }
+  // Debug setters - delegate to AkCore
+  static setDebug(value: boolean): void { AkCore.setDebug(value); }
+  static setInvencible(value: number): void { AkCore.setInvincible(value); }
 
   // Main movement update method
   update(): void {
     // Decrement invincibility frames
-    AkMovement.decrementInvencible();
+    AkCore.decrementInvincible();
 
-    if (this.condition == Condition.WALK || this.condition == Condition.MOTO || this.condition == Condition.SURF) {
+    if (this.getCondition() == Condition.WALK || this.getCondition() == Condition.MOTO || this.getCondition() == Condition.SURF) {
       this.movePlayer();
-    } else if (this.condition == Condition.SWIM || this.condition == Condition.HELI || this.condition == Condition.FLY || this.condition == Condition.STAR) {
+    } else if (this.getCondition() == Condition.SWIM || this.getCondition() == Condition.HELI || this.getCondition() == Condition.FLY || this.getCondition() == Condition.STAR) {
       this.movePlayerSwim();
     }
   }
@@ -112,14 +107,14 @@ export class AkMovement {
     // Process debug controls first
     this.processDebugControls();
 
-    if (this.inputManager.right && this.inputManager.left && this.state == Status.WALKING) {
-      this.state = Status.STOPPED;
+    if (this.inputManager.right && this.inputManager.left && this.getState() == Status.WALKING) {
+      this.setState(Status.STOPPED);
       this.velocity = 0;
     }
 
     this.processZones();
 
-    switch (this.condition) {
+    switch (this.getCondition()) {
       case Condition.WALK:
         this.controlWalk();
         break;
@@ -154,39 +149,39 @@ export class AkMovement {
 
     // Handle punch controls after condition switch
     const punchResult = AkActions.handlePunchControls(
-      this.condition,
+      this.getCondition(),
       this.inputManager.justPressed('b1'),
       this.inputManager.left,
       this.inputManager.right,
-      this.state,
+      this.getState(),
       this.velocity,
       this.friction,
-      this.action
+      this.getAction()
     );
 
-    this.state = punchResult.state;
+    this.setState(punchResult.state);
     this.velocity = punchResult.velocity;
-    this.action = punchResult.action;
+    this.setAction(punchResult.action);
 
-    if (!this.inputManager.left && !this.inputManager.right && this.state == Status.WALKING && this.condition != Condition.SURF) {
-      this.state = Status.STOPPED;
+    if (!this.inputManager.left && !this.inputManager.right && this.getState() == Status.WALKING && this.getCondition() != Condition.SURF) {
+      this.setState(Status.STOPPED);
       this.velocity = this.friction * this.velocity / 10;
     }
 
     // Handle trembling action
-    if (this.action == Action.TREMBLING || this.tdelay > 0) {
+    if (this.getAction() == Action.TREMBLING || this.tdelay > 0) {
       this.tremble();
     }
   }
 
   // WALKING control method
   private controlWalk(): void {
-    if (this.action != Action.TREMBLING) { // not trembling
-      if (this.state != Status.DUCKING) {
+    if (this.getAction() != Action.TREMBLING) { // not trembling
+      if (this.getState() != Status.DUCKING) {
         if (this.inputManager.right) {
           this.velocity += 10 * AkMovement.SPEED / this.friction;
-          if (this.state == Status.STOPPED)
-            this.state = Status.WALKING;
+          if (this.getState() == Status.STOPPED)
+            this.setState(Status.WALKING);
           if (MainEngine.getPlayer()?.getFace() != AkMovement.EAST) {
             MainEngine.getPlayer()?.setFace(AkMovement.EAST);
             this.velocity = this.friction * this.velocity / 10;
@@ -194,8 +189,8 @@ export class AkMovement {
         }
         if (this.inputManager.left) {
           this.velocity -= 10 * AkMovement.SPEED / this.friction;
-          if (this.state == Status.STOPPED)
-            this.state = Status.WALKING;
+          if (this.getState() == Status.STOPPED)
+            this.setState(Status.WALKING);
           if (MainEngine.getPlayer()?.getFace() != AkMovement.WEST) {
             MainEngine.getPlayer()?.setFace(AkMovement.WEST);
             this.velocity = this.friction * this.velocity / 10;
@@ -204,9 +199,9 @@ export class AkMovement {
       }
 
       if (this.inputManager.down && this.velocity == 0)
-        this.state = Status.DUCKING;
-      else if (!this.inputManager.down && this.state == Status.DUCKING)
-        this.state = Status.STOPPED;
+        this.setState(Status.DUCKING);
+      else if (!this.inputManager.down && this.getState() == Status.DUCKING)
+        this.setState(Status.STOPPED);
     }
 
     this.checkJumpFalling(AkMovement.MAXJUMP);
@@ -215,7 +210,7 @@ export class AkMovement {
 
   private controlSwim(): void {
     // SWIMMING, HELI AND STAR control (ported from Java)
-    if (this.action == Action.TREMBLING)
+    if (this.getAction() == Action.TREMBLING)
       return;
 
     const player = MainEngine.getPlayer();
@@ -246,11 +241,11 @@ export class AkMovement {
 
     // Down movement
     if (this.inputManager.down) {
-      if (this.condition == Condition.SWIM || this.condition == Condition.FLY)
+      if (this.getCondition() == Condition.SWIM || this.getCondition() == Condition.FLY)
         this.vertical += 2;
-      if (this.condition == Condition.HELI)
+      if (this.getCondition() == Condition.HELI)
         this.vertical++;
-      if (this.condition == Condition.STAR)
+      if (this.getCondition() == Condition.STAR)
         this.vertical += 3;
     }
 
@@ -263,36 +258,36 @@ export class AkMovement {
       this.vertical = 0;
 
     // Destroy helicopter if obstacle over it
-    if (this.condition == Condition.HELI && this.getObsd(AkMovement.NORTH)) {
+    if (this.getCondition() == Condition.HELI && this.getObsd(AkMovement.NORTH)) {
       AkActions.addSprite(player.getx() - 24 + player.getFace() * 32, player.gety(), 4);
       this.setNormalCondition(Condition.WALK);
-      this.state = Status.JUMPING;
+      this.setState(Status.JUMPING);
       player.incy(16);
       return;
     }
 
     // Swimming specific logic
-    if (this.condition == Condition.SWIM) {
+    if (this.getCondition() == Condition.SWIM) {
       if (this.vertical <= -3)
         this.vertical = -2;
       if (!this.inputManager.down && this.vertical > 0)
         this.vertical--;
-      if (this.inputManager.b1 && this.action == Action.NONE)
+      if (this.inputManager.b1 && this.getAction() == Action.NONE)
         this.velocityCheck(AkMovement.MAXRSWIM);
       else
         this.velocityCheck(AkMovement.MAXSWIM);
     }
     // Helicopter logic
-    else if (this.condition == Condition.HELI) {
+    else if (this.getCondition() == Condition.HELI) {
       this.velocityCheck(AkMovement.MAXHELI);
     }
     // Flying logic
-    else if (this.condition == Condition.FLY) {
+    else if (this.getCondition() == Condition.FLY) {
       this.velocityCheck(AkMovement.MAXFLY);
       this.vertical = this.sgn(this.vertical);
     }
     // Star logic
-    else if (this.condition == Condition.STAR) {
+    else if (this.getCondition() == Condition.STAR) {
       this.velocityCheck(AkMovement.MAXSTAR);
     }
 
@@ -315,13 +310,13 @@ export class AkMovement {
     const zx1 = (player.getx() + HoOffset1) >> 4;
     const zy1 = (player.gety() + 16) >> 4;
 
-    punchResult = AkActions.getpunch(HoOffset1, this.condition, zx1, zy1);
+    punchResult = AkActions.getpunch(HoOffset1, this.getCondition(), zx1, zy1);
 
     if (punchResult.zone == 0) {
       // Calculate zone coordinates for second check
       const zx2 = (player.getx() + HoOffset2) >> 4;
       const zy2 = (player.gety() + 16) >> 4;
-      punchResult = AkActions.getpunch(HoOffset2, this.condition, zx2, zy2);
+      punchResult = AkActions.getpunch(HoOffset2, this.getCondition(), zx2, zy2);
     }
 
     if (punchResult.zone >= 3 && punchResult.zone <= 8) { // Events processed by the vehicle (Rock=3, Star=4, Rice=5, Swim=6, Item=7, Skull=8)
@@ -343,13 +338,13 @@ export class AkMovement {
 
   // Jump and falling logic
   private checkJumpFalling(MaxAlt: number): void {
-    if (this.action != Action.TREMBLING && this.inputManager.up) { // not trembling and not upRope
-      if (this.state != Status.JUMPING && this.state != Status.FALLING && this.getObsd(AkMovement.SOUTH)) {
-        this.state = Status.JUMPING;
+    if (this.getAction() != Action.TREMBLING && this.inputManager.up) { // not trembling and not upRope
+      if (this.getState() != Status.JUMPING && this.getState() != Status.FALLING && this.getObsd(AkMovement.SOUTH)) {
+        this.setState(Status.JUMPING);
         this.vertical = 0;
         this.alt = MaxAlt;
       }
-      if (this.state == Status.JUMPING && this.alt > -20) {
+      if (this.getState() == Status.JUMPING && this.alt > -20) {
         this.vertical -= this.alt / AkMovement.FALL;
         if (this.vertical < -MaxAlt)
           this.vertical = -MaxAlt;
@@ -358,20 +353,20 @@ export class AkMovement {
       if (this.alt > 0) {
         this.alt -= AkMovement.FALL;
       } else {
-        this.state = Status.FALLING;
+        this.setState(Status.FALLING);
         this.alt = 0;
         this.unpress(5);
       }
     }
 
     // Gravity and falling logic
-    if (!this.getObsd(AkMovement.SOUTH) && this.state != Status.JUMPING) {
-      this.state = Status.FALLING;
+    if (!this.getObsd(AkMovement.SOUTH) && this.getState() != Status.JUMPING) {
+      this.setState(Status.FALLING);
       if (this.vertical < AkMovement.GRAV_EF)
         this.vertical += (AkMovement.GRAV + 1);
     }
-    if (!this.inputManager.up && this.state == Status.JUMPING) {
-      this.state = Status.FALLING;
+    if (!this.inputManager.up && this.getState() == Status.JUMPING) {
+      this.setState(Status.FALLING);
       this.alt = 0;
     }
   }
@@ -386,12 +381,12 @@ export class AkMovement {
 		let endX = startX + 16;
 		let endY = startY + 22; 
 
-		if(this.condition == Condition.SWIM) { // FIXME Swim Zone NORTH
+		if(this.getCondition() == Condition.SWIM) { // FIXME Swim Zone NORTH
 			startX-=2; endX+=1;
 			startY+=3; endY-=3;
 		}
 		
-		if(this.condition == Condition.HELI) {
+		if(this.getCondition() == Condition.HELI) {
 			startX-=2; endX+=4;
 			startY--; endY+=9;			
 		}
@@ -443,16 +438,16 @@ export class AkMovement {
     let c: number = 0, z: number = 0;
     let zx: number, zy: number;
 
-    if (this.condition == Condition.WALK)
+    if (this.getCondition() == Condition.WALK)
       c = 8; // walking
-    if (this.condition == Condition.SWIM)
+    if (this.getCondition() == Condition.SWIM)
       c = 12; // swimming
 
     for (let a = 13; a < 17; a += 2) {
       for (let b = c; b < 26; b += 2) {
         zx = (player.getx() + a) >> 4;
         zy = (player.gety() + b) >> 4;
-        if (this.action == Action.PUNCHING)
+        if (this.getAction() == Action.PUNCHING)
           zx = (player.getx() + a + 8) >> 4;
         z = currentMap.getzone(zx, zy);
 
@@ -460,7 +455,7 @@ export class AkMovement {
           AkMovement.zonecalled = z;
           const resultAction = AkActions.callEvent(z, zx, zy);
           if (resultAction) {
-            this.action = resultAction;
+            this.setAction(resultAction);
           }
           return z;
         }
@@ -509,20 +504,20 @@ export class AkMovement {
 
     // Enable bracelet (B key)
     if (this.inputManager.justPressed('B')) {
-      AkActions.setHasBrac(true);
+      AkCore.setHasBrac(true);
       console.log("Bracelet enabled");
     }
 
     // Fly condition (F key)
     if (this.inputManager.justPressed('F')) {
-      this.condition = Condition.FLY;
-      this.state = Status.STOPPED;
+      this.setCondition(Condition.FLY);
+      this.setState(Status.STOPPED);
       console.log("Fly condition activated");
     }
 
     // Helicopter condition (H key)
     if (this.inputManager.justPressed('H')) {
-      this.condition = Condition.HELI;
+      this.setCondition(Condition.HELI);
       console.log("Helicopter condition activated");
       // TODO: playmusic(load(MUSIC_SWIM))
     }
@@ -535,7 +530,7 @@ export class AkMovement {
 
     // Motorcycle condition (J key)
     if (this.inputManager.justPressed('J')) {
-      this.condition = Condition.SWIM;
+      this.setCondition(Condition.SWIM);
       console.log("Swim condition activated");
       // TODO: playmusic(load(MUSIC_MOTO))
     }
@@ -554,16 +549,16 @@ export class AkMovement {
 
     // Motorcycle condition (M key)
     if (this.inputManager.justPressed('M')) {
-      this.condition = Condition.MOTO;
+      this.setCondition(Condition.MOTO);
       console.log("Motorcycle condition activated");
       // TODO: playmusic(load(MUSIC_MOTO))
     }
 
     // Normal condition with gold (N key)
     if (this.inputManager.justPressed('N')) {
-      AkActions.setGold(AkActions.getGold() + 200);
+      AkCore.addGold(200);
       this.setNormalCondition(Condition.WALK);
-      console.log(`Normal condition with +200 gold. Total: ${AkActions.getGold()}`);
+      console.log(`Normal condition with +200 gold. Total: ${AkCore.getGold()}`);
     }
 
     // Print/screenshot (P key)
@@ -575,7 +570,7 @@ export class AkMovement {
 
     // Star condition (T key, using T instead of S since S conflicts with movement)
     if (this.inputManager.justPressed('T')) {
-      this.condition = Condition.STAR;
+      this.setCondition(Condition.STAR);
       console.log("Star condition activated");
     }
   }
@@ -584,12 +579,12 @@ export class AkMovement {
   public setNormalCondition(newCondition: Condition): void {
     // TODO: stopmusic();
     // TODO: unpress(0);
-    this.condition = newCondition;
-    this.state = Status.STOPPED;
-    this.action = Action.NONE;
+    AkCore.setNormalCondition(newCondition);
+    this.setState(Status.STOPPED);
+    this.setAction(Action.NONE);
     this.vertical = 0;
     this.alt = 0;
-    AkActions.setHasBrac(false);
+    AkCore.setHasBrac(false);
 
     const player = MainEngine.getPlayer();
     if (player) {
@@ -609,7 +604,7 @@ export class AkMovement {
     if (!player) return;
 
     this.velocity = 0;
-    this.action = Action.TREMBLING;
+    this.setAction(Action.TREMBLING);
     this.tdelay++;
 
     if (this.tdelay % 2 == 0)
@@ -619,8 +614,8 @@ export class AkMovement {
 
     if (this.tdelay >= 30) {
       this.tdelay = 0;
-      if (this.action == Action.TREMBLING)
-        this.action = Action.NONE;
+      if (this.getAction() == Action.TREMBLING)
+        this.setAction(Action.NONE);
     }
   }
 
@@ -640,7 +635,7 @@ export class AkMovement {
 
     // entities.get(player).incy(-wind); // Wind effect - commented out for now
 
-    if (this.state != Status.WALKING && this.condition != Condition.MOTO && this.condition != Condition.SURF) {
+    if (this.getState() != Status.WALKING && this.getCondition() != Condition.MOTO && this.getCondition() != Condition.SURF) {
       if (this.velocity > 0)
         this.velocity--;
       if (this.velocity < 0)
@@ -655,22 +650,22 @@ export class AkMovement {
     }
 
     // Jump collision with ceiling
-    if (this.getObsd(AkMovement.NORTH) && this.state == Status.JUMPING) {
-      this.state = Status.FALLING;
+    if (this.getObsd(AkMovement.NORTH) && this.getState() == Status.JUMPING) {
+      this.setState(Status.FALLING);
       this.vertical = 0;
     }
 
     // Landing collision
-    if (this.getObsd(AkMovement.SOUTH) && this.state == Status.FALLING) {
-      this.state = Status.STOPPED;
+    if (this.getObsd(AkMovement.SOUTH) && this.getState() == Status.FALLING) {
+      this.setState(Status.STOPPED);
       this.vertical = 0;
-      if (this.condition != Condition.MOTO && this.condition != Condition.SURF) {
+      if (this.getCondition() != Condition.MOTO && this.getCondition() != Condition.SURF) {
         this.velocity = 0;
       }
     }
 
     // Jumping movement
-    if (this.state == Status.JUMPING) {
+    if (this.getState() == Status.JUMPING) {
       for (let i = 0; i < this.abs(this.vertical); i += AkMovement.FALL) {
         if (!this.getObsd(AkMovement.NORTH)) {
           player.incy(this.sgn(this.vertical));
@@ -679,7 +674,7 @@ export class AkMovement {
     }
 
     // Falling movement
-    if (this.state == Status.FALLING) {
+    if (this.getState() == Status.FALLING) {
       for (let i = 0; i < this.abs(this.vertical); i += AkMovement.FALL) {
         if (this.sgn(this.vertical) == 1 && !this.getObsd(AkMovement.SOUTH)) {
           player.incy(1);
@@ -699,9 +694,9 @@ export class AkMovement {
     let aa: number = 0;
 
     // Condition-specific vertical movement
-    if (this.condition == Condition.SWIM && !this.getObsd(AkMovement.NORTH))
+    if (this.getCondition() == Condition.SWIM && !this.getObsd(AkMovement.NORTH))
       player.incy(-1);
-    if (this.condition == Condition.HELI && !this.getObsd(AkMovement.SOUTH))
+    if (this.getCondition() == Condition.HELI && !this.getObsd(AkMovement.SOUTH))
       player.incy(1);
 
     // Horizontal movement
@@ -727,8 +722,8 @@ export class AkMovement {
     const player = MainEngine.getPlayer();
     if (!player) return;
 
-    if (this.state == Status.STOPPED)
-      this.state = Status.WALKING;
+    if (this.getState() == Status.STOPPED)
+      this.setState(Status.WALKING);
 
     if (this.velocity == 0) {
       if (player.getFace() == AkMovement.WEST)
@@ -748,10 +743,10 @@ export class AkMovement {
       this.velocity -= AkMovement.SPEED;
 
     // Invert direction
-    if (this.inputManager.left && this.velocity > 0 && this.state == Status.WALKING) {
+    if (this.inputManager.left && this.velocity > 0 && this.getState() == Status.WALKING) {
       this.velocity = -this.velocity;
       player.setFace(AkMovement.WEST);
-    } else if (this.inputManager.right && this.velocity < 0 && this.state == Status.WALKING) {
+    } else if (this.inputManager.right && this.velocity < 0 && this.getState() == Status.WALKING) {
       this.velocity = -this.velocity;
       player.setFace(AkMovement.EAST);
     }
@@ -763,14 +758,14 @@ export class AkMovement {
       const zx = (player.getx() + HoOffset) >> 4;
       const zy = (player.gety() + 16) >> 4;
 
-      if (AkActions.getpunch(HoOffset, this.condition, zx, zy).zone == 0) {
+      if (AkActions.getpunch(HoOffset, this.getCondition(), zx, zy).zone == 0) {
         // Add destruction sprite
         // TODO: addSprite equivalent
         console.log(`Vehicle destroyed at (${player.getx() - 24 + player.getFace() * 32}, ${player.gety()})`);
 
-        if (this.condition == Condition.MOTO) {
+        if (this.getCondition() == Condition.MOTO) {
           this.setNormalCondition(Condition.WALK);
-          this.state = Status.JUMPING;
+          this.setState(Status.JUMPING);
           return;
         } else {
           // Handle SURF destruction
@@ -792,26 +787,22 @@ export class AkMovement {
 
 
   public static decrementInvencible(): void {
-    if (AkMovement.invencible > 0) {
-      AkMovement.invencible--;
-    }
+    AkCore.decrementInvincible();
   }
 
   public static getEnergy(): number {
-    return AkMovement.energy;
+    return AkCore.getEnergy();
   }
 
   public static setEnergy(value: number): void {
-    AkMovement.energy = Math.max(0, value); // Ensure energy doesn't go below 0
+    AkCore.setEnergy(value);
   }
 
   public static decrementEnergy(): void {
-    if (AkMovement.energy > 0) {
-      AkMovement.energy--;
-    }
+    AkCore.decrementEnergy();
   }
 
   public static isInvincible(): boolean {
-    return AkMovement.invencible > 0;
+    return AkCore.getInvincible() > 0;
   }
 }
