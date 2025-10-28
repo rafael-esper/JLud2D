@@ -6,6 +6,7 @@
 
 import { MainEngine } from '../../core/MainEngine';
 import { Condition, Status, Action, AkMovement } from './AkMovement';
+import { AkActions } from './AkActions';
 
 export class AkEnemies {
   private static monsterframe: number = 0;
@@ -91,7 +92,7 @@ export class AkEnemies {
 
     // Check collision with player
     if (this.akiddCollision(1, entity.getx() + 1, entity.gety(), 22, 14))
-      this.hitPlayer(1);
+      AkActions.hitPlayer(1);
   }
 
   /**
@@ -123,7 +124,7 @@ export class AkEnemies {
 
     // Check collision with player
     if (this.akiddCollision(1, entity.getx() + 1, entity.gety(), 14, 14))
-      this.hitPlayer(1);
+      AkActions.hitPlayer(1);
   }
 
   /**
@@ -167,7 +168,7 @@ export class AkEnemies {
 
     // Check collision with player
     if (this.akiddCollision(1, entity.getx(), entity.gety(), 14, 16))
-      this.hitPlayer(1);
+      AkActions.hitPlayer(1);
   }
 
   /**
@@ -216,7 +217,7 @@ export class AkEnemies {
 
     // Check collision with player
     if (this.akiddCollision(1, entity.getx(), entity.gety() + 10 - frogDirection, 14, 24))
-      this.hitPlayer(1);
+      AkActions.hitPlayer(1);
   }
 
   /**
@@ -259,7 +260,7 @@ export class AkEnemies {
 
     // Check collision with player
     if (this.akiddCollision(1, entity.getx(), entity.gety(), 11, 15))
-      this.hitPlayer(1);
+      AkActions.hitPlayer(1);
   }
 
   /**
@@ -313,7 +314,7 @@ export class AkEnemies {
 
     // Check collision with player
     if (this.akiddCollision(1, entity.getx(), entity.gety(), 22, 15))
-      this.hitPlayer(1);
+      AkActions.hitPlayer(1);
   }
 
   /**
@@ -351,7 +352,7 @@ export class AkEnemies {
 
     // Check collision with player
     if (this.akiddCollision(1, entity.getx() + 2, entity.gety(), 12, 8))
-      this.hitPlayer(1);
+      AkActions.hitPlayer(1);
   }
 
   /**
@@ -387,7 +388,7 @@ export class AkEnemies {
 
     // Check collision with player
     if (this.akiddCollision(1, entity.getx(), entity.gety(), 15, 15))
-      this.hitPlayer(1);
+      AkActions.hitPlayer(1);
   }
 
   /**
@@ -640,53 +641,6 @@ export class AkEnemies {
     // TODO: Add score when scoring system is ready
   }
 
-  /**
-   * Handle player getting hit by enemy (Java hitPlayer method)
-   * @param type 1 by monster, 2 naturally, 3 fire
-   */
-  private static hitPlayer(type: number): void {
-    // Get current scene to access player state
-    const scene = MainEngine.getCurrentScene();
-    if (!scene) return;
-
-    // Get movement system to check conditions
-    const movement = (scene as any).movement;
-    if (!movement) return;
-
-    // Check invincibility state
-    if (AkMovement.getInvencible() > 0) {
-      return; // Player is currently invincible
-    }
-
-    // Check if player is punching - invincible while attacking
-    if (movement.getAction() === Action.PUNCHING) {
-      return;
-    }
-
-    // Check current condition - if in STAR mode, player is invincible
-    const currentCondition = movement.getCondition();
-    if (currentCondition === Condition.STAR) {
-      return;
-    }
-
-    // If in MOTO condition and hit by monster (type 1), ignore
-    if (currentCondition === Condition.MOTO && type === 1) {
-      return;
-    }
-
-    // Set invincibility frames (120 frames = 2 seconds at 60fps)
-    AkMovement.setInvencible(120);
-
-    // Reduce energy/health
-    if (AkMovement.getEnergy() > 0) {
-      AkMovement.decrementEnergy();
-    }
-
-    console.log(`AkEnemies: Player hit by type ${type} (1=monster, 2=natural, 3=fire). Energy: ${AkMovement.getEnergy()}, Invincible frames: ${AkMovement.getInvencible()}`);
-
-    // TODO: Play hit sound effect
-    // TODO: Apply knockback or other effects
-  }
 
   /**
    * Reset enemy processing state

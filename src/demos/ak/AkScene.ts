@@ -15,6 +15,9 @@ import { AkEnemies } from './AkEnemies';
 import { CHR } from '../../domain/CHR';
 
 export class AkScene extends Phaser.Scene {
+  private static readonly MAP_FILENAME = 'MtEternalpart1.json';
+  private static readonly MAP_KEY = 'MtEternalpart1-map';
+
   private config: GameConfig;
   private inputManager: InputManager;
   private fpsDisplay: FPSDisplay;
@@ -34,7 +37,7 @@ export class AkScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.tilemapTiledXML('level01-map', 'src/demos/ak/level01.tmx');
+    this.load.tilemapTiledJSON(AkScene.MAP_KEY, `src/demos/ak/${AkScene.MAP_FILENAME}`);
     this.load.json('ak-anim', 'src/demos/ak/Ak.anim.json');
 
     // Load sound effects (matching Java snd array indices)
@@ -67,7 +70,7 @@ export class AkScene extends Phaser.Scene {
     MainEngine.setCurrentScene(this, this.config);
 
     // Load map and initialize player
-    this.tiledMap = await MainEngine.loadAndInitMap(this, 'level01.tmx', 'src/demos/ak');
+    this.tiledMap = await MainEngine.loadAndInitMap(this, AkScene.MAP_FILENAME, 'src/demos/ak');
     await MainEngine.mapinit(this, 'Ak.anim.json', 'src/demos/ak');
 
     // Load monster CHR sprites

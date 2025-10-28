@@ -5,7 +5,7 @@
  */
 
 import { MainEngine } from '../../core/MainEngine';
-import { Condition, Status, Action } from './AkMovement';
+import { Condition, Status, Action, AkMovement } from './AkMovement';
 import { Sound } from '../../domain/Sound';
 
 export class AkActions {
@@ -37,8 +37,8 @@ export class AkActions {
   static readonly ZONE_HELI_SHOP = 15;
 
   private static readonly TILE_LAYER = 1;
-  private static readonly TILE_GOLD_BIG = 12;    // Example tile ID for big gold
-  private static readonly TILE_GOLD_SMALL = 13;  // Example tile ID for small gold
+  private static readonly TILE_GOLD_BIG = 362;    // Example tile ID for big gold
+  private static readonly TILE_GOLD_SMALL = 363;  // Example tile ID for small gold
   private static readonly NULL_ZONE = 0
   private static readonly NULL_TILE = 0
 
@@ -259,6 +259,11 @@ export class AkActions {
         console.log(`AkActions: Skull processed at (${zx}, ${zy})`);
         break;
 
+      case this.ZONE_DEATH: // Death (zone 9)
+        console.log(`AkActions: Processing ZONE_DEATH event`);
+        this.hitPlayer(2);
+        break;
+
       default:
         console.log(`AkActions: Unhandled event ${num}`);
     }
@@ -461,6 +466,55 @@ export class AkActions {
    */
   public static setGold(amount: number): void {
     this.Gold = amount;
+  }
+
+  /**
+   * Handle player getting hit by enemy (moved from AkEnemies)
+   * @param type 1 by monster, 2 naturally, 3 fire
+   */
+  public static hitPlayer(type: number): void {
+    const scene = MainEngine.getCurrentScene();
+    const movement = (scene as any).movement;
+
+    // Check invincibility state
+    if (AkMovement.getInvencible() > 0) {
+      return; // Player is currently invincible
+    }
+
+    // Check if player is punching - invincible while attacking
+    if (movement.getAction() === Action.PUNCHING) {
+      return;
+    }
+
+    // Check current condition - if in STAR mode, player is invincible
+    const currentCondition = movement.getCondition();
+    if (currentCondition === Condition.STAR) {
+      return;
+    }
+
+    // If in MOTO condition and hit by monster (type 1), ignore
+    if (currentCondition === Condition.MOTO && type === 1) {
+      return;
+    }
+
+    // Set invincibility frames (120 frames = 2 seconds at 60fps)
+    AkMovement.setInvencible(120);
+
+    // Reduce energy/health
+    if (AkMovement.getEnergy() > 0) {
+      AkMovement.decrementEnergy();
+    }
+
+    console.log(`AkActions: Player hit by type ${type} (1=monster, 2=natural, 3=fire). Energy: ${AkMovement.getEnergy()}, Invincible frames: ${AkMovement.getInvencible()}`);
+
+    // Die (Angel animation)
+    if (AkMovement.getEnergy() === 0 || type === 2) {
+      console.log(`AkActions: Player death triggered - TODO: Implement Angel death animation`);
+      // TODO: Implement Angel death animation
+    }
+
+    // Play hit sound effect
+    Sound.playSound('snd_hit');
   }
 
   /**
