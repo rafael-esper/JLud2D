@@ -226,14 +226,19 @@ export class AkCore {
   }
 
   /**
+   * Update player animation frame (should be called during game logic)
+   */
+  public static updatePlayerFrame(): void {
+    this.akidd.playerframe++;
+    if (this.akidd.playerframe >= 6)
+      this.akidd.playerframe = 0;
+  }
+
+  /**
    * Show player animation and set collision dimensions (moved from AkScene)
    * Returns the appropriate animation frame for the current state
    */
   public static showPlayer(): number {
-    this.akidd.playerframe++;
-    if (this.akidd.playerframe >= 6)
-      this.akidd.playerframe = 0;
-
     const player = MainEngine.getPlayer();
     if (!player) return 0;
 

@@ -25,7 +25,7 @@ export class AkMovement {
   private tdelay: number = 0;
 
   // Debug/cheat variables
-  private gameSpeed: number = 2; // Default speed (matches original gameSpeed = 2)
+  private gameSpeed: number = 1.0; // Default speed (normal)
 
   // Physics constants
   private static readonly SPEED: number = 3;
@@ -75,6 +75,7 @@ export class AkMovement {
   setAction(action: Action): void { AkCore.setAction(action); }
 
   getVelocity(): number { return this.velocity; }
+  getGameSpeed(): number { return this.gameSpeed; }
   setVelocity(velocity: number): void { this.velocity = velocity; }
 
   getFriction(): number { return this.friction; }
@@ -476,24 +477,24 @@ export class AkMovement {
   private processDebugControls(): void {
     // Game speed controls (1-5 keys)
     if (this.inputManager.justPressed('1')) {
-      this.gameSpeed = 0;
-      console.log("Game speed set to 0");
+      this.gameSpeed = 0.35;
+      console.log("Game speed set to 0.35x");
     }
     if (this.inputManager.justPressed('2')) {
-      this.gameSpeed = 1;
-      console.log("Game speed set to 1");
+      this.gameSpeed = 0.50;
+      console.log("Game speed set to 0.50x");
     }
     if (this.inputManager.justPressed('3')) {
-      this.gameSpeed = 2;
-      console.log("Game speed set to 2");
+      this.gameSpeed = 0.75;
+      console.log("Game speed set to 0.75x");
     }
     if (this.inputManager.justPressed('4')) {
-      this.gameSpeed = 3;
-      console.log("Game speed set to 3");
+      this.gameSpeed = 1.00;
+      console.log("Game speed set to 1.00x (normal)");
     }
     if (this.inputManager.justPressed('5')) {
-      this.gameSpeed = 4;
-      console.log("Game speed set to 4");
+      this.gameSpeed = 1.25;
+      console.log("Game speed set to 1.25x");
     }
 
     // Debug mode toggle (O key)

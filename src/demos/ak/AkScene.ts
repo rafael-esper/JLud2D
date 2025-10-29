@@ -15,10 +15,11 @@ import { AkEnemies } from './AkEnemies';
 import { AkCore } from './AkCore';
 import { AkSprites } from './AkSprites';
 import { CHR } from '../../domain/CHR';
+import { Scene } from 'phaser';
 
 export class AkScene extends Phaser.Scene {
-  private static readonly MAP_FILENAME = 'MtEternalpart1.json';
-  private static readonly MAP_KEY = 'MtEternalpart1-map';
+  private static readonly MAP_FILENAME = 'level01.map.json';
+  private static readonly MAP_KEY = 'level01-map';
 
   private config: GameConfig;
   private inputManager: InputManager;
@@ -26,6 +27,10 @@ export class AkScene extends Phaser.Scene {
   private tiledMap: any = null;
   private debugGraphics: Phaser.GameObjects.Graphics | null = null;
   private movement: AkMovement;
+
+  // Slow motion logic variables
+  private logicAccumulator = 0;
+  private static readonly LOGIC_STEP = 16; // 16 ms per logic tick (~60 Hz)
 
   constructor() {
     super({ key: 'AkScene' });
@@ -63,7 +68,6 @@ export class AkScene extends Phaser.Scene {
     this.inputManager = new InputManager(this, new ControlsConfig());
     this.fpsDisplay = new FPSDisplay(this);
 
-    this.game.loop.targetFps = 60;
 
     MainEngine.setCurrentScene(this, this.config);
 
@@ -96,34 +100,34 @@ export class AkScene extends Phaser.Scene {
 
     this.fpsDisplay.setVisible(this.config.showFPS);
   }
-   wait = 0;
-   update(delta: number): void {
-    this.inputManager.updateControls();
-    this.fpsDisplay.update();
 
-    if(this.wait++ > 0) {
-      this.wait = 0;
-    } else {
-      //return;
+   update(time: number, delta: number): void {
+    // Get current game speed from movement system and accumulate time
+    const currentGameSpeed = this.movement ? this.movement.getGameSpeed() : 1.0;
+    this.logicAccumulator += delta * currentGameSpeed;
+
+    // Only update game logic every LOGIC_STEP ms of "slow time"
+    while (this.logicAccumulator >= AkScene.LOGIC_STEP) {
+      this.logicAccumulator -= AkScene.LOGIC_STEP;
+
+      // START GAME LOGIC
+      this.inputManager.updateControls();
+      if (this.movement) {
+        this.movement.processControls();
+        this.movement.update();
+      }
+      AkCore.updatePlayerFrame();
+      AkEnemies.processEnemies();
+      AkSprites.processSprites();
+      // END GAME LOGIC
     }
-    
-    // Update tile animations
+
+    // Always update tile animations at normal speed
     if (this.tiledMap) {
       this.tiledMap.updateAnimations(delta);
     }
 
-    // Safety check: ensure movement system is initialized
-    if (this.movement) {
-      this.movement.processControls();
-      this.movement.update();
-    }
-
-    // Process enemies
-    AkEnemies.processEnemies();
-
-    // Process sprites
-    AkSprites.processSprites();
-
+    // Always render at normal speed
     const playerFrame = this.movement ? AkCore.showPlayer() : 0;
 
     // Update player sprite frame (Phaser equivalent of screen.render/showpage)
@@ -157,6 +161,7 @@ export class AkScene extends Phaser.Scene {
     }
 
     MainEngine.handleCameraTracking();
+    this.fpsDisplay.update();
 
     // Back to menu
     if (this.inputManager.justPressed('b4')) {
