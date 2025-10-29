@@ -13,6 +13,7 @@ import { AkActions } from './AkActions';
 import { AkMovement, Condition, Status, Action } from './AkMovement';
 import { AkEnemies } from './AkEnemies';
 import { AkCore } from './AkCore';
+import { AkSprites } from './AkSprites';
 import { CHR } from '../../domain/CHR';
 
 export class AkScene extends Phaser.Scene {
@@ -33,6 +34,9 @@ export class AkScene extends Phaser.Scene {
   preload() {
     this.load.tilemapTiledJSON(AkScene.MAP_KEY, `src/demos/ak/${AkScene.MAP_FILENAME}`);
     this.load.json('ak-anim', 'src/demos/ak/Ak.anim.json');
+
+    // Load sprite images
+    AkSprites.preloadSprites(this);
 
     // Load sound effects (matching Java snd array indices)
     this.load.audio('snd_mapa', 'src/demos/ak/res/sound/Mapa.mp3');     // snd[1] - Background music
@@ -81,6 +85,9 @@ export class AkScene extends Phaser.Scene {
     // Initialize AkActions sound system
     //FIXME AkActions.initSounds(this);
 
+    // Initialize sprite system
+    AkSprites.init(this);
+
     // Initialize movement system
     this.movement = new AkMovement(this.tiledMap, this.inputManager);
 
@@ -113,6 +120,9 @@ export class AkScene extends Phaser.Scene {
 
     // Process enemies
     AkEnemies.processEnemies();
+
+    // Process sprites
+    AkSprites.processSprites();
 
     const playerFrame = this.movement ? AkCore.showPlayer() : 0;
 

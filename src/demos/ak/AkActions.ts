@@ -7,6 +7,7 @@
 import { MainEngine } from '../../core/MainEngine';
 import { Condition, Status, Action, AkMovement } from './AkMovement';
 import { AkCore } from './AkCore';
+import { AkSprites } from './AkSprites';
 import { Sound } from '../../domain/Sound';
 
 export class AkActions {
@@ -401,9 +402,7 @@ export class AkActions {
    * Add sprite (bracelet, shot, etc.) (Java addSprite method)
    */
   private static addSprite(x: number, y: number, spriteId: number): void {
-    // TODO: Implement sprite creation logic
-    console.log(`AkActions: AddSprite at (${x}, ${y}) with ID ${spriteId}`);
-    // This would create a sprite at the specified position with the given sprite ID
+    AkSprites.addSprite(x, y, spriteId);
   }
 
   /**
