@@ -8,6 +8,7 @@ import { MainEngine } from '../../core/MainEngine';
 import { Condition, Status, Action, AkMovement } from './AkMovement';
 import { AkActions } from './AkActions';
 import { AkCore } from './AkCore';
+import { AkSprites } from './AkSprites';
 
 export class AkEnemies {
   private static monsterframe: number = 0;
@@ -527,13 +528,15 @@ export class AkEnemies {
     const action = movement.getAction();
     const condition = movement.getCondition();
 
+    // Get entity and player positions (used by both punch and projectile checks)
+    const playerX = player.getx();
+    const playerY = player.gety();
+    const playerFace = player.getFace();
+    const entityX = entity.getx();
+    const entityY = entity.gety();
+
     // Check punching, moto, or star conditions
     if (action === Action.PUNCHING || condition === Condition.MOTO || condition === Condition.STAR) {
-      const playerX = player.getx();
-      const playerY = player.gety();
-      const playerFace = player.getFace();
-      const entityX = entity.getx();
-      const entityY = entity.gety();
 
       // Check punch area collision
       if ((playerX + (playerFace * 24)) >= entityX &&
@@ -544,16 +547,21 @@ export class AkEnemies {
       }
     }
 
-    // TODO: Check bracelet and projectile attacks when sprite system is ready
-    // if (hasBrac || condition == Condition.HELI || condition == Condition.SURF) {
-    //   for (int i = 0; i < 20; i++) {
-    //     if (spe[i] > 0 && spt[i] >= 12 && spt[i] <= 15) // bracelete e tiro
-    //       if (collision(spx[i], spy[i], 8, 8, entities.get(ind).getx(), entities.get(ind).gety(), wx, wy)) {
-    //         spe[i] = 0;
-    //         return true;
-    //       }
-    //   }
-    // }
+    // Check bracelet and projectile attacks
+    const hasBrac = AkCore.getHasBrac();
+    if (hasBrac || condition === Condition.HELI || condition === Condition.SURF) {
+      const sprites = AkSprites.getActiveSprites();
+      for (let i = 0; i < sprites.length; i++) {
+        const spriteData = sprites[i];
+        if (spriteData.energy > 0 && spriteData.type >= 12 && spriteData.type <= 15) { // bracelet and firing
+          if (this.collision(spriteData.x, spriteData.y, 8, 8, entityX, entityY, wx, wy)) {
+            // Destroy the sprite by setting energy to 0
+            AkSprites.destroySprite(i);
+            return true;
+          }
+        }
+      }
+    }
 
     return false;
   }

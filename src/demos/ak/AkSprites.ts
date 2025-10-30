@@ -5,8 +5,8 @@
  */
 
 import { MainEngine } from '../../core/MainEngine';
-import { AkActions } from './AkActions';
 import { Sound } from '../../domain/Sound';
+import { AkActions } from './AkActions';
 
 interface SpriteData {
   sprite: Phaser.GameObjects.Sprite | null;
@@ -62,9 +62,9 @@ export class AkSprites {
     scene.load.image('rock_g', 'src/demos/ak/res/image/Rock_g.png');      // rock_sea
     scene.load.image('rock_c', 'src/demos/ak/res/image/Rock_c.png');      // rock_cave
     scene.load.image('leaf', 'src/demos/ak/res/image/leaf.gif');
-    scene.load.image('brac0', 'src/demos/ak/res/image/brac0.gif');        // bracelet_left
-    scene.load.image('brac1', 'src/demos/ak/res/image/brac1.gif');        // bracelet_right
-    scene.load.image('firing', 'src/demos/ak/res/image/firing.gif');
+    scene.load.image('brac0', 'src/demos/ak/res/image/brac0.png');        // bracelet_left
+    scene.load.image('brac1', 'src/demos/ak/res/image/brac1.png');        // bracelet_right
+    scene.load.image('firing', 'src/demos/ak/res/image/firing.png');
     // For star effect, we can use rock_t as placeholder or create a simple effect
     scene.load.image('star_effect', 'src/demos/ak/res/image/Rock_t.png');
   }
@@ -283,13 +283,31 @@ export class AkSprites {
   }
 
   /**
-   * Process fire/projectile at specific position (simplified)
-   * Returns true if hit an enemy
+   * Process fire/projectile at specific position (Java processFireAt method)
+   * Returns true if hit a zone (rock, star, item, skull)
    */
   private static processFireAt(x: number, y: number): boolean {
-    // TODO: Implement enemy collision detection
-    // This would check if the projectile hits any enemies at the given position
-    // For now, return false
+    const currentMap = MainEngine.getCurrentMap();
+    if (!currentMap) {
+      return false;
+    }
+
+    // Convert pixel coordinates to tile coordinates
+    const zx = x >> 4; // Equivalent to x / 16
+    const zy = y >> 4; // Equivalent to y / 16
+
+    // Get zone at this position
+    const zone = currentMap.getzone(zx, zy);
+
+    // Check if it's a zone that can be hit by fire (Rock=3, Star=4, Item=7, Skull=8)
+    if (zone === AkActions.ZONE_ROCK || zone === AkActions.ZONE_STAR ||
+        zone === AkActions.ZONE_ITEM || zone === AkActions.ZONE_SKULL) {
+
+      // Call the event to handle the zone interaction
+      AkActions.callEvent(zone, zx, zy);
+      return true;
+    }
+
     return false;
   }
 
@@ -318,5 +336,25 @@ export class AkSprites {
    */
   public static getActiveSpriteCount(): number {
     return this.sprites.filter(s => s.energy > 0).length;
+  }
+
+  /**
+   * Get active sprites for collision detection
+   */
+  public static getActiveSprites(): SpriteData[] {
+    return this.sprites;
+  }
+
+  /**
+   * Destroy a sprite by index
+   */
+  public static destroySprite(index: number): void {
+    if (index >= 0 && index < this.sprites.length) {
+      if (this.sprites[index].sprite) {
+        this.sprites[index].sprite.destroy();
+        this.sprites[index].sprite = null;
+      }
+      this.sprites[index].energy = 0;
+    }
   }
 }
