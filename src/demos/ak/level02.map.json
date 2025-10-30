@@ -836,7 +836,7 @@
         {
          "columns":20,
          "firstgid":1,
-         "image":"..\/..\/..\/..\/javalud\/assets\/ak\/tileset.png",
+         "image":"tileset.png",
          "imageheight":320,
          "imagewidth":320,
          "margin":0,
@@ -974,7 +974,7 @@
         {
          "columns":20,
          "firstgid":401,
-         "image":"..\/..\/..\/..\/javalud\/assets\/ak\/default.meta.png",
+         "image":"default.meta.png",
          "imageheight":176,
          "imagewidth":320,
          "margin":0,

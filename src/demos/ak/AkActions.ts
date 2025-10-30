@@ -9,6 +9,7 @@ import { Condition, Status, Action, AkMovement } from './AkMovement';
 import { AkCore } from './AkCore';
 import { AkSprites } from './AkSprites';
 import { Sound } from '../../domain/Sound';
+import { MapScene } from './MapScene';
 
 export class AkActions {
   // Punch-related state
@@ -208,8 +209,7 @@ export class AkActions {
         console.log(`AkActions: Processing ZONE_RICE event`);
         currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
         currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
-        // TODO: Implement DoLevel() equivalent
-        console.log(`AkActions: Rice collected - DoLevel() not implemented yet`);
+        MapScene.DoLevel();
         break;
 
       case this.ZONE_SWIM: // Swim (zone 6)

@@ -111,9 +111,9 @@ export class TitleScene extends Phaser.Scene {
     // TODO: Stop intro music
     // this.sound.stopByKey('music_intro');
 
-    // Transition to the Alex Kidd demo scene
-    this.scene.start('AkScene', {
-      demoPath: MainEngine.getSystemPath ? MainEngine.getSystemPath() : 'src/demos/ak'
+    // Start with MapScene to show the first level
+    this.scene.start('MapScene', {
+      config: this.config
     });
   }
 

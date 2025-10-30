@@ -78,4 +78,52 @@ export class Sound {
       console.log(`Sound: Error stopping sound ${soundKey}:`, error);
     }
   }
+
+  /**
+   * Stop all currently playing music/sounds
+   */
+  public static stopMusic(): void {
+    const currentScene = MainEngine.getCurrentScene();
+    if (!currentScene) {
+      console.log('Sound: No current scene for music stopping');
+      return;
+    }
+
+    if (!currentScene.sound) {
+      console.log('Sound: Scene does not have sound manager');
+      return;
+    }
+
+    try {
+      currentScene.sound.stopAll();
+    } catch (error) {
+      console.log('Sound: Error stopping music:', error);
+    }
+  }
+
+  /**
+   * Play music with looping
+   * @param musicKey - The Phaser sound key to play as music
+   */
+  public static playMusic(musicKey: string): void {
+    const currentScene = MainEngine.getCurrentScene();
+    if (!currentScene) {
+      console.log('Sound: No current scene for music playback');
+      return;
+    }
+
+    if (!currentScene.sound) {
+      console.log('Sound: Scene does not have sound manager');
+      return;
+    }
+
+    try {
+      // Stop any currently playing music first
+      this.stopMusic();
+      // Play new music with loop
+      currentScene.sound.play(musicKey, { loop: true });
+    } catch (error) {
+      console.log(`Sound: Error playing music ${musicKey}:`, error);
+    }
+  }
 }

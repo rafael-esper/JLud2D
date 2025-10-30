@@ -18,8 +18,9 @@ import { CHR } from '../../domain/CHR';
 import { Scene } from 'phaser';
 
 export class AkScene extends Phaser.Scene {
-  private static readonly MAP_FILENAME = 'level01.map.json';
-  private static readonly MAP_KEY = 'level01-map';
+  private mapFilename: string = 'level01.map.json';
+  private mapKey: string = 'level01-map';
+  private levelInfo: any = null;
 
   private config: GameConfig;
   private inputManager: InputManager;
@@ -37,7 +38,16 @@ export class AkScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.tilemapTiledJSON(AkScene.MAP_KEY, `src/demos/ak/${AkScene.MAP_FILENAME}`);
+    // Level info should already be set in init(), but use fallback if needed
+    if (!this.levelInfo) {
+      console.warn('AkScene: Level info not set in init, using default level 1');
+      // Default to level 1 if no level info
+      this.mapFilename = 'level01.map.json';
+      this.mapKey = 'level01-map';
+    }
+
+    console.log(`AkScene: Preloading ${this.mapFilename} with key ${this.mapKey}`);
+    this.load.tilemapTiledJSON(this.mapKey, `src/demos/ak/${this.mapFilename}`);
     this.load.json('ak-anim', 'src/demos/ak/Ak.anim.json');
 
     // Load sprite images
@@ -58,10 +68,32 @@ export class AkScene extends Phaser.Scene {
     DemoUI.createLoadingText(this, 'Loading Alex Kidd Demo...');
   }
 
-  async init(data: { demoPath: string }) {
+  async init(data: { demoPath: string, config?: GameConfig, levelInfo?: any }) {
     MainEngine.setSystemPath(data.demoPath);
-    const { config } = await MainEngine.initMainEngine();
-    this.config = config;
+
+    // Store level info if passed
+    if (data.levelInfo) {
+      this.levelInfo = data.levelInfo;
+      this.setMapFiles();
+    }
+
+    // If config is passed (from MapScene), use it. Otherwise initialize MainEngine
+    if (data.config) {
+      this.config = data.config;
+    } else {
+      const { config } = await MainEngine.initMainEngine();
+      this.config = config;
+    }
+
+    console.log(`AkScene: Initialized with map ${this.mapFilename} and key ${this.mapKey}`);
+  }
+
+  private setMapFiles(): void {
+    if (this.levelInfo) {
+      this.mapFilename = this.levelInfo.mapFile;
+      this.mapKey = this.levelInfo.mapFile.replace('.map.json', '-map');
+      console.log(`AkScene: Set map files - ${this.mapFilename} with key ${this.mapKey} for ${this.levelInfo.name}`);
+    }
   }
 
   async create() {
@@ -72,8 +104,20 @@ export class AkScene extends Phaser.Scene {
     MainEngine.setCurrentScene(this, this.config);
 
     // Load map and initialize player
-    this.tiledMap = await MainEngine.loadAndInitMap(this, AkScene.MAP_FILENAME, 'src/demos/ak');
+    this.tiledMap = await MainEngine.loadAndInitMap(this, this.mapFilename, 'src/demos/ak');
     await MainEngine.mapinit(this, 'Ak.anim.json', 'src/demos/ak');
+
+    // Set player position from level data
+    if (this.levelInfo) {
+      const player = MainEngine.getPlayer();
+      if (player) {
+        // Convert tile coordinates to pixel coordinates
+        const pixelX = this.levelInfo.playerX * this.tiledMap.getTileWidth();
+        const pixelY = this.levelInfo.playerY * this.tiledMap.getTileHeight();
+        player.setxy(pixelX, pixelY);
+        console.log(`AkScene: Set player start position to (${this.levelInfo.playerX}, ${this.levelInfo.playerY}) = (${pixelX}, ${pixelY}) pixels`);
+      }
+    }
 
     // Load monster CHR sprites
     await this.loadMonsterSprites();
@@ -95,8 +139,10 @@ export class AkScene extends Phaser.Scene {
     // Initialize movement system
     this.movement = new AkMovement(this.tiledMap, this.inputManager);
 
-    // Set normal condition when starting the scene
-    this.movement.setNormalCondition(Condition.WALK);
+    // Set condition from level data (WALK or SWIM)
+    const startCondition = this.levelInfo ? this.levelInfo.condition : Condition.WALK;
+    this.movement.setNormalCondition(startCondition);
+    console.log(`AkScene: Set start condition to ${startCondition === Condition.WALK ? 'WALK' : 'SWIM'}`);
 
     this.fpsDisplay.setVisible(this.config.showFPS);
   }

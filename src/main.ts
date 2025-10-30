@@ -11,6 +11,7 @@ import { Demo1Scene } from './demos/demo1/Demo1Scene';
 import { Demo2Scene } from './demos/demo2/Demo2Scene';
 import { AkScene } from './demos/ak/AkScene';
 import { TitleScene } from './demos/ak/TitleScene';
+import { MapScene } from './demos/ak/MapScene';
 import { ResponsiveScaler } from './utils/ResponsiveScaler';
 
 class Game {
@@ -67,6 +68,7 @@ class Game {
       Demo1Scene,
       Demo2Scene,
       TitleScene,
+      MapScene,
       AkScene
     ];
 
