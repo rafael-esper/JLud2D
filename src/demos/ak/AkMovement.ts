@@ -199,7 +199,7 @@ export class AkMovement {
         }
       }
 
-      if (this.inputManager.down && this.velocity == 0)
+      if (this.inputManager.down && Math.abs(this.velocity) < 1)
         this.setState(Status.DUCKING);
       else if (!this.inputManager.down && this.getState() == Status.DUCKING)
         this.setState(Status.STOPPED);

@@ -9,6 +9,7 @@ import { MenuScene } from './scenes/MenuScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { Demo1Scene } from './demos/demo1/Demo1Scene';
 import { Demo2Scene } from './demos/demo2/Demo2Scene';
+import { Demo3Scene } from './demos/demo3/Demo3Scene';
 import { AkScene } from './demos/ak/AkScene';
 import { TitleScene } from './demos/ak/TitleScene';
 import { MapScene } from './demos/ak/MapScene';
@@ -67,6 +68,7 @@ class Game {
       SettingsScene,
       Demo1Scene,
       Demo2Scene,
+      Demo3Scene,
       TitleScene,
       MapScene,
       AkScene
