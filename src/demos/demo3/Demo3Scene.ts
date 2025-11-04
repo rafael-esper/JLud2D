@@ -510,60 +510,25 @@ export class Demo3Scene extends Phaser.Scene {
 
     try {
       this.statusText.setText(`Playing ${file.name}...`);
-
-      // Check if we have AY8910 (use old VGM player)
-      const ay8910Chip = this.currentChips.find(c => c.type === 'AY8910');
-      if (ay8910Chip) {
-        await this.playWithOldVGM(ay8910Chip);
-        return;
-      }
-
-      // Check if we have YM2413, YM2612, or SN76489 (use new VGM player)
-      const ym2413Chip = this.currentChips.find(c => c.type === 'YM2413');
-      const ym2612Chip = this.currentChips.find(c => c.type === 'YM2612');
-      const sn76489Chip = this.currentChips.find(c => c.type === 'SN76489');
-      if (ym2413Chip || ym2612Chip || sn76489Chip) {
-        await this.playWithNewVGM();
-        return;
-      }
-
-      throw new Error('No supported chip found for playback');
-
+      await this.playVGM();
     } catch (error) {
       console.error('Error playing VGM:', error);
       this.statusText.setText(`Error playing ${file.name}: ${error.message}`);
     }
   }
 
-  private async playWithOldVGM(ay8910Chip: any) {
-    // Create old VGM instance for AY8910 playback
-    this.currentVgmOld = new Vgm(this.currentVgmData!);
+  private async playVGM() {
+    // Check if we have any supported chips for real-time playback
+    const ay8910Chip = this.currentChips.find(c => c.type === 'AY8910');
+    const ym2413Chip = this.currentChips.find(c => c.type === 'YM2413');
+    const ym2612Chip = this.currentChips.find(c => c.type === 'YM2612');
+    const sn76489Chip = this.currentChips.find(c => c.type === 'SN76489');
 
-    const frameCount = this.currentVgmOld.getSamplesCount();
-    const myArrayBuffer = this.audioCtx.createBuffer(1, frameCount, this.currentVgmOld.sampleRate);
-    const nowBuffering = myArrayBuffer.getChannelData(0);
+    if (!ay8910Chip && !ym2413Chip && !ym2612Chip && !sn76489Chip) {
+      throw new Error('No supported chip found for playback');
+    }
 
-    this.currentVgmOld.fillBuffer(nowBuffering, ay8910Chip.chip);
-
-    this.currentSource = this.audioCtx.createBufferSource();
-    this.currentSource.buffer = myArrayBuffer;
-    this.currentSource.connect(this.audioCtx.destination);
-    this.currentSource.loop = true;
-
-    this.currentSource.onended = () => {
-      this.stopPlayback();
-    };
-
-    this.currentSource.start();
-    await this.audioCtx.resume();
-
-    this.isPlaying = true;
-    this.updateFileSelection();
-    this.updateButtonStates();
-  }
-
-  private async playWithNewVGM() {
-    // Use real-time VGM playback for YM2413 and other chips
+    // Use real-time VGM playback for all supported chips
     const sampleRate = 44100;
     const vgmInfo = this.getVGMInfo(this.currentVgmData!);
 
@@ -644,6 +609,7 @@ export class Demo3Scene extends Phaser.Scene {
         const samplesToProcess = Math.min(waitSamples, buffer.length - sampleIndex);
 
         // Generate audio for current state - mix multiple chips together
+        const ay8910 = chips.find(c => c.type === 'AY8910');
         const ym2413 = chips.find(c => c.type === 'YM2413');
         const ym2612 = chips.find(c => c.type === 'YM2612');
         const sn76489 = chips.find(c => c.type === 'SN76489');
@@ -653,8 +619,17 @@ export class Demo3Scene extends Phaser.Scene {
           let mixedSample = 0;
           let activeChips = 0;
 
-          // VGM standard volume ratios - based on real Genesis hardware
+          // VGM standard volume ratios - based on real hardware
           const BASE_SCALE = 0.0002; // Base scaling factor
+
+          // Add AY8910 if present (uses different API)
+          if (ay8910) {
+            // AY8910 needs tick advancement and different buffer approach
+            const tempBuffer = new Float32Array(1);
+            ay8910.chip.fillBuffer(tempBuffer, 0, 1, 44100);
+            mixedSample += tempBuffer[0] * 2.0; // AY8910 with higher scaling
+            activeChips++;
+          }
 
           // Add YM2413 if present
           if (ym2413) {
@@ -732,6 +707,12 @@ export class Demo3Scene extends Phaser.Scene {
         const reg = vgmData[dataIndex + 1];
         const data = vgmData[dataIndex + 2];
 
+        // Monitor DAC control register for drum resets
+        if (reg === 0x2B && data === 0x80) {
+          // Reset DAC pointer on DAC enable - this is the proper drum reset point
+          this.dataBankPointer = 0;
+          console.log(`DAC Reset: pointer reset to 0`);
+        }
 
         const ym2612 = chips.find(c => c.type === 'YM2612');
         if (ym2612) {
@@ -826,13 +807,8 @@ export class Demo3Scene extends Phaser.Scene {
           if (this.dataBank.length > 0 && this.dataBankPointer < this.dataBank.length) {
             dacValue = this.dataBank[this.dataBankPointer];
             this.dataBankPointer++;
-
-          } else if (this.dataBank.length > 0) {
-            // When we reach the end, wrap around to beginning for next drum hit
-            this.dataBankPointer = 0;
-            dacValue = this.dataBank[0];
-            this.dataBankPointer++;
           }
+          // If we're past the end, just use silence (0x80) until next reset
 
           ym2612.chip.write(0x2A, dacValue);
         }
@@ -956,8 +932,19 @@ export class Demo3Scene extends Phaser.Scene {
           }
           dataIndex += 5;
         }
-      } else if (command >= 0xA0 && command <= 0xBF) {
-        // Various chip writes (AY8910, RF5C68, etc.) - 3 bytes each
+      } else if (command === 0xA0) {
+        // AY8910 write: 0xA0 rr dd
+        const reg = vgmData[dataIndex + 1];
+        const data = vgmData[dataIndex + 2];
+
+        const ay8910 = chips.find(c => c.type === 'AY8910');
+        if (ay8910) {
+          ay8910.chip.setRegister(reg, data);
+        }
+
+        dataIndex += 3;
+      } else if (command >= 0xA1 && command <= 0xBF) {
+        // Other chip writes - 3 bytes each
         dataIndex += 3;
       } else if (command >= 0xC0 && command <= 0xDF) {
         // Various chip writes - 3 bytes each
