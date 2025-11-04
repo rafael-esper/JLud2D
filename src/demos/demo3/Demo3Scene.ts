@@ -111,6 +111,25 @@ export class Demo3Scene extends Phaser.Scene {
   private currentVgmOld: Vgm | null = null; // Keep old VGM for playback
   private currentChips: any[] = [];
   private currentVgmData: Uint8Array | null = null;
+  private dataBlocks: Map<number, Uint8Array> = new Map(); // Store data blocks by type
+  private dataBank: Uint8Array = new Uint8Array(0); // Combined data bank for stream commands
+  private dataBankPointer: number = 0; // Current position in data bank for 0x8n commands
+  private dacStreams: Map<number, {
+    chipType: number;
+    port: number;
+    command: number;
+    dataBankId: number;
+    stepSize: number;
+    stepBase: number;
+    frequency: number;
+    active: boolean;
+    position: number;
+    startOffset: number;
+    length: number;
+    lengthMode: number;
+    loop: boolean;
+    reverse: boolean;
+  }> = new Map(); // DAC stream configurations
   private selectedFile: number = 0;
   private isPlaying: boolean = false;
 
@@ -120,7 +139,9 @@ export class Demo3Scene extends Phaser.Scene {
     { name: 'battle.vgm', supported: false, chip: '', description: '' },
     { name: 'mota.vgz', supported: false, chip: '', description: '' },
     { name: 'swim.vgm', supported: false, chip: '', description: '' },
-    { name: 'swim.vgz', supported: false, chip: '', description: '' }
+    { name: 'swim.vgz', supported: false, chip: '', description: '' },
+    { name: 'palma.vgz', supported: false, chip: '', description: '' },
+    { name: 'town.vgz', supported: false, chip: '', description: '' }
   ];
 
   // UI elements
@@ -374,6 +395,10 @@ export class Demo3Scene extends Phaser.Scene {
       // Use the new VGM reader for chip detection
       this.currentVgm = new VGM(vgmString);
       this.currentChips = [];
+      this.dataBlocks.clear();
+      this.dataBank = new Uint8Array(0);
+      this.dataBankPointer = 0;
+      this.dacStreams.clear();
 
 
       // Initialize chips based on clocks found in VGM
@@ -631,24 +656,24 @@ export class Demo3Scene extends Phaser.Scene {
           // VGM standard volume ratios - based on real Genesis hardware
           const BASE_SCALE = 0.0002; // Base scaling factor
 
-          // Add YM2413 if present (×1.0 ratio like YM2612)
+          // Add YM2413 if present
           if (ym2413) {
             const chipOutput = ym2413.chip.update(1); // Generate 1 sample
             mixedSample += chipOutput[0][0] * BASE_SCALE * 1.0; // YM2413 ×1.0
             activeChips++;
           }
 
-          // Add YM2612 if present (×1.0 reference ratio) - TEMPORARILY DISABLED FOR TESTING
+          // Add YM2612 if present (includes DAC drums)
           if (ym2612) {
             const chipOutput = ym2612.chip.update(1); // Generate 1 sample
-            mixedSample += chipOutput[0][0] * BASE_SCALE * 0.25; // YM2612 ×1.0 (reference)
+            mixedSample += chipOutput[0][0] * BASE_SCALE * 0.25; // YM2612 ×0.25
             activeChips++;
           }
 
-          // Add SN76489 if present (BOOSTED FOR TESTING - normally ×0.25)
+          // Add SN76489 if present
           if (sn76489) {
             const chipOutput = sn76489.chip.update(1); // Generate 1 sample
-            mixedSample += chipOutput[0][0] * BASE_SCALE * 1.0; // BOOSTED: SN76489 ×2.0 for testing
+            mixedSample += chipOutput[0][0] * BASE_SCALE * 1.0; // SN76489 ×1.0
             activeChips++;
           }
 
@@ -707,6 +732,7 @@ export class Demo3Scene extends Phaser.Scene {
         const reg = vgmData[dataIndex + 1];
         const data = vgmData[dataIndex + 2];
 
+
         const ym2612 = chips.find(c => c.type === 'YM2612');
         if (ym2612) {
           // Port 0 uses register addresses as-is
@@ -739,28 +765,49 @@ export class Demo3Scene extends Phaser.Scene {
         waitSamples = 882;
         dataIndex += 1;
       } else if (command === 0x67) {
-        // Data block command - need to properly parse and skip the entire block
-
-        // Show next few bytes for debugging
-        const nextBytes = Array.from(vgmData.slice(dataIndex, dataIndex + 16)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ');
-
+        // Data block command - parse and store the data
         if (dataIndex + 6 < vgmData.length && vgmData[dataIndex + 1] === 0x66) {
           // Format: 0x67 0x66 tt ss ss ss ss [data...]
-          // Skip type (1 byte) and read size (4 bytes, little-endian)
+          const dataType = vgmData[dataIndex + 2];
           const dataSize = vgmData[dataIndex + 3] | (vgmData[dataIndex + 4] << 8) |
                           (vgmData[dataIndex + 5] << 16) | (vgmData[dataIndex + 6] << 24);
 
+          if (dataSize > 0 && dataSize < 1000000 && dataIndex + 7 + dataSize <= vgmData.length) {
+            // Extract and store the data block
+            const blockData = vgmData.slice(dataIndex + 7, dataIndex + 7 + dataSize);
+            this.dataBlocks.set(dataType, blockData);
 
-          if (dataSize < 1000000 && dataIndex + 7 + dataSize <= vgmData.length) {
-            // Skip: command(1) + marker(1) + type(1) + size(4) + data(dataSize)
+            // For uncompressed stream data (types 0x00-0x3F), expand the data bank
+            if (dataType <= 0x3F) {
+              const newDataBank = new Uint8Array(this.dataBank.length + blockData.length);
+              newDataBank.set(this.dataBank, 0);
+              newDataBank.set(blockData, this.dataBank.length);
+              this.dataBank = newDataBank;
+
+            }
+
             dataIndex += 7 + dataSize;
           } else {
-            console.warn(`Invalid data block size or extends beyond file, minimal skip`);
             dataIndex += 7;
           }
         } else {
-          console.warn(`Invalid data block format, minimal skip`);
           dataIndex += 7;
+        }
+      } else if (command === 0x68) {
+        // PCM RAM writes: 0x68 0x66 cc oo oo oo dd dd dd ss ss ss
+        if (dataIndex + 11 < vgmData.length && vgmData[dataIndex + 1] === 0x66) {
+          const chipType = vgmData[dataIndex + 2];
+          const readOffset = vgmData[dataIndex + 3] | (vgmData[dataIndex + 4] << 8) | (vgmData[dataIndex + 5] << 16);
+          const writeOffset = vgmData[dataIndex + 6] | (vgmData[dataIndex + 7] << 8) | (vgmData[dataIndex + 8] << 16);
+          const size = vgmData[dataIndex + 9] | (vgmData[dataIndex + 10] << 8) | (vgmData[dataIndex + 11] << 16);
+
+          // Size of 0 means 0x1000000 bytes
+          const actualSize = size === 0 ? 0x1000000 : size;
+
+          // For now, just skip the command - PCM RAM writes would need chip-specific implementation
+          dataIndex += 12;
+        } else {
+          dataIndex += 12; // Skip malformed command
         }
       } else if (command >= 0x70 && command <= 0x7F) {
         // Wait n+1 samples (n = command & 0x0F)
@@ -770,13 +817,145 @@ export class Demo3Scene extends Phaser.Scene {
         // YM2612 port 0 address 2A write from data bank, then wait n samples
         const waitCount = command & 0x0F;
 
-        // Note: This should write to YM2612 register 0x2A from a data bank
-        // For now, we'll just implement the wait part
-        waitSamples = waitCount;
+        // Write to YM2612 DAC register 0x2A from data bank
+        const ym2612 = chips.find(c => c.type === 'YM2612');
+        if (ym2612) {
+          let dacValue = 0x80; // Default silence/center value
+
+          // Read from data bank if available
+          if (this.dataBank.length > 0 && this.dataBankPointer < this.dataBank.length) {
+            dacValue = this.dataBank[this.dataBankPointer];
+            this.dataBankPointer++;
+
+          } else if (this.dataBank.length > 0) {
+            // When we reach the end, wrap around to beginning for next drum hit
+            this.dataBankPointer = 0;
+            dacValue = this.dataBank[0];
+            this.dataBankPointer++;
+          }
+
+          ym2612.chip.write(0x2A, dacValue);
+        }
+
+        waitSamples = waitCount; // Wait n samples (not n+1)
         dataIndex += 1;
       } else if (command >= 0x90 && command <= 0x95) {
-        // DAC Stream Control Write - skip 5 bytes
-        dataIndex += 5;
+        // DAC Stream Control Write
+        if (command === 0x90) {
+          // Setup Stream Control: 0x90 ss tt pp cc
+          const streamId = vgmData[dataIndex + 1];
+          const chipType = vgmData[dataIndex + 2] & 0x7F; // Remove dual chip bit
+          const port = vgmData[dataIndex + 3];
+          const registerCmd = vgmData[dataIndex + 4];
+
+          console.log(`0x90: Setup stream ${streamId}, chipType=${chipType}, port=${port}, cmd=0x${registerCmd.toString(16)}`);
+
+          if (streamId !== 0xFF) {
+            this.dacStreams.set(streamId, {
+              chipType,
+              port,
+              command: registerCmd,
+              dataBankId: 0,
+              stepSize: 1,
+              stepBase: 0,
+              frequency: 44100,
+              active: false,
+              position: 0,
+              startOffset: 0,
+              length: 0,
+              lengthMode: 0,
+              loop: false,
+              reverse: false
+            });
+          }
+          dataIndex += 5;
+        } else if (command === 0x91) {
+          // Set Stream Data: 0x91 ss dd ll bb
+          const streamId = vgmData[dataIndex + 1];
+          const dataBankId = vgmData[dataIndex + 2];
+          const stepSize = vgmData[dataIndex + 3];
+          const stepBase = vgmData[dataIndex + 4];
+
+          if (streamId !== 0xFF && this.dacStreams.has(streamId)) {
+            const stream = this.dacStreams.get(streamId)!;
+            stream.dataBankId = dataBankId;
+            stream.stepSize = stepSize;
+            stream.stepBase = stepBase;
+          }
+          dataIndex += 5;
+        } else if (command === 0x92) {
+          // Set Stream Frequency: 0x92 ss ff ff ff ff
+          const streamId = vgmData[dataIndex + 1];
+          const frequency = vgmData[dataIndex + 2] | (vgmData[dataIndex + 3] << 8) |
+                           (vgmData[dataIndex + 4] << 16) | (vgmData[dataIndex + 5] << 24);
+
+          if (streamId !== 0xFF && this.dacStreams.has(streamId)) {
+            this.dacStreams.get(streamId)!.frequency = frequency;
+          }
+          dataIndex += 6;
+        } else if (command === 0x93) {
+          // Start Stream: 0x93 ss aa aa aa aa mm ll ll ll ll
+          const streamId = vgmData[dataIndex + 1];
+          const startOffset = vgmData[dataIndex + 2] | (vgmData[dataIndex + 3] << 8) |
+                             (vgmData[dataIndex + 4] << 16) | (vgmData[dataIndex + 5] << 24);
+          const lengthMode = vgmData[dataIndex + 6];
+          const length = vgmData[dataIndex + 7] | (vgmData[dataIndex + 8] << 8) |
+                        (vgmData[dataIndex + 9] << 16) | (vgmData[dataIndex + 10] << 24);
+
+          if (streamId !== 0xFF && this.dacStreams.has(streamId)) {
+            const stream = this.dacStreams.get(streamId)!;
+            stream.startOffset = startOffset === 0xFFFFFFFF ? stream.position : startOffset;
+            stream.position = stream.startOffset + stream.stepBase;
+            stream.lengthMode = lengthMode;
+            stream.length = length;
+            stream.loop = (lengthMode & 0x80) !== 0;
+            stream.reverse = (lengthMode & 0x10) !== 0;
+            stream.active = true;
+
+            // For YM2612 DAC streams, control the global data bank pointer
+            if (stream.chipType === 0x02 && stream.command === 0x2A) {
+              this.dataBankPointer = stream.position;
+              console.log(`Stream ${streamId} (0x93): Reset DAC pointer to ${this.dataBankPointer}, dataBank length: ${this.dataBank.length}`);
+            }
+          }
+          dataIndex += 11;
+        } else if (command === 0x94) {
+          // Stop Stream: 0x94 ss
+          const streamId = vgmData[dataIndex + 1];
+
+          if (streamId === 0xFF) {
+            // Stop all streams
+            for (const stream of this.dacStreams.values()) {
+              stream.active = false;
+            }
+          } else if (this.dacStreams.has(streamId)) {
+            this.dacStreams.get(streamId)!.active = false;
+          }
+          dataIndex += 2;
+        } else if (command === 0x95) {
+          // Start Stream (fast call): 0x95 ss bb bb ff
+          const streamId = vgmData[dataIndex + 1];
+          const blockId = vgmData[dataIndex + 2] | (vgmData[dataIndex + 3] << 8);
+          const flags = vgmData[dataIndex + 4];
+
+          console.log(`0x95: Start stream ${streamId}, blockId=${blockId}, flags=0x${flags.toString(16)}`);
+
+          if (streamId !== 0xFF && this.dacStreams.has(streamId)) {
+            const stream = this.dacStreams.get(streamId)!;
+            // Reset to beginning of specified block + step base
+            stream.position = stream.stepBase;
+            stream.loop = (flags & 0x01) !== 0;
+            stream.reverse = (flags & 0x10) !== 0;
+            stream.active = true;
+
+            // For YM2612 DAC streams, control the global data bank pointer
+            if (stream.chipType === 0x02 && stream.command === 0x2A) {
+              this.dataBankPointer = stream.position;
+              console.log(`Stream ${streamId} (0x95): Reset DAC pointer to ${this.dataBankPointer}, dataBank length: ${this.dataBank.length}`);
+            }
+          }
+          dataIndex += 5;
+        }
       } else if (command >= 0xA0 && command <= 0xBF) {
         // Various chip writes (AY8910, RF5C68, etc.) - 3 bytes each
         dataIndex += 3;
