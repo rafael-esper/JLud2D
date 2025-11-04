@@ -112,8 +112,8 @@ export class Demo3Scene extends Phaser.Scene {
   private currentChips: any[] = [];
   private currentVgmData: Uint8Array | null = null;
   private dataBlocks: Map<number, Uint8Array> = new Map(); // Store data blocks by type
-  private dataBank: Uint8Array = new Uint8Array(0); // Combined data bank for stream commands
-  private dataBankPointer: number = 0; // Current position in data bank for 0x8n commands
+  private pcmData: Uint8Array = new Uint8Array(0); // PCM data block (like pcm_data in Java)
+  private pcmPos: number = 0; // Current position in PCM data (like pcm_pos in Java)
   private dacStreams: Map<number, {
     chipType: number;
     port: number;
@@ -138,6 +138,7 @@ export class Demo3Scene extends Phaser.Scene {
     { name: 'tune.vgm', supported: false, chip: '', description: '' },
     { name: 'battle.vgm', supported: false, chip: '', description: '' },
     { name: 'mota.vgz', supported: false, chip: '', description: '' },
+    { name: 'emerald.vgm', supported: false, chip: '', description: '' },
     { name: 'swim.vgm', supported: false, chip: '', description: '' },
     { name: 'swim.vgz', supported: false, chip: '', description: '' },
     { name: 'palma.vgz', supported: false, chip: '', description: '' },
@@ -396,8 +397,8 @@ export class Demo3Scene extends Phaser.Scene {
       this.currentVgm = new VGM(vgmString);
       this.currentChips = [];
       this.dataBlocks.clear();
-      this.dataBank = new Uint8Array(0);
-      this.dataBankPointer = 0;
+      this.pcmData = new Uint8Array(0);
+      this.pcmPos = 0;
       this.dacStreams.clear();
 
 
@@ -707,11 +708,9 @@ export class Demo3Scene extends Phaser.Scene {
         const reg = vgmData[dataIndex + 1];
         const data = vgmData[dataIndex + 2];
 
-        // Monitor DAC control register for drum resets
+        // Monitor DAC control register (Java VgmEmu pattern)
         if (reg === 0x2B && data === 0x80) {
-          // Reset DAC pointer on DAC enable - this is the proper drum reset point
-          this.dataBankPointer = 0;
-          console.log(`DAC Reset: pointer reset to 0`);
+          // DAC enable - no special handling needed in Java pattern
         }
 
         const ym2612 = chips.find(c => c.type === 'YM2612');
@@ -758,13 +757,11 @@ export class Demo3Scene extends Phaser.Scene {
             const blockData = vgmData.slice(dataIndex + 7, dataIndex + 7 + dataSize);
             this.dataBlocks.set(dataType, blockData);
 
-            // For uncompressed stream data (types 0x00-0x3F), expand the data bank
-            if (dataType <= 0x3F) {
-              const newDataBank = new Uint8Array(this.dataBank.length + blockData.length);
-              newDataBank.set(this.dataBank, 0);
-              newDataBank.set(blockData, this.dataBank.length);
-              this.dataBank = newDataBank;
-
+            // For PCM data blocks (type 0x00), set as PCM data (like Java VgmEmu)
+            if (dataType === 0x00) {
+              this.pcmData = blockData;
+              this.pcmPos = 0; // Reset position to start of PCM data
+              console.log(`PCM Data Block loaded: ${blockData.length} bytes`);
             }
 
             dataIndex += 7 + dataSize;
@@ -803,12 +800,12 @@ export class Demo3Scene extends Phaser.Scene {
         if (ym2612) {
           let dacValue = 0x80; // Default silence/center value
 
-          // Read from data bank if available
-          if (this.dataBank.length > 0 && this.dataBankPointer < this.dataBank.length) {
-            dacValue = this.dataBank[this.dataBankPointer];
-            this.dataBankPointer++;
+          // Read from PCM data if available (Java VgmEmu pattern: data[pcm_pos++] & 0xFF)
+          if (this.pcmData.length > 0 && this.pcmPos < this.pcmData.length) {
+            dacValue = this.pcmData[this.pcmPos] & 0xFF;
+            this.pcmPos++; // Increment after reading
           }
-          // If we're past the end, just use silence (0x80) until next reset
+          // If we're past the end, just use silence (0x80)
 
           ym2612.chip.write(0x2A, dacValue);
         }
@@ -949,8 +946,14 @@ export class Demo3Scene extends Phaser.Scene {
       } else if (command >= 0xC0 && command <= 0xDF) {
         // Various chip writes - 3 bytes each
         dataIndex += 3;
-      } else if (command >= 0xE0 && command <= 0xFF) {
-        // Data stream writes - 5 bytes each
+      } else if (command === 0xE0) {
+        // PCM seek command (Java VgmEmu pattern: pcm_pos = pcm_data + getLE32(data, pos))
+        const seekOffset = vgmData[dataIndex + 1] | (vgmData[dataIndex + 2] << 8) |
+                          (vgmData[dataIndex + 3] << 16) | (vgmData[dataIndex + 4] << 24);
+        this.pcmPos = seekOffset; // Reset position within PCM data
+        dataIndex += 5;
+      } else if (command >= 0xE1 && command <= 0xFF) {
+        // Other data stream writes - 5 bytes each
         dataIndex += 5;
       } else {
         // Unknown command, skip
