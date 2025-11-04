@@ -615,50 +615,42 @@ export class Demo3Scene extends Phaser.Scene {
         const ym2612 = chips.find(c => c.type === 'YM2612');
         const sn76489 = chips.find(c => c.type === 'SN76489');
 
-        // Generate samples from all active chips and mix them
+        // Generate samples from all active chips and mix them (Java VgmEmu pattern)
         for (let i = 0; i < samplesToProcess; i++) {
           let mixedSample = 0;
-          let activeChips = 0;
 
-          // VGM standard volume ratios - based on real hardware
-          const BASE_SCALE = 0.0002; // Base scaling factor
+          // Mix chips additively with proper scaling (inspired by Java VgmEmu)
 
-          // Add AY8910 if present (uses different API)
-          if (ay8910) {
-            // AY8910 needs tick advancement and different buffer approach
-            const tempBuffer = new Float32Array(1);
-            ay8910.chip.fillBuffer(tempBuffer, 0, 1, 44100);
-            mixedSample += tempBuffer[0] * 2.0; // AY8910 with higher scaling
-            activeChips++;
-          }
-
-          // Add YM2413 if present
-          if (ym2413) {
-            const chipOutput = ym2413.chip.update(1); // Generate 1 sample
-            mixedSample += chipOutput[0][0] * BASE_SCALE * 1.0; // YM2413 ×1.0
-            activeChips++;
+          // Add SN76489 if present (primary chip for SMS/GG)
+          if (sn76489) {
+            const chipOutput = sn76489.chip.update(1);
+            mixedSample = (mixedSample / 4) + (chipOutput[0][0] * 0.00015); // Shift existing, add new
           }
 
           // Add YM2612 if present (includes DAC drums)
           if (ym2612) {
-            const chipOutput = ym2612.chip.update(1); // Generate 1 sample
-            mixedSample += chipOutput[0][0] * BASE_SCALE * 0.25; // YM2612 ×0.25
-            activeChips++;
+            const chipOutput = ym2612.chip.update(1);
+            mixedSample = (mixedSample / 4) + (chipOutput[0][0] * 0.00008); // Reduced volume
           }
 
-          // Add SN76489 if present
-          if (sn76489) {
-            const chipOutput = sn76489.chip.update(1); // Generate 1 sample
-            mixedSample += chipOutput[0][0] * BASE_SCALE * 1.0; // SN76489 ×1.0
-            activeChips++;
+          // Add YM2413 if present
+          if (ym2413) {
+            const chipOutput = ym2413.chip.update(1);
+            mixedSample = (mixedSample / 4) + (chipOutput[0][0] * 0.00015);
           }
 
-          // Light compression for multi-chip mixes to prevent peaks
-          if (activeChips > 1) {
-            mixedSample *= 0.9; // Gentle limiting
+          // Add AY8910 if present (uses different API)
+          if (ay8910) {
+            const tempBuffer = new Float32Array(1);
+            ay8910.chip.fillBuffer(tempBuffer, 0, 1, 44100);
+            mixedSample = (mixedSample / 4) + (tempBuffer[0]); // Further increased AY8910 volume
           }
 
-          buffer[sampleIndex++] = Math.max(-1, Math.min(1, mixedSample)); // Clamp
+          // Saturation limiting (Java VgmEmu pattern: prevent overflow)
+          if (mixedSample > 1.0) mixedSample = 1.0;
+          else if (mixedSample < -1.0) mixedSample = -1.0;
+
+          buffer[sampleIndex++] = mixedSample;
         }
 
         waitSamples -= samplesToProcess;
