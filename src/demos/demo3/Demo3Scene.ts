@@ -6,7 +6,7 @@
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { DemoUI } from '../../utils/DemoUI';
-import { VGMPlayer, VGMPlayerOptions, VGMInfo, loadVGMScripts } from '../../core/vgm';
+import { VGMPlayer, VGMPlayerOptions, VGMInfo } from '../../core/vgm';
 
 interface VGMFile {
   name: string;
@@ -22,7 +22,6 @@ export class Demo3Scene extends Phaser.Scene {
 
   // VGM Player
   private vgmPlayer: VGMPlayer | null = null;
-  private audioCtx: AudioContext | null = null;
 
   // State
   private selectedFile: number = 0;
@@ -59,8 +58,8 @@ export class Demo3Scene extends Phaser.Scene {
   }
 
   async create() {
-    // Initialize audio context
-    await this.initializeAudio();
+    // Initialize VGM player
+    await this.initializeVGM();
 
     // Initialize controls
     this.inputManager = new InputManager(this, new ControlsConfig());
@@ -78,32 +77,26 @@ export class Demo3Scene extends Phaser.Scene {
     console.log('Demo 3 Scene - VGM Player initialized');
   }
 
-  private async initializeAudio() {
+  private async initializeVGM() {
     try {
-      // Load VGM scripts first
-      await loadVGMScripts();
-
-      this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-
       const options: VGMPlayerOptions = {
         sampleRate: 44100,
         enableLooping: true
       };
 
-      this.vgmPlayer = new VGMPlayer(this.audioCtx, options);
+      this.vgmPlayer = new VGMPlayer(options);
+      await this.vgmPlayer.initialize();
 
       // Resume audio context on user interaction
       const resumeAudio = () => {
-        if (this.audioCtx?.state === 'suspended') {
-          this.audioCtx.resume();
-        }
+        this.vgmPlayer?.resumeAudio();
       };
 
       this.input.on('pointerdown', resumeAudio);
       this.input.keyboard?.on('keydown', resumeAudio);
 
     } catch (error) {
-      console.error('Failed to initialize audio context:', error);
+      console.error('Failed to initialize VGM player:', error);
     }
   }
 
@@ -365,12 +358,6 @@ export class Demo3Scene extends Phaser.Scene {
 
   destroy() {
     this.stopMusic();
-
-    if (this.audioCtx) {
-      this.audioCtx.close();
-      this.audioCtx = null;
-    }
-
     super.destroy();
   }
 }

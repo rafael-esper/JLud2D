@@ -92,7 +92,7 @@ export interface VGMInfo {
 }
 
 export class VGMPlayer {
-  private audioCtx: AudioContext;
+  private audioCtx: AudioContext | null = null;
   private currentSource: AudioBufferSourceNode | null = null;
   private currentVgm: VGM | null = null;
   private currentChips: any[] = [];
@@ -118,14 +118,39 @@ export class VGMPlayer {
   }> = new Map();
 
   private options: VGMPlayerOptions;
+  private initialized: boolean = false;
 
-  constructor(audioContext: AudioContext, options: VGMPlayerOptions = {}) {
-    this.audioCtx = audioContext;
+  constructor(options: VGMPlayerOptions = {}) {
     this.options = {
       sampleRate: 44100,
       enableLooping: true,
       ...options
     };
+  }
+
+  /**
+   * Initialize the VGM player with audio context and scripts
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    // Load VGM scripts first
+    const { loadVGMScripts } = await import('./index');
+    await loadVGMScripts();
+
+    // Initialize audio context
+    this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+    this.initialized = true;
+  }
+
+  /**
+   * Resume audio context (call this on user interaction)
+   */
+  resumeAudio(): void {
+    if (this.audioCtx?.state === 'suspended') {
+      this.audioCtx.resume();
+    }
   }
 
   /**
@@ -228,6 +253,10 @@ export class VGMPlayer {
    * Play the loaded VGM file
    */
   async playMusic(): Promise<void> {
+    if (!this.initialized || !this.audioCtx) {
+      throw new Error('VGM player not initialized. Call initialize() first.');
+    }
+
     if (!this.currentVgm || !this.currentVgmData) {
       throw new Error('No VGM file loaded');
     }
