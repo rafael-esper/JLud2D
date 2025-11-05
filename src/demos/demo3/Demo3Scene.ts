@@ -6,10 +6,11 @@
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { DemoUI } from '../../utils/DemoUI';
-import { VGMPlayer, VGMPlayerOptions, VGMInfo } from '../../core/vgm';
+import { MainEngine } from '../../core/MainEngine';
 
 interface VGMFile {
   name: string;
+  key: string;
   supported: boolean;
   chip: string;
   description?: string;
@@ -20,24 +21,20 @@ export class Demo3Scene extends Phaser.Scene {
   private inputManager: InputManager;
   private demoUI: DemoUI;
 
-  // VGM Player
-  private vgmPlayer: VGMPlayer | null = null;
-
   // State
   private selectedFile: number = 0;
   private isPlaying: boolean = false;
-  private currentVGMInfo: VGMInfo | null = null;
 
   // VGM files configuration
   private files: VGMFile[] = [
-    { name: 'tune.vgm', supported: false, chip: '', description: '' },
-    { name: 'battle.vgm', supported: false, chip: '', description: '' },
-    { name: 'mota.vgz', supported: false, chip: '', description: '' },
-    { name: 'emerald.vgm', supported: false, chip: '', description: '' },
-    { name: 'swim.vgm', supported: false, chip: '', description: '' },
-    { name: 'swim.vgz', supported: false, chip: '', description: '' },
-    { name: 'palma.vgz', supported: false, chip: '', description: '' },
-    { name: 'town.vgz', supported: false, chip: '', description: '' }
+    { name: 'tune.vgm', key: 'tune', supported: false, chip: '', description: '' },
+    { name: 'battle.vgm', key: 'battle', supported: false, chip: '', description: '' },
+    { name: 'mota.vgz', key: 'mota', supported: false, chip: '', description: '' },
+    { name: 'emerald.vgm', key: 'emerald', supported: false, chip: '', description: '' },
+    { name: 'swim.vgm', key: 'swim1', supported: false, chip: '', description: '' },
+    { name: 'swim.vgz', key: 'swim2', supported: false, chip: '', description: '' },
+    { name: 'palma.vgz', key: 'palma', supported: false, chip: '', description: '' },
+    { name: 'town.vgz', key: 'town', supported: false, chip: '', description: '' }
   ];
 
   // UI elements
@@ -58,9 +55,6 @@ export class Demo3Scene extends Phaser.Scene {
   }
 
   async create() {
-    // Initialize VGM player
-    await this.initializeVGM();
-
     // Initialize controls
     this.inputManager = new InputManager(this, new ControlsConfig());
     this.demoUI = new DemoUI(this);
@@ -74,31 +68,13 @@ export class Demo3Scene extends Phaser.Scene {
     // Set up controls
     this.setupControls();
 
+    // Set up audio context resume on user interaction
+    this.input.on('pointerdown', () => MainEngine.resumeVGMAudio());
+    this.input.keyboard?.on('keydown', () => MainEngine.resumeVGMAudio());
+
     console.log('Demo 3 Scene - VGM Player initialized');
   }
 
-  private async initializeVGM() {
-    try {
-      const options: VGMPlayerOptions = {
-        sampleRate: 44100,
-        enableLooping: true
-      };
-
-      this.vgmPlayer = new VGMPlayer(options);
-      await this.vgmPlayer.initialize();
-
-      // Resume audio context on user interaction
-      const resumeAudio = () => {
-        this.vgmPlayer?.resumeAudio();
-      };
-
-      this.input.on('pointerdown', resumeAudio);
-      this.input.keyboard?.on('keydown', resumeAudio);
-
-    } catch (error) {
-      console.error('Failed to initialize VGM player:', error);
-    }
-  }
 
   private async loadVGMFileList() {
     this.statusText.setText('Loading VGM files...');
@@ -108,12 +84,10 @@ export class Demo3Scene extends Phaser.Scene {
       const y = 95 + (i * 20);
 
       try {
-        // Try to load and analyze each VGM file
-        const response = await fetch(`src/demos/demo3/${file.name}`);
-        if (response.ok) {
-          const vgmData = new Uint8Array(await response.arrayBuffer());
-          const info = await this.vgmPlayer!.loadVGM(vgmData);
+        // Try to load VGM file using MainEngine
+        const info = await MainEngine.loadVGM(file.key, `src/demos/demo3/${file.name}`);
 
+        if (info) {
           file.supported = true;
           file.chip = info.chips.join(', ');
           file.description = `${info.duration} - ${info.chips.length} chip(s)`;
@@ -266,7 +240,7 @@ export class Demo3Scene extends Phaser.Scene {
   async playMusic(): Promise<void> {
     const file = this.files[this.selectedFile];
 
-    if (!file.supported || !this.vgmPlayer) {
+    if (!file.supported) {
       this.statusText.setText('Cannot play this file');
       return;
     }
@@ -274,16 +248,16 @@ export class Demo3Scene extends Phaser.Scene {
     try {
       this.statusText.setText(`Loading ${file.name}...`);
 
-      // Load VGM file
-      const response = await fetch(`src/demos/demo3/${file.name}`);
-      const vgmData = new Uint8Array(await response.arrayBuffer());
+      // Play using MainEngine
+      const success = await MainEngine.playmusic(file.key);
 
-      // Load and play
-      this.currentVGMInfo = await this.vgmPlayer.loadVGM(vgmData);
-      await this.vgmPlayer.playMusic();
-
-      this.isPlaying = true;
-      this.statusText.setText(`Playing: ${file.name}`);
+      if (success) {
+        this.isPlaying = true;
+        this.statusText.setText(`Playing: ${file.name}`);
+      } else {
+        this.statusText.setText('Playback failed');
+        this.isPlaying = false;
+      }
       this.updateButtonStates();
 
     } catch (error) {
@@ -298,9 +272,7 @@ export class Demo3Scene extends Phaser.Scene {
    * Public API: Stop music
    */
   stopMusic(): void {
-    if (this.vgmPlayer) {
-      this.vgmPlayer.stopMusic();
-    }
+    MainEngine.stopmusic();
 
     this.isPlaying = false;
     this.statusText.setText('Stopped');
@@ -309,7 +281,7 @@ export class Demo3Scene extends Phaser.Scene {
 
   update() {
     // Don't update until scene is fully initialized
-    if (!this.inputManager || !this.vgmPlayer) {
+    if (!this.inputManager) {
       return;
     }
 
@@ -348,7 +320,7 @@ export class Demo3Scene extends Phaser.Scene {
     }
 
     // Update playing status
-    if (this.isPlaying && this.vgmPlayer && !this.vgmPlayer.isPlaying()) {
+    if (this.isPlaying && !MainEngine.isVGMPlaying()) {
       // Music finished naturally
       this.isPlaying = false;
       this.statusText.setText('Finished');

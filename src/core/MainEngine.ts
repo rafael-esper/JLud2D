@@ -5,6 +5,7 @@
  */
 
 import { Entity, EntityDirection } from '../domain/Entity';
+import { VGMPlayerAPI } from './vgm/VGMPlayerAPI';
 
 export class MainEngine {
   // Entity system
@@ -37,6 +38,7 @@ export class MainEngine {
 
   // System path for resource loading (like Java systemclass)
   protected static systemPath: string = '';
+
 
   /**
    * Set system path for resource loading (like Java setSystemPath)
@@ -785,5 +787,47 @@ export class MainEngine {
    */
   public static getCameraSpeed(): number {
     return MainEngine.cameraSpeed;
+  }
+
+  // ============================================================================
+  // VGM AUDIO SYSTEM (delegated to VGMPlayerAPI)
+  // ============================================================================
+
+  /**
+   * Load VGM asset (similar to this.load.audio pattern)
+   * @param key Asset key for later playback
+   * @param filePath Path to VGM file
+   */
+  public static async loadVGM(key: string, filePath: string): Promise<any> {
+    return await VGMPlayerAPI.loadVGM(key, filePath);
+  }
+
+  /**
+   * Play VGM music by key (MainEngine.playmusic pattern)
+   * @param key Asset key of the VGM to play
+   */
+  public static async playmusic(key: string): Promise<boolean> {
+    return await VGMPlayerAPI.playMusic(key);
+  }
+
+  /**
+   * Stop VGM music playback
+   */
+  public static stopmusic(): void {
+    VGMPlayerAPI.stopMusic();
+  }
+
+  /**
+   * Check if VGM music is currently playing
+   */
+  public static isVGMPlaying(): boolean {
+    return VGMPlayerAPI.isPlaying();
+  }
+
+  /**
+   * Resume VGM audio context (call on user interaction)
+   */
+  public static resumeVGMAudio(): void {
+    VGMPlayerAPI.resumeAudio();
   }
 }
