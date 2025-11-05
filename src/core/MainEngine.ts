@@ -806,8 +806,8 @@ export class MainEngine {
    * Play VGM music by key (MainEngine.playmusic pattern)
    * @param key Asset key of the VGM to play
    */
-  public static async playmusic(key: string): Promise<boolean> {
-    return await VGMPlayerAPI.playMusic(key);
+  public static playmusic(key: string): boolean {
+    return VGMPlayerAPI.playMusic(key);
   }
 
   /**

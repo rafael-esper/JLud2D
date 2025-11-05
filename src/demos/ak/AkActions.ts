@@ -218,8 +218,11 @@ export class AkActions {
 
         // Only change to swim if not already swimming or in star mode
         if (movement.getCondition() !== Condition.SWIM && movement.getCondition() !== Condition.STAR) {
-          movement.setNormalCondition(Condition.SWIM);
+          movement.setCondition(Condition.SWIM);
           movement.setState(Status.STOPPED);
+
+          // Change music to swim music
+          MainEngine.playmusic('swim');
 
           // Play water sound and animate player going into water
           scene.sound.play('snd_water');

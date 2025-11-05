@@ -136,6 +136,11 @@ export class AkScene extends Phaser.Scene {
     // Initialize sprite system
     AkSprites.init(this);
 
+    // Load VGM music files
+    await MainEngine.loadVGM('field', 'src/demos/ak/res/music/field.vgz');
+    await MainEngine.loadVGM('swim', 'src/demos/ak/res/music/swim.vgz');
+    await MainEngine.loadVGM('moto', 'src/demos/ak/res/music/moto.vgz');
+
     // Initialize movement system
     this.movement = new AkMovement(this.tiledMap, this.inputManager);
 
@@ -211,6 +216,7 @@ export class AkScene extends Phaser.Scene {
 
     // Back to menu
     if (this.inputManager.justPressed('b4')) {
+      MainEngine.stopmusic();
       MainEngine.cleanup();
       this.scene.start('MenuScene', { config: this.config });
     }
@@ -277,4 +283,9 @@ export class AkScene extends Phaser.Scene {
     }
   }
 
+  destroy() {
+    // Stop music when scene is destroyed
+    MainEngine.stopmusic();
+    super.destroy();
+  }
 }

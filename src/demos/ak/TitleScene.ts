@@ -27,9 +27,6 @@ export class TitleScene extends Phaser.Scene {
   preload() {
     // Load title screen image
     this.load.image('title', 'src/demos/ak/res/image/Title.PNG');
-
-    // TODO: Load intro music
-    // this.load.audio('music_intro', 'src/demos/ak/res/music/Intro.mp3');
   }
 
   async init(data: { demoPath: string }) {
@@ -51,8 +48,9 @@ export class TitleScene extends Phaser.Scene {
     this.graphics = this.add.graphics();
     this.graphics.setDepth(1000); // High depth to render on top
 
-    // TODO: Play intro music
-    // this.sound.play('music_intro', { loop: true });
+    // Load and play intro music
+    await MainEngine.loadVGM('intro', 'src/demos/ak/res/music/intro.vgz');
+    MainEngine.playmusic('intro');
 
     console.log('TitleScene: Title screen initialized');
   }
@@ -108,8 +106,8 @@ export class TitleScene extends Phaser.Scene {
   private startGame(): void {
     console.log('TitleScene: Starting game...');
 
-    // TODO: Stop intro music
-    // this.sound.stopByKey('music_intro');
+    // Stop intro music
+    MainEngine.stopmusic();
 
     // Start with MapScene to show the first level
     this.scene.start('MapScene', {
@@ -123,5 +121,11 @@ export class TitleScene extends Phaser.Scene {
     // In a browser environment, we can't truly "exit", but we can go back to menu
     // TODO: Implement proper exit or return to main menu
     window.close(); // This may not work in all browsers due to security restrictions
+  }
+
+  destroy() {
+    // Stop music when scene is destroyed
+    MainEngine.stopmusic();
+    super.destroy();
   }
 }

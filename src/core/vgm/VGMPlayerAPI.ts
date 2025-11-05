@@ -72,9 +72,16 @@ export class VGMPlayerAPI {
    * Play VGM music by key
    * @param key Asset key of the VGM to play
    */
-  public static async playMusic(key: string): Promise<boolean> {
-    if (!VGMPlayerAPI.initialized || !VGMPlayerAPI.vgmPlayer) {
-      console.error('VGMPlayerAPI: Not initialized');
+  public static playMusic(key: string): boolean {
+    if (!VGMPlayerAPI.initialized) {
+      VGMPlayerAPI.initialize().then(() => {
+        VGMPlayerAPI.playMusic(key);
+      }).catch(console.error);
+      return false;
+    }
+
+    if (!VGMPlayerAPI.vgmPlayer) {
+      console.error('VGMPlayerAPI: Failed to initialize player');
       return false;
     }
 
@@ -85,13 +92,15 @@ export class VGMPlayerAPI {
     }
 
     try {
-      // Load the VGM data into the player
-      await VGMPlayerAPI.vgmPlayer.loadVGM(vgmData);
+      // Load the VGM data into the player and start playback (non-blocking)
+      VGMPlayerAPI.vgmPlayer.loadVGM(vgmData).then(() => {
+        return VGMPlayerAPI.vgmPlayer!.playMusic();
+      }).then(() => {
+        console.log(`VGMPlayerAPI: Playing '${key}'`);
+      }).catch((error) => {
+        console.error(`VGMPlayerAPI: Failed to play '${key}':`, error);
+      });
 
-      // Start playback
-      await VGMPlayerAPI.vgmPlayer.playMusic();
-
-      console.log(`VGMPlayerAPI: Playing '${key}'`);
       return true;
     } catch (error) {
       console.error(`VGMPlayerAPI: Failed to play '${key}':`, error);
