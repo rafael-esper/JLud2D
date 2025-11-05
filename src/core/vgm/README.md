@@ -14,7 +14,10 @@ A TypeScript VGM (Video Game Music) player supporting multiple sound chips with 
 ## Usage
 
 ```typescript
-import { VGMPlayer, VGMPlayerOptions } from '../../core/vgm';
+import { VGMPlayer, VGMPlayerOptions, loadVGMScripts } from '../../core/vgm';
+
+// Load VGM dependencies first
+await loadVGMScripts();
 
 // Initialize
 const audioCtx = new AudioContext();
@@ -46,6 +49,7 @@ const isPlaying = player.isPlaying();
 - `new VGMPlayer(audioContext: AudioContext, options?: VGMPlayerOptions)`
 
 #### Methods
+- `loadVGMScripts(): Promise<void>` - Load required JavaScript dependencies
 - `loadVGM(data: Uint8Array): Promise<VGMInfo>` - Load VGM file
 - `playMusic(): Promise<void>` - Start playback
 - `stopMusic(): void` - Stop playback
@@ -125,21 +129,22 @@ interface VGMInfo {
 
 ## HTML Setup
 
-Add these script tags to your HTML file **before** your main TypeScript module:
+No manual script loading required! The VGM module automatically loads its dependencies using the `loadVGMScripts()` function.
 
-```html
-<!-- VGM Core Libraries -->
-<script src="src/core/vgm/pako.js"></script>
-<script src="src/core/vgm/vgm.js"></script>
-<script src="src/core/vgm/vgm_reader.js"></script>
-<script src="src/core/vgm/ay8910.js"></script>
-<script src="src/core/vgm/ym2612.js"></script>
-<script src="src/core/vgm/ym2413.js"></script>
-<script src="src/core/vgm/sn76489.js"></script>
-<script src="src/core/vgm/c6280.js"></script>
-
-<!-- Your game scripts -->
-<script type="module" src="src/main.ts"></script>
+Simply ensure your VGM JavaScript files are in the correct location:
+```
+src/core/vgm/
+├── pako.js
+├── vgm.js
+├── vgm_reader.js
+├── ay8910.js
+├── ym2612.js
+├── ym2413.js
+├── sn76489.js
+├── c6280.js
+├── VGMPlayer.ts
+├── index.ts
+└── README.md
 ```
 
-**Note**: The JavaScript files must be loaded as regular scripts (not modules) because they contain global class definitions that the TypeScript code expects to find.
+The module will automatically load these files when `loadVGMScripts()` is called.

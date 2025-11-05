@@ -6,7 +6,7 @@
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { DemoUI } from '../../utils/DemoUI';
-import { VGMPlayer, VGMPlayerOptions, VGMInfo } from '../../core/vgm';
+import { VGMPlayer, VGMPlayerOptions, VGMInfo, loadVGMScripts } from '../../core/vgm';
 
 interface VGMFile {
   name: string;
@@ -58,9 +58,9 @@ export class Demo3Scene extends Phaser.Scene {
     this.config = data.config || new GameConfig();
   }
 
-  create() {
+  async create() {
     // Initialize audio context
-    this.initializeAudio();
+    await this.initializeAudio();
 
     // Initialize controls
     this.inputManager = new InputManager(this, new ControlsConfig());
@@ -70,7 +70,7 @@ export class Demo3Scene extends Phaser.Scene {
     this.createUI();
 
     // Load VGM file information
-    this.loadVGMFileList();
+    await this.loadVGMFileList();
 
     // Set up controls
     this.setupControls();
@@ -78,8 +78,11 @@ export class Demo3Scene extends Phaser.Scene {
     console.log('Demo 3 Scene - VGM Player initialized');
   }
 
-  private initializeAudio() {
+  private async initializeAudio() {
     try {
+      // Load VGM scripts first
+      await loadVGMScripts();
+
       this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
 
       const options: VGMPlayerOptions = {
@@ -135,15 +138,26 @@ export class Demo3Scene extends Phaser.Scene {
       const color = file.supported ? '#00ff00' : '#ff0000';
       const prefix = i === this.selectedFile ? '► ' : '  ';
       const text = this.add.text(50, y, `${prefix}${file.name}`, {
-        fontSize: '14px',
+        fontSize: '12px',
         color: color,
         fontFamily: 'monospace'
       });
 
       this.fileListTexts.push(text);
+
+      // Create chip status text on the right
+      const statusText = this.add.text(this.cameras.main.width - 50, y, file.supported ? file.chip : 'Not supported', {
+        fontSize: '10px',
+        fontFamily: 'monospace',
+        color: file.supported ? '#00ff00' : '#ff6666'
+      });
+      statusText.setOrigin(1, 0);
+
+      this.fileStatusTexts.push(statusText);
     }
 
     this.updateFileList();
+    this.updateButtonStates();
     this.statusText.setText('Ready - Select a file and press SPACE to play');
   }
 
@@ -214,6 +228,39 @@ export class Demo3Scene extends Phaser.Scene {
       text.setText(`${prefix}${file.name}`);
       text.setColor(index === this.selectedFile ? selectedColor : color);
     });
+
+    // Update button states when selection changes
+    this.updateButtonStates();
+  }
+
+  private updateButtonStates() {
+    if (!this.playButton || !this.stopButton) return;
+
+    const selectedFile = this.files[this.selectedFile];
+
+    // Play button: enabled if file is supported and not playing
+    if (selectedFile.supported && !this.isPlaying) {
+      this.playButton.setStyle({ backgroundColor: '#006600' });
+      this.playButton.setAlpha(1);
+      this.playButton.setInteractive();
+    } else {
+      this.playButton.setStyle({ backgroundColor: '#333333' });
+      this.playButton.setAlpha(0.5);
+      if (this.isPlaying) {
+        this.playButton.disableInteractive();
+      }
+    }
+
+    // Stop button: enabled only when playing
+    if (this.isPlaying) {
+      this.stopButton.setStyle({ backgroundColor: '#660000' });
+      this.stopButton.setAlpha(1);
+      this.stopButton.setInteractive();
+    } else {
+      this.stopButton.setStyle({ backgroundColor: '#333333' });
+      this.stopButton.setAlpha(0.5);
+      this.stopButton.disableInteractive();
+    }
   }
 
   private setupControls() {
@@ -244,11 +291,13 @@ export class Demo3Scene extends Phaser.Scene {
 
       this.isPlaying = true;
       this.statusText.setText(`Playing: ${file.name}`);
+      this.updateButtonStates();
 
     } catch (error) {
       console.error('Playback failed:', error);
       this.statusText.setText('Playback failed');
       this.isPlaying = false;
+      this.updateButtonStates();
     }
   }
 
@@ -262,9 +311,15 @@ export class Demo3Scene extends Phaser.Scene {
 
     this.isPlaying = false;
     this.statusText.setText('Stopped');
+    this.updateButtonStates();
   }
 
   update() {
+    // Don't update until scene is fully initialized
+    if (!this.inputManager || !this.vgmPlayer) {
+      return;
+    }
+
     // Update input manager
     this.inputManager.updateControls();
 
@@ -304,6 +359,7 @@ export class Demo3Scene extends Phaser.Scene {
       // Music finished naturally
       this.isPlaying = false;
       this.statusText.setText('Finished');
+      this.updateButtonStates();
     }
   }
 
