@@ -314,7 +314,7 @@ export class Demo3Scene extends Phaser.Scene {
     }
 
     // ESC - Back to main menu
-    if (this.inputManager.justPressed('b4')) {
+    if (this.inputManager.justPressed('menu')) {
       this.stopMusic();
       this.scene.start('MenuScene', { config: this.config });
     }

@@ -5,23 +5,28 @@
  */
 
 export interface IControlsConfig {
-  // Movement keys
+  // Movement keys (directional arrows + WASD)
   keyUp: string;
   keyDown: string;
   keyLeft: string;
   keyRight: string;
 
-  // Action keys
-  keyAction1: string;  // B1 in Java (primary action)
-  keyAction2: string;  // B2 in Java (secondary action)
-  keyAction3: string;  // B3 in Java (tertiary action)
-  keyAction4: string;  // B4 in Java (menu/cancel)
+  // Action buttons (up to 6 buttons)
+  keyB1: string;  // Primary action button
+  keyB2: string;  // Secondary action button
+  keyB3: string;  // Tertiary action button
+  keyB4: string;  // Fourth action button
+  keyB5: string;  // Fifth action button
+  keyB6: string;  // Sixth action button
 
   // System keys
-  keyMenu: string;
-  keyPause: string;
+  keyStart: string;    // Start button
+  keyMenu: string;     // Menu/Pause button
   keyFullscreen: string;
   keyScreenshot: string;
+
+  // Demo settings
+  maxButtons: number;  // How many buttons this demo uses (default 2)
 
   // Gamepad settings
   gamepadDeadzone: number;
@@ -33,23 +38,28 @@ export interface IControlsConfig {
 }
 
 export class ControlsConfig implements IControlsConfig {
-  // Movement keys (WASD + Arrow keys)
+  // Movement keys (Arrow keys + WASD)
   public keyUp: string = 'UP,W';
   public keyDown: string = 'DOWN,S';
   public keyLeft: string = 'LEFT,A';
   public keyRight: string = 'RIGHT,D';
 
-  // Action keys
-  public keyAction1: string = 'SPACE,Z,ENTER';
-  public keyAction2: string = 'X,SHIFT';
-  public keyAction3: string = 'C,CTRL';
-  public keyAction4: string = 'ESC,ALT';
+  // Action buttons (default joystick mapping)
+  public keyB1: string = 'J,Z';      // Primary action
+  public keyB2: string = 'K,X';      // Secondary action
+  public keyB3: string = 'L,C';      // Tertiary action
+  public keyB4: string = 'I';        // Fourth action
+  public keyB5: string = 'U';        // Fifth action
+  public keyB6: string = 'O';        // Sixth action
 
   // System keys
-  public keyMenu: string = 'ESC,M';
-  public keyPause: string = 'P,PAUSE';
-  public keyFullscreen: string = 'F11,F';
-  public keyScreenshot: string = 'F12,PRINT_SCREEN';
+  public keyStart: string = 'ENTER';     // Start button
+  public keyMenu: string = 'ESC';        // Menu/Pause button
+  public keyFullscreen: string = 'F11';
+  public keyScreenshot: string = 'F12';
+
+  // Demo settings
+  public maxButtons: number = 2;         // Default: use 2 buttons
 
   // Gamepad settings
   public gamepadDeadzone: number = 0.2;
@@ -89,10 +99,22 @@ export class ControlsConfig implements IControlsConfig {
    */
   public getActionKeys() {
     return {
-      action1: this.parseKeys(this.keyAction1),
-      action2: this.parseKeys(this.keyAction2),
-      action3: this.parseKeys(this.keyAction3),
-      action4: this.parseKeys(this.keyAction4)
+      b1: this.parseKeys(this.keyB1),
+      b2: this.parseKeys(this.keyB2),
+      b3: this.parseKeys(this.keyB3),
+      b4: this.parseKeys(this.keyB4),
+      b5: this.parseKeys(this.keyB5),
+      b6: this.parseKeys(this.keyB6)
+    };
+  }
+
+  /**
+   * Get system keys as arrays
+   */
+  public getSystemKeys() {
+    return {
+      start: this.parseKeys(this.keyStart),
+      menu: this.parseKeys(this.keyMenu)
     };
   }
 
@@ -119,10 +141,14 @@ export class InputManager {
   public down: boolean = false;
   public left: boolean = false;
   public right: boolean = false;
-  public b1: boolean = false;  // action1
-  public b2: boolean = false;  // action2
-  public b3: boolean = false;  // action3
-  public b4: boolean = false;  // action4
+  public b1: boolean = false;  // Primary action button
+  public b2: boolean = false;  // Secondary action button
+  public b3: boolean = false;  // Tertiary action button
+  public b4: boolean = false;  // Fourth action button
+  public b5: boolean = false;  // Fifth action button
+  public b6: boolean = false;  // Sixth action button
+  public start: boolean = false;  // Start button
+  public menu: boolean = false;   // Menu/Pause button
 
   // Number keys
   public key1: boolean = false;
@@ -155,6 +181,10 @@ export class InputManager {
   private prevB2: boolean = false;
   private prevB3: boolean = false;
   private prevB4: boolean = false;
+  private prevB5: boolean = false;
+  private prevB6: boolean = false;
+  private prevStart: boolean = false;
+  private prevMenu: boolean = false;
 
   // Previous frame states for debug keys
   private prevKey1: boolean = false;
@@ -189,8 +219,8 @@ export class InputManager {
     // Create cursor keys
     this.cursors = this.scene.input.keyboard.createCursorKeys();
 
-    // Create keyboard keys
-    this.wasd = this.scene.input.keyboard.addKeys('W,S,A,D,SPACE,ESC,ENTER,SHIFT,CTRL,Z,X,C,ONE,TWO,THREE,FOUR,FIVE,O,F,H,I,J,K,L,M,N,P,T,B,V');
+    // Create keyboard keys (all possible keys for mapping)
+    this.wasd = this.scene.input.keyboard.addKeys('W,S,A,D,ESC,ENTER,Z,X,C,I,J,K,L,U,O,ONE,TWO,THREE,FOUR,FIVE,F,H,M,N,P,T,B,V');
   }
 
   private setupGamepad(): void {
@@ -221,6 +251,10 @@ export class InputManager {
     this.prevB2 = this.b2;
     this.prevB3 = this.b3;
     this.prevB4 = this.b4;
+    this.prevB5 = this.b5;
+    this.prevB6 = this.b6;
+    this.prevStart = this.start;
+    this.prevMenu = this.menu;
 
     // Store previous states for debug keys
     this.prevKey1 = this.key1;
@@ -252,39 +286,64 @@ export class InputManager {
   private updateKeyboard(): void {
     if (!this.cursors || !this.wasd) return;
 
-    // Movement
-    this.up = this.cursors.up.isDown || this.wasd.W.isDown;
-    this.down = this.cursors.down.isDown || this.wasd.S.isDown;
-    this.left = this.cursors.left.isDown || this.wasd.A.isDown;
-    this.right = this.cursors.right.isDown || this.wasd.D.isDown;
+    // Movement - use configured key mappings
+    const movementKeys = this.config.getMovementKeys();
+    this.up = this.isAnyKeyDown(movementKeys.up);
+    this.down = this.isAnyKeyDown(movementKeys.down);
+    this.left = this.isAnyKeyDown(movementKeys.left);
+    this.right = this.isAnyKeyDown(movementKeys.right);
 
-    // Actions
-    this.b1 = this.wasd.SPACE.isDown || this.wasd.ENTER.isDown || this.wasd.Z.isDown;
-    this.b2 = this.wasd.SHIFT.isDown || this.wasd.X.isDown;
-    this.b3 = this.wasd.CTRL.isDown || this.wasd.C.isDown;
-    this.b4 = this.wasd.ESC.isDown;
+    // Action buttons - use configured key mappings
+    const actionKeys = this.config.getActionKeys();
+    this.b1 = this.isAnyKeyDown(actionKeys.b1);
+    this.b2 = this.isAnyKeyDown(actionKeys.b2);
+    this.b3 = this.isAnyKeyDown(actionKeys.b3);
+    this.b4 = this.isAnyKeyDown(actionKeys.b4);
+    this.b5 = this.isAnyKeyDown(actionKeys.b5);
+    this.b6 = this.isAnyKeyDown(actionKeys.b6);
 
-    // Number keys
-    this.key1 = this.wasd.ONE.isDown;
-    this.key2 = this.wasd.TWO.isDown;
-    this.key3 = this.wasd.THREE.isDown;
-    this.key4 = this.wasd.FOUR.isDown;
-    this.key5 = this.wasd.FIVE.isDown;
+    // System buttons - use configured key mappings
+    const systemKeys = this.config.getSystemKeys();
+    this.start = this.isAnyKeyDown(systemKeys.start);
+    this.menu = this.isAnyKeyDown(systemKeys.menu);
 
-    // Letter keys
-    this.keyO = this.wasd.O.isDown;
-    this.keyB = this.wasd.B.isDown;
-    this.keyF = this.wasd.F.isDown;
-    this.keyH = this.wasd.H.isDown;
-    this.keyI = this.wasd.I.isDown;
-    this.keyJ = this.wasd.J.isDown;
-    this.keyK = this.wasd.K.isDown;
-    this.keyL = this.wasd.L.isDown;
-    this.keyM = this.wasd.M.isDown;
-    this.keyN = this.wasd.N.isDown;
-    this.keyP = this.wasd.P.isDown;
-    this.keyT = this.wasd.T.isDown;
-    this.keyV = this.wasd.V.isDown;
+    // Debug/letter keys (keep hardcoded for compatibility)
+    this.key1 = this.wasd.ONE?.isDown || false;
+    this.key2 = this.wasd.TWO?.isDown || false;
+    this.key3 = this.wasd.THREE?.isDown || false;
+    this.key4 = this.wasd.FOUR?.isDown || false;
+    this.key5 = this.wasd.FIVE?.isDown || false;
+
+    this.keyO = this.wasd.O?.isDown || false;
+    this.keyB = this.wasd.B?.isDown || false;
+    this.keyF = this.wasd.F?.isDown || false;
+    this.keyH = this.wasd.H?.isDown || false;
+    this.keyI = this.wasd.I?.isDown || false;
+    this.keyJ = this.wasd.J?.isDown || false;
+    this.keyK = this.wasd.K?.isDown || false;
+    this.keyL = this.wasd.L?.isDown || false;
+    this.keyM = this.wasd.M?.isDown || false;
+    this.keyN = this.wasd.N?.isDown || false;
+    this.keyP = this.wasd.P?.isDown || false;
+    this.keyT = this.wasd.T?.isDown || false;
+    this.keyV = this.wasd.V?.isDown || false;
+  }
+
+  /**
+   * Check if any key in the array is currently pressed
+   */
+  private isAnyKeyDown(keys: string[]): boolean {
+    for (const key of keys) {
+      if (key === 'UP' && this.cursors?.up.isDown) return true;
+      if (key === 'DOWN' && this.cursors?.down.isDown) return true;
+      if (key === 'LEFT' && this.cursors?.left.isDown) return true;
+      if (key === 'RIGHT' && this.cursors?.right.isDown) return true;
+
+      // Check WASD keys
+      const wasdKey = this.wasd?.[key];
+      if (wasdKey?.isDown) return true;
+    }
+    return false;
   }
 
   private updateGamepad(): void {
@@ -305,17 +364,23 @@ export class InputManager {
     this.left = this.left || this.gamepad.left;
     this.right = this.right || this.gamepad.right;
 
-    // Action buttons
-    this.b1 = this.b1 || this.gamepad.A;
-    this.b2 = this.b2 || this.gamepad.B;
-    this.b3 = this.b3 || this.gamepad.X;
-    this.b4 = this.b4 || this.gamepad.Y;
+    // Action buttons (map to 6 buttons)
+    this.b1 = this.b1 || this.gamepad.A;      // Primary
+    this.b2 = this.b2 || this.gamepad.B;      // Secondary
+    this.b3 = this.b3 || this.gamepad.X;      // Tertiary
+    this.b4 = this.b4 || this.gamepad.Y;      // Fourth
+    this.b5 = this.b5 || this.gamepad.L1;     // Fifth (left shoulder)
+    this.b6 = this.b6 || this.gamepad.R1;     // Sixth (right shoulder)
+
+    // System buttons
+    this.start = this.start || this.gamepad.start || this.gamepad.menu;
+    this.menu = this.menu || this.gamepad.select || this.gamepad.back;
   }
 
   /**
    * Check if key was just pressed this frame
    */
-  public justPressed(key: 'up' | 'down' | 'left' | 'right' | 'b1' | 'b2' | 'b3' | 'b4' | '1' | '2' | '3' | '4' | '5' | 'O' | 'B' | 'F' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'P' | 'T' | 'V'): boolean {
+  public justPressed(key: 'up' | 'down' | 'left' | 'right' | 'b1' | 'b2' | 'b3' | 'b4' | 'b5' | 'b6' | 'start' | 'menu' | '1' | '2' | '3' | '4' | '5' | 'O' | 'B' | 'F' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'P' | 'T' | 'V'): boolean {
     switch (key) {
       case 'up': return this.up && !this.prevUp;
       case 'down': return this.down && !this.prevDown;
@@ -325,6 +390,10 @@ export class InputManager {
       case 'b2': return this.b2 && !this.prevB2;
       case 'b3': return this.b3 && !this.prevB3;
       case 'b4': return this.b4 && !this.prevB4;
+      case 'b5': return this.b5 && !this.prevB5;
+      case 'b6': return this.b6 && !this.prevB6;
+      case 'start': return this.start && !this.prevStart;
+      case 'menu': return this.menu && !this.prevMenu;
       case '1': return this.key1 && !this.prevKey1;
       case '2': return this.key2 && !this.prevKey2;
       case '3': return this.key3 && !this.prevKey3;
@@ -350,7 +419,7 @@ export class InputManager {
   /**
    * Check if key was just released this frame
    */
-  public justReleased(key: 'up' | 'down' | 'left' | 'right' | 'b1' | 'b2' | 'b3' | 'b4'): boolean {
+  public justReleased(key: 'up' | 'down' | 'left' | 'right' | 'b1' | 'b2' | 'b3' | 'b4' | 'b5' | 'b6' | 'start' | 'menu'): boolean {
     switch (key) {
       case 'up': return !this.up && this.prevUp;
       case 'down': return !this.down && this.prevDown;
@@ -360,6 +429,10 @@ export class InputManager {
       case 'b2': return !this.b2 && this.prevB2;
       case 'b3': return !this.b3 && this.prevB3;
       case 'b4': return !this.b4 && this.prevB4;
+      case 'b5': return !this.b5 && this.prevB5;
+      case 'b6': return !this.b6 && this.prevB6;
+      case 'start': return !this.start && this.prevStart;
+      case 'menu': return !this.menu && this.prevMenu;
       default: return false;
     }
   }
@@ -369,7 +442,8 @@ export class InputManager {
    */
   public clearInputs(): void {
     this.up = this.down = this.left = this.right = false;
-    this.b1 = this.b2 = this.b3 = this.b4 = false;
+    this.b1 = this.b2 = this.b3 = this.b4 = this.b5 = this.b6 = false;
+    this.start = this.menu = false;
   }
 
   /**
@@ -389,17 +463,29 @@ export class InputManager {
       case 4: // right
         this.right = false;
         break;
-      case 5: // b1/action1
+      case 5: // b1
         this.b1 = false;
         break;
-      case 6: // b2/action2
+      case 6: // b2
         this.b2 = false;
         break;
-      case 7: // b3/action3
+      case 7: // b3
         this.b3 = false;
         break;
-      case 8: // b4/action4
+      case 8: // b4
         this.b4 = false;
+        break;
+      case 9: // b5
+        this.b5 = false;
+        break;
+      case 10: // b6
+        this.b6 = false;
+        break;
+      case 11: // start
+        this.start = false;
+        break;
+      case 12: // menu
+        this.menu = false;
         break;
     }
   }

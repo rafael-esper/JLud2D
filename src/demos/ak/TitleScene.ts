@@ -94,7 +94,7 @@ export class TitleScene extends Phaser.Scene {
     }
 
     // Handle input
-    if (this.inputManager.justPressed('b1')) {
+    if (this.inputManager.justPressed('b1') || this.inputManager.justPressed('start')) {
       this.startGame();
     }
 

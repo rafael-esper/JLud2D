@@ -47,14 +47,6 @@ export class MenuScene extends Phaser.Scene {
     // Menu items
     this.createMenu();
 
-    // Instructions
-    const instructions = this.add.text(width / 2, height - 60, 'Use ARROW KEYS or WASD to navigate\nPRESS SPACE or ENTER to select\nESC for fullscreen toggle', {
-      fontSize: '12px',
-      fontFamily: 'monospace',
-      color: '#888888',
-      align: 'center'
-    });
-    instructions.setOrigin(0.5);
 
     // Configuration info
     const configInfo = this.add.text(10, height - 40, `Resolution: ${this.config.xRes}x${this.config.yRes} | Window Mode: ${this.config.windowMode ? 'ON' : 'OFF'} | Sound: ${this.config.noSound ? 'OFF' : 'ON'}`, {
@@ -79,12 +71,12 @@ export class MenuScene extends Phaser.Scene {
     }
 
     // Handle selection
-    if (this.inputManager.justPressed('b1')) {
+    if (this.inputManager.justPressed('b1') || this.inputManager.justPressed('start')) {
       this.selectDemo();
     }
 
     // Handle fullscreen toggle
-    if (this.inputManager.justPressed('b4')) {
+    if (this.inputManager.justPressed('menu')) {
       if (this.scale.isFullscreen) {
         this.scale.stopFullscreen();
       } else {

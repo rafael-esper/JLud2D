@@ -68,7 +68,7 @@ export class Demo1Scene extends Phaser.Scene {
     MainEngine.updateEngine(this.inputManager);
 
     // Back to menu
-    if (this.inputManager.justPressed('b4')) {
+    if (this.inputManager.justPressed('menu')) {
       MainEngine.cleanup();
       this.scene.start('MenuScene', { config: this.config });
     }

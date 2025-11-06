@@ -215,7 +215,7 @@ export class AkScene extends Phaser.Scene {
     this.fpsDisplay.update();
 
     // Back to menu
-    if (this.inputManager.justPressed('b4')) {
+    if (this.inputManager.justPressed('menu')) {
       MainEngine.stopmusic();
       MainEngine.cleanup();
       this.scene.start('MenuScene', { config: this.config });

@@ -65,9 +65,7 @@ export class Demo2Scene extends Phaser.Scene {
 
     this.createUI();
     DemoUI.createTitle(this, 'Demo 2 - Golden Axe Warrior');
-    DemoUI.createInstructions(this, 'WASD/Arrows: Move | Space: Cut Tree | ESC: Back to Menu');
-
-    this.setupInputHandlers();
+    DemoUI.createInstructions(this, 'WASD/Arrows: Move | J/Z: Cut Tree | ESC: Back to Menu');
     this.setupTreeCuttingMechanic();
   }
 
@@ -92,15 +90,6 @@ export class Demo2Scene extends Phaser.Scene {
     this.mpText.setScrollFactor(0);
   }
 
-  private setupInputHandlers(): void {
-    this.input.keyboard?.on('keydown-ESC', () => {
-      this.returnToMenu();
-    });
-
-    this.input.keyboard?.on('keydown-SPACE', () => {
-      this.cutTree();
-    });
-  }
 
   private setupTreeCuttingMechanic(): void {
   }
@@ -163,6 +152,16 @@ export class Demo2Scene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     this.inputManager.updateControls();
+
+    // Handle tree cutting with b1
+    if (this.inputManager.justPressed('b1')) {
+      this.cutTree();
+    }
+
+    // Back to menu
+    if (this.inputManager.justPressed('menu')) {
+      this.returnToMenu();
+    }
 
     if (!MainEngine.isScriptActive()) {
       MainEngine.ProcessControls(this.inputManager);
