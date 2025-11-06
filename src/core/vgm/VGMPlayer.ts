@@ -285,14 +285,15 @@ export class VGMPlayer {
       bufferSamples = vgmInfo.totalSamples;
     }
 
-    // Create audio buffer
-    const channels = 1;
+    // Create stereo audio buffer
+    const channels = 2;
     this.currentSource = this.audioCtx.createBufferSource();
     const buffer = this.audioCtx.createBuffer(channels, bufferSamples, sampleRate);
-    const bufferData = buffer.getChannelData(0);
+    const leftChannelData = buffer.getChannelData(0);
+    const rightChannelData = buffer.getChannelData(1);
 
     // Generate audio
-    this.generateVGMAudio(bufferData, sampleRate, vgmInfo);
+    this.generateVGMAudio(leftChannelData, rightChannelData, sampleRate, vgmInfo);
 
     // Set up playback
     this.currentSource.buffer = buffer;
@@ -353,7 +354,7 @@ export class VGMPlayer {
     };
   }
 
-  private generateVGMAudio(buffer: Float32Array, sampleRate: number, vgmInfo: any) {
+  private generateVGMAudio(leftBuffer: Float32Array, rightBuffer: Float32Array, sampleRate: number, vgmInfo: any) {
     if (!this.currentVgmData) return;
 
     const vgmData = this.currentVgmData;
@@ -364,10 +365,10 @@ export class VGMPlayer {
 
     const chips = this.currentChips;
 
-    while (dataIndex < vgmData.length && sampleIndex < buffer.length) {
+    while (dataIndex < vgmData.length && sampleIndex < leftBuffer.length) {
       // Handle waiting
       if (waitSamples > 0) {
-        const samplesToProcess = Math.min(waitSamples, buffer.length - sampleIndex);
+        const samplesToProcess = Math.min(waitSamples, leftBuffer.length - sampleIndex);
 
         // Generate audio for current state
         const ay8910 = chips.find(c => c.type === 'AY8910');
@@ -377,38 +378,73 @@ export class VGMPlayer {
 
         // Generate samples from all active chips and mix them
         for (let i = 0; i < samplesToProcess; i++) {
-          let mixedSample = 0;
+          let leftSample = 0;
+          let rightSample = 0;
 
-          // Add SN76489 if present
+          // Add SN76489 if present - check for stereo output
           if (sn76489) {
             const chipOutput = sn76489.chip.update(1);
-            mixedSample = (mixedSample / 4) + (chipOutput[0][0] * 0.00015);
+            if (chipOutput.length >= 2 && chipOutput[1] && chipOutput[1].length > 0) {
+              // Stereo output available
+              leftSample += chipOutput[0][0] * 0.00015;
+              rightSample += chipOutput[1][0] * 0.00015;
+            } else {
+              // Mono output, duplicate to both channels
+              const monoSample = chipOutput[0][0] * 0.00015;
+              leftSample += monoSample;
+              rightSample += monoSample;
+            }
           }
 
-          // Add YM2612 if present (includes DAC drums)
+          // Add YM2612 if present (includes DAC drums) - has stereo output
           if (ym2612) {
             const chipOutput = ym2612.chip.update(1);
-            mixedSample = (mixedSample / 4) + (chipOutput[0][0] * 0.00008);
+            if (chipOutput.length >= 2) {
+              leftSample += chipOutput[0][0] * 0.00008;
+              rightSample += chipOutput[1][0] * 0.00008;
+            } else {
+              // Fallback to mono
+              const monoSample = chipOutput[0][0] * 0.00008;
+              leftSample += monoSample;
+              rightSample += monoSample;
+            }
           }
 
-          // Add YM2413 if present
+          // Add YM2413 if present - check for stereo output
           if (ym2413) {
             const chipOutput = ym2413.chip.update(1);
-            mixedSample = (mixedSample / 4) + (chipOutput[0][0] * 0.00015);
+            if (chipOutput.length >= 2 && chipOutput[1] && chipOutput[1].length > 0) {
+              // Stereo output available
+              leftSample += chipOutput[0][0] * 0.00015;
+              rightSample += chipOutput[1][0] * 0.00015;
+            } else {
+              // Mono output, duplicate to both channels
+              const monoSample = chipOutput[0][0] * 0.00015;
+              leftSample += monoSample;
+              rightSample += monoSample;
+            }
           }
 
-          // Add AY8910 if present
+          // Add AY8910 if present - mono output
           if (ay8910) {
             const tempBuffer = new Float32Array(1);
             ay8910.chip.fillBuffer(tempBuffer, 0, 1, sampleRate);
-            mixedSample = (mixedSample / 4) + tempBuffer[0];
+            const monoSample = tempBuffer[0];
+            leftSample += monoSample;
+            rightSample += monoSample;
           }
 
-          // Saturation limiting
-          if (mixedSample > 1.0) mixedSample = 1.0;
-          else if (mixedSample < -1.0) mixedSample = -1.0;
+          // Saturation limiting for left channel
+          if (leftSample > 1.0) leftSample = 1.0;
+          else if (leftSample < -1.0) leftSample = -1.0;
 
-          buffer[sampleIndex++] = mixedSample;
+          // Saturation limiting for right channel
+          if (rightSample > 1.0) rightSample = 1.0;
+          else if (rightSample < -1.0) rightSample = -1.0;
+
+          leftBuffer[sampleIndex] = leftSample;
+          rightBuffer[sampleIndex] = rightSample;
+          sampleIndex++;
         }
 
         waitSamples -= samplesToProcess;
@@ -429,8 +465,10 @@ export class VGMPlayer {
     }
 
     // Fill remainder with silence
-    while (sampleIndex < buffer.length) {
-      buffer[sampleIndex++] = 0;
+    while (sampleIndex < leftBuffer.length) {
+      leftBuffer[sampleIndex] = 0;
+      rightBuffer[sampleIndex] = 0;
+      sampleIndex++;
     }
   }
 
