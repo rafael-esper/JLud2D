@@ -27,6 +27,7 @@ export class Demo3Scene extends Phaser.Scene {
 
   // VGM files configuration
   private files: VGMFile[] = [
+    { name: 'bonus.vgz', key: 'bonus', supported: false, chip: '', description: '' },
     { name: 'title.vgz', key: 'title', supported: false, chip: '', description: '' },
     { name: 'tune.vgm', key: 'tune', supported: false, chip: '', description: '' },
     { name: 'battle.vgm', key: 'battle', supported: false, chip: '', description: '' },
@@ -82,7 +83,7 @@ export class Demo3Scene extends Phaser.Scene {
 
     for (let i = 0; i < this.files.length; i++) {
       const file = this.files[i];
-      const y = 95 + (i * 20);
+      const y = 50 + (i * 20);  // Moved up from 95 to 50 to use freed space
 
       try {
         // Try to load VGM file using MainEngine
@@ -131,28 +132,13 @@ export class Demo3Scene extends Phaser.Scene {
 
   private createUI() {
     const centerX = this.cameras.main.width / 2;
-    const startY = 50;
 
-    // Title
-    this.titleText = this.add.text(centerX, startY, 'VGM Player Demo', {
-      fontSize: '24px',
-      color: '#ffffff',
-      fontFamily: 'monospace'
-    }).setOrigin(0.5);
-
-    // Status
-    this.statusText = this.add.text(centerX, startY + 40, 'Initializing...', {
+    // Status (moved up to where title was)
+    this.statusText = this.add.text(centerX, 20, 'Initializing...', {
       fontSize: '14px',
       color: '#ffff00',
       fontFamily: 'monospace'
     }).setOrigin(0.5);
-
-    // File list header
-    this.add.text(50, 75, 'VGM Files:', {
-      fontSize: '16px',
-      color: '#ffffff',
-      fontFamily: 'monospace'
-    });
 
     // Control buttons
     const buttonY = this.cameras.main.height - 80;
