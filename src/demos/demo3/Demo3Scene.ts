@@ -27,6 +27,7 @@ export class Demo3Scene extends Phaser.Scene {
 
   // VGM files configuration
   private files: VGMFile[] = [
+    { name: 'title.vgz', key: 'title', supported: false, chip: '', description: '' },
     { name: 'tune.vgm', key: 'tune', supported: false, chip: '', description: '' },
     { name: 'battle.vgm', key: 'battle', supported: false, chip: '', description: '' },
     { name: 'mota.vgz', key: 'mota', supported: false, chip: '', description: '' },
@@ -177,7 +178,7 @@ export class Demo3Scene extends Phaser.Scene {
 
     // Controls info
     const controlsY = this.cameras.main.height - 40;
-    this.add.text(centerX, controlsY, 'UP/DOWN: Select File | SPACE: Play | S: Stop | ESC: Back to Menu', {
+    this.add.text(centerX, controlsY, 'UP/DOWN: Select File | J/Z/ENTER: Play | K/X: Stop | ESC: Back to Menu', {
       fontSize: '10px',
       color: '#888888',
       fontFamily: 'monospace',
@@ -303,13 +304,13 @@ export class Demo3Scene extends Phaser.Scene {
       }
     }
 
-    // Space/Enter - Play/Stop
-    if (this.inputManager.justPressed('b1')) {
+    // Play music - J/Z (b1) or Enter (start)
+    if (this.inputManager.justPressed('b1') || this.inputManager.justPressed('start')) {
       this.playMusic();
     }
 
-    // Handle stop (S key) - using direct keyboard check like old version
-    if (this.input.keyboard && this.input.keyboard.checkDown(this.input.keyboard.addKey('S'), 1)) {
+    // Stop music - K/X (b2)
+    if (this.inputManager.justPressed('b2')) {
       this.stopMusic();
     }
 

@@ -564,6 +564,7 @@ export class VGMPlayer {
       const waitCount = command & 0x0F;
       const ym2612 = chips.find(c => c.type === 'YM2612');
       if (ym2612) {
+        ym2612.chip.write(0x2B, 0x80); // RBP: this is needed for DAC playback
         let dacValue = 0x80; // Default silence
 
         // Read from PCM data if available (Java VgmEmu pattern)
