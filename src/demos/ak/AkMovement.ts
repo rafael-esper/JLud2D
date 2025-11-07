@@ -530,11 +530,11 @@ export class AkMovement {
     }
 
     // Motorcycle condition (J key)
-    if (this.inputManager.justPressed('J')) {
-      this.setCondition(Condition.SWIM);
-      console.log("Swim condition activated");
-      MainEngine.playmusic('swim');
-    }
+    //if (this.inputManager.justPressed('J')) {
+      //this.setCondition(Condition.SWIM);
+     // console.log("Swim condition activated");
+       //MainEngine.playmusic('swim');
+    //}
 
     // Kill player (K key)
     if (this.inputManager.justPressed('K')) {

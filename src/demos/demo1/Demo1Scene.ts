@@ -34,8 +34,12 @@ export class Demo1Scene extends Phaser.Scene {
   }
 
   async create() {
-    this.inputManager = new InputManager(this, new ControlsConfig());
+    const controlsConfig = new ControlsConfig();
+    this.inputManager = new InputManager(this, controlsConfig);
     this.fpsDisplay = new FPSDisplay(this);
+
+    // Demo1 only needs movement, no action buttons
+    this.inputManager.setMobileButtons([]);
 
     MainEngine.setCurrentScene(this, this.config);
 

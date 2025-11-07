@@ -281,6 +281,9 @@ export class InputManager {
 
     // Update gamepad states
     this.updateGamepad();
+
+    // Update mobile controls states
+    this.updateMobileControls();
   }
 
   private updateKeyboard(): void {
@@ -375,6 +378,50 @@ export class InputManager {
     // System buttons
     this.start = this.start || this.gamepad.start || this.gamepad.menu;
     this.menu = this.menu || this.gamepad.select || this.gamepad.back;
+  }
+
+  private updateMobileControls(): void {
+    // Get mobile controls manager from global window object
+    const mobileControls = (window as any).mobileControls;
+    if (!mobileControls) return;
+
+    const joyState = mobileControls.getJoystickState();
+    const deadzone = 10; // px deadzone for joystick
+
+    // Movement from joystick
+    if (Math.abs(joyState.dx) > deadzone) {
+      if (joyState.dx < 0) this.left = true;
+      else this.right = true;
+    }
+    if (Math.abs(joyState.dy) > deadzone) {
+      if (joyState.dy < 0) this.up = true;
+      else this.down = true;
+    }
+
+    // Action buttons
+    this.b1 = this.b1 || mobileControls.getButtonState('b1');
+    this.b2 = this.b2 || mobileControls.getButtonState('b2');
+    this.b3 = this.b3 || mobileControls.getButtonState('b3');
+    this.b4 = this.b4 || mobileControls.getButtonState('b4');
+    this.b5 = this.b5 || mobileControls.getButtonState('b5');
+    this.b6 = this.b6 || mobileControls.getButtonState('b6');
+    this.start = this.start || mobileControls.getButtonState('start');
+  }
+
+  /**
+   * Set required buttons for mobile controls
+   * This should be called by each demo to specify which buttons it needs
+   */
+  public setMobileButtons(buttons: string[]): void {
+    const mobileControls = (window as any).mobileControls;
+    if (mobileControls) {
+      // Ensure 'start' is always included
+      const activeButtons = [...buttons];
+      if (!activeButtons.includes('start')) {
+        activeButtons.push('start');
+      }
+      mobileControls.setActiveButtons(activeButtons);
+    }
   }
 
   /**

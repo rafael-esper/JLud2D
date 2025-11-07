@@ -58,8 +58,12 @@ export class Demo3Scene extends Phaser.Scene {
 
   async create() {
     // Initialize controls
-    this.inputManager = new InputManager(this, new ControlsConfig());
+    const controlsConfig = new ControlsConfig();
+    this.inputManager = new InputManager(this, controlsConfig);
     this.demoUI = new DemoUI(this);
+
+    // Demo3 uses b1 for play, b2 for stop
+    this.inputManager.setMobileButtons(['b1', 'b2']);
 
     // Create UI
     this.createUI();

@@ -19,7 +19,11 @@ export class MenuScene extends Phaser.Scene {
 
   init(data: { config: GameConfig }) {
     this.config = data.config;
-    this.inputManager = new InputManager(this, new ControlsConfig());
+    const controlsConfig = new ControlsConfig();
+    this.inputManager = new InputManager(this, controlsConfig);
+
+    // Menu only needs b1 (select) and start (also select) - 1 button total
+    this.inputManager.setMobileButtons(['b1']);
   }
 
   create() {

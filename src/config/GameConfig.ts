@@ -140,8 +140,10 @@ export class GameConfig implements IGameConfig {
       roundPixels: true,
 
       scale: {
-        mode: Phaser.Scale.NONE,  // CRITICAL: No scaling by Phaser
-        autoCenter: Phaser.Scale.CENTER_BOTH
+        mode: Phaser.Scale.FIT,           // FIT mode scales to fit screen while maintaining aspect ratio
+        autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,  // Center horizontally, align to top vertically
+        width: this.xRes,                 // Set the base resolution width
+        height: this.yRes                 // Set the base resolution height
       },
 
       render: {

@@ -5,7 +5,6 @@
  */
 
 import { GameConfig } from '../../config/GameConfig';
-import { InputManager, ControlsConfig } from '../../config/Controls';
 import { FPSDisplay } from '../../utils/FPSDisplay';
 import { MainEngine } from '../../core/MainEngine';
 import { DemoUI } from '../../utils/DemoUI';
@@ -16,14 +15,12 @@ import { AkCore } from './AkCore';
 import { AkSprites } from './AkSprites';
 import { CHR } from '../../domain/CHR';
 import { Scene } from 'phaser';
+import { AkBaseScene } from './AkBaseScene';
 
-export class AkScene extends Phaser.Scene {
+export class AkScene extends AkBaseScene {
   private mapFilename: string = 'level01.map.json';
   private mapKey: string = 'level01-map';
   private levelInfo: any = null;
-
-  private config: GameConfig;
-  private inputManager: InputManager;
   private fpsDisplay: FPSDisplay;
   private tiledMap: any = null;
   private debugGraphics: Phaser.GameObjects.Graphics | null = null;
@@ -34,7 +31,7 @@ export class AkScene extends Phaser.Scene {
   private static readonly LOGIC_STEP = 16; // 16 ms per logic tick (~60 Hz)
 
   constructor() {
-    super({ key: 'AkScene' });
+    super('AkScene');
   }
 
   preload() {
@@ -97,7 +94,8 @@ export class AkScene extends Phaser.Scene {
   }
 
   async create() {
-    this.inputManager = new InputManager(this, new ControlsConfig());
+    // Setup common AK controls
+    this.setupAkControls();
     this.fpsDisplay = new FPSDisplay(this);
 
 
@@ -214,11 +212,10 @@ export class AkScene extends Phaser.Scene {
     MainEngine.handleCameraTracking();
     this.fpsDisplay.update();
 
-    // Back to menu
+    // Handle common input (includes menu/ESC handling)
     if (this.inputManager.justPressed('menu')) {
-      MainEngine.stopmusic();
-      MainEngine.cleanup();
-      this.scene.start('MenuScene', { config: this.config });
+      MainEngine.cleanup(); // AkScene-specific cleanup
+      this.backToMainMenu();
     }
   }
 

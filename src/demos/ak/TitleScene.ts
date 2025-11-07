@@ -5,12 +5,10 @@
  */
 
 import { GameConfig } from '../../config/GameConfig';
-import { InputManager, ControlsConfig } from '../../config/Controls';
 import { MainEngine } from '../../core/MainEngine';
+import { AkBaseScene } from './AkBaseScene';
 
-export class TitleScene extends Phaser.Scene {
-  private config: GameConfig;
-  private inputManager: InputManager;
+export class TitleScene extends AkBaseScene {
 
   // Title screen elements
   private titleImage: Phaser.GameObjects.Image;
@@ -21,7 +19,7 @@ export class TitleScene extends Phaser.Scene {
   private backgroundColor: number = 0xffffaa;
 
   constructor() {
-    super({ key: 'TitleScene' });
+    super('TitleScene');
   }
 
   preload() {
@@ -36,7 +34,8 @@ export class TitleScene extends Phaser.Scene {
   }
 
   async create() {
-    this.inputManager = new InputManager(this, new ControlsConfig());
+    // Setup common AK controls
+    this.setupAkControls();
 
     MainEngine.setCurrentScene(this, this.config);
 
@@ -56,7 +55,8 @@ export class TitleScene extends Phaser.Scene {
   }
 
   update(delta: number): void {
-    this.inputManager.updateControls();
+    // Handle common input (includes menu/ESC handling)
+    this.handleCommonInput();
 
     // Increment timer
     this.timer++;
@@ -93,13 +93,9 @@ export class TitleScene extends Phaser.Scene {
       this.graphics.fillRect(88, 207, 228 - 88, 218 - 207); // width = 140, height = 11
     }
 
-    // Handle input
+    // Handle title-specific input
     if (this.inputManager.justPressed('b1') || this.inputManager.justPressed('start')) {
       this.startGame();
-    }
-
-    if (this.inputManager.justPressed('b3')) {
-      this.exitGame();
     }
   }
 
@@ -116,16 +112,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private exitGame(): void {
-    console.log('TitleScene: Thanks for playing Alex Kidd remake!');
-
-    // In a browser environment, we can't truly "exit", but we can go back to menu
-    // TODO: Implement proper exit or return to main menu
-    window.close(); // This may not work in all browsers due to security restrictions
-  }
-
-  destroy() {
-    // Stop music when scene is destroyed
-    MainEngine.stopmusic();
-    super.destroy();
+    console.log('TitleScene: Exiting Alex Kidd demo...');
+    this.backToMainMenu();
   }
 }

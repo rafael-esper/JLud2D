@@ -47,8 +47,12 @@ export class Demo2Scene extends Phaser.Scene {
   }
 
   async create() {
-    this.inputManager = new InputManager(this, new ControlsConfig());
+    const controlsConfig = new ControlsConfig();
+    this.inputManager = new InputManager(this, controlsConfig);
     this.fpsDisplay = new FPSDisplay(this);
+
+    // Demo2 uses b1 for tree cutting
+    this.inputManager.setMobileButtons(['b1']);
 
     MainEngine.setCurrentScene(this, this.config);
 

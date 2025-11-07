@@ -6,15 +6,13 @@
  */
 
 import { GameConfig } from '../../config/GameConfig';
-import { InputManager, ControlsConfig } from '../../config/Controls';
 import { MainEngine } from '../../core/MainEngine';
 import { Sound } from '../../domain/Sound';
 import { Condition } from './AkMovement';
 import { AkCore } from './AkCore';
+import { AkBaseScene } from './AkBaseScene';
 
-export class MapScene extends Phaser.Scene {
-  private config: GameConfig;
-  private inputManager: InputManager;
+export class MapScene extends AkBaseScene {
   private mapImage: Phaser.GameObjects.Image;
   private levelText: Phaser.GameObjects.Text;
   private redCircle: Phaser.GameObjects.Graphics;
@@ -41,7 +39,7 @@ export class MapScene extends Phaser.Scene {
   private static levelData: any[] | null = null;
 
   constructor() {
-    super({ key: 'MapScene' });
+    super('MapScene');
   }
 
   async init(data: { config: GameConfig }) {
@@ -63,7 +61,8 @@ export class MapScene extends Phaser.Scene {
   }
 
   create() {
-    this.inputManager = new InputManager(this, new ControlsConfig());
+    // Setup common AK controls
+    this.setupAkControls();
 
     // Set black background
     this.cameras.main.setBackgroundColor('#000000');
@@ -145,10 +144,11 @@ export class MapScene extends Phaser.Scene {
   }
 
   update(): void {
-    this.inputManager.updateControls();
+    // Handle common input (includes menu/ESC handling)
+    this.handleCommonInput();
 
-    // Check for button press to continue (b1 = punch button)
-    if (this.inputManager.justPressed('b1')) {
+    // Check for button press to continue (b1 = punch button, start = enter)
+    if (this.inputManager.justPressed('b1') || this.inputManager.justPressed('start')) {
       this.proceedToLevel();
     }
   }
