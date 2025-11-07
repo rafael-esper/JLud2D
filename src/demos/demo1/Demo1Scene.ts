@@ -52,7 +52,6 @@ export class Demo1Scene extends Phaser.Scene {
 
     // Create UI
     DemoUI.createTitle(this, 'Demo 1 - Island World');
-    DemoUI.createInstructions(this, 'WASD/Arrows: Move Character | ESC: Back to Menu');
 
     // Setup camera and FPS display
     MainEngine.setupCamera();

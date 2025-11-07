@@ -69,7 +69,6 @@ export class Demo2Scene extends Phaser.Scene {
 
     this.createUI();
     DemoUI.createTitle(this, 'Demo 2 - Golden Axe Warrior');
-    DemoUI.createInstructions(this, 'WASD/Arrows: Move | J/Z: Cut Tree | ESC: Back to Menu');
     this.setupTreeCuttingMechanic();
   }
 

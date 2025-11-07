@@ -45,8 +45,10 @@
         #btn-b4 { right:182px; bottom:88px; }  /* Top row, left */
         #btn-b5 { right:100px; bottom:88px; }  /* Top row, center */
         #btn-b6 { right:18px; bottom:88px; }   /* Top row, right */
-        #btn-start { right:18px; bottom:158px; width:44px; height:44px; border-radius:10px; font-size:14px; }
+        #btn-pause { right:100px; bottom:158px; width:44px; height:32px; border-radius:8px; font-size:12px; }
+        #btn-start { right:18px; bottom:158px; width:44px; height:32px; border-radius:8px; font-size:12px; }
         #btn-toggle-controls { left:18px; top:18px; width:42px; height:42px; border-radius:10px; font-size:12px; }
+        #btn-show-controls { right:18px; bottom:18px; width:36px; height:36px; border-radius:8px; font-size:16px; background: rgba(0,0,0,0.7); opacity: 0; transition: opacity 0.3s ease; z-index: 1000; }
 
         /* Joystick area - fixed CSS positioning */
         #joy-area {
@@ -67,6 +69,12 @@
             display: none !important;
         }
 
+        /* Hide all mobile controls by default */
+        .control-button:not(#btn-toggle-controls):not(#btn-show-controls),
+        #joy-area {
+            display: none;
+        }
+
         #loading {
             position: absolute;
             top: 50%;
@@ -75,15 +83,6 @@
             color: white;
             text-align: center;
             z-index: 100;
-        }
-
-        #info {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: #666;
-            font-size: 10px;
-            z-index: 50;
         }
 
         .hidden {
@@ -97,11 +96,6 @@
         <p>Loading configuration...</p>
     </div>
 
-    <div id="info">
-        <div>F11: Toggle Fullscreen</div>
-        <div>ESC: Menu/Back</div>
-    </div>
-
     <div id="game-container"></div>
 
     <!-- Mobile Controls -->
@@ -112,8 +106,10 @@
     <button id="btn-b4" class="control-button" aria-label="B4">B4</button>
     <button id="btn-b5" class="control-button" aria-label="B5">B5</button>
     <button id="btn-b6" class="control-button" aria-label="B6">B6</button>
-    <button id="btn-start" class="control-button" aria-label="Start">ST</button>
+    <button id="btn-pause" class="control-button" aria-label="Pause">Pause</button>
+    <button id="btn-start" class="control-button" aria-label="Start">Start</button>
     <button id="btn-toggle-controls" class="control-button" aria-label="Toggle Controls">⚙</button>
+    <button id="btn-show-controls" class="control-button" aria-label="Show Mobile Controls">🎮</button>
 
     <!-- Phaser 3.80 (using CDN for now) -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
@@ -128,9 +124,11 @@
         class MobileControlsManager {
             constructor() {
                 this.isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-                this.controlsVisible = this.isTouch; // Start visible on mobile, hidden on desktop
+                this.controlsVisible = false; // Start hidden by default
+                this.showButtonVisible = false; // Show button starts hidden
+                this.showButtonTimer = null; // Timer for auto-hide
                 this.buttonStates = {
-                    b1: false, b2: false, b3: false, b4: false, b5: false, b6: false, start: false
+                    b1: false, b2: false, b3: false, b4: false, b5: false, b6: false, start: false, pause: false
                 };
                 this.joystickState = { active: false, dx: 0, dy: 0 };
                 this.activeButtons = ['b1', 'b2']; // Default: most demos use 2 buttons
@@ -141,23 +139,32 @@
                 this.setupJoystick();
                 this.setupButtons();
                 this.setupToggle();
+                this.setupShowButton();
+                this.setupUserInteractionDetection();
                 this.updateControlsVisibility();
             }
 
             setActiveButtons(buttonList) {
                 this.activeButtons = buttonList;
-                this.updateButtonVisibility();
+                // Only update visibility if controls are currently visible
+                if (this.controlsVisible) {
+                    this.updateButtonVisibility();
+                }
             }
 
             updateButtonVisibility() {
-                const allButtons = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'start'];
+                const allButtons = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'start', 'pause'];
+
                 allButtons.forEach(btn => {
                     const element = document.getElementById(`btn-${btn}`);
                     if (element) {
-                        if (this.activeButtons.includes(btn)) {
+                        // Start and Pause buttons are always shown when controls are visible
+                        if (this.controlsVisible && (this.activeButtons.includes(btn) || btn === 'start' || btn === 'pause')) {
                             element.classList.remove('controls-hidden');
+                            element.style.display = 'flex';
                         } else {
                             element.classList.add('controls-hidden');
+                            element.style.display = 'none';
                         }
                     }
                 });
@@ -262,7 +269,7 @@
             }
 
             setupButtons() {
-                const buttonIds = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'start'];
+                const buttonIds = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'start', 'pause'];
                 buttonIds.forEach(btnId => {
                     const button = document.getElementById(`btn-${btnId}`);
                     if (button) {
@@ -284,6 +291,85 @@
                 }
             }
 
+            setupShowButton() {
+                const showBtn = document.getElementById('btn-show-controls');
+                if (showBtn) {
+                    showBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.controlsVisible = !this.controlsVisible;
+                        if (!this.controlsVisible) {
+                            this.hideShowButton();
+                        }
+                        this.updateControlsVisibility();
+                    });
+
+                    showBtn.addEventListener('touchstart', (e) => {
+                        e.stopPropagation();
+                        showBtn.click();
+                    });
+                }
+            }
+
+            setupUserInteractionDetection() {
+                const showShowButton = (e) => {
+                    // Ignore clicks on mobile control buttons themselves
+                    if (e && e.target && (
+                        e.target.id === 'btn-show-controls' ||
+                        e.target.classList.contains('control-button') ||
+                        e.target.closest('#joy-area')
+                    )) {
+                        return;
+                    }
+                    if (!this.controlsVisible) {
+                        this.showShowButton();
+                    }
+                };
+
+                document.addEventListener('click', showShowButton);
+                document.addEventListener('touchstart', showShowButton);
+
+                document.addEventListener('keydown', (event) => {
+                    if ((event.key === 'Enter' || event.code === 'Enter') && !this.controlsVisible) {
+                        showShowButton();
+                    }
+                });
+
+                // Start and Pause buttons should not interfere with controls visibility
+                // They should only be used when controls are visible
+            }
+
+            showShowButton() {
+                this.showButtonVisible = true;
+                const showBtn = document.getElementById('btn-show-controls');
+                if (showBtn) {
+                    showBtn.style.opacity = '1';
+                }
+
+                // Clear existing timer
+                if (this.showButtonTimer) {
+                    clearTimeout(this.showButtonTimer);
+                }
+
+                if (!this.controlsVisible) {
+                    this.showButtonTimer = setTimeout(() => {
+                        this.hideShowButton();
+                    }, 4000);
+                }
+            }
+
+            hideShowButton() {
+                this.showButtonVisible = false;
+                const showBtn = document.getElementById('btn-show-controls');
+                if (showBtn) {
+                    showBtn.style.opacity = '0';
+                }
+
+                if (this.showButtonTimer) {
+                    clearTimeout(this.showButtonTimer);
+                    this.showButtonTimer = null;
+                }
+            }
+
             addPressHandlers(el, onDown, onUp) {
                 el.addEventListener('pointerdown', (ev) => { ev.preventDefault(); onDown(); });
                 window.addEventListener('pointerup', (ev) => { onUp(); });
@@ -292,21 +378,51 @@
             }
 
             updateControlsVisibility() {
-                const controls = document.querySelectorAll('.control-button, #joy-area');
                 const toggle = document.getElementById('btn-toggle-controls');
+                const showBtn = document.getElementById('btn-show-controls');
+                const joyArea = document.getElementById('joy-area');
 
-                controls.forEach(control => {
-                    if (control === toggle) return; // Don't hide the toggle button itself
+                if (joyArea) {
                     if (this.controlsVisible) {
-                        control.classList.remove('controls-hidden');
+                        joyArea.classList.remove('controls-hidden');
+                        joyArea.style.display = 'block';
                     } else {
-                        control.classList.add('controls-hidden');
+                        joyArea.classList.add('controls-hidden');
+                        joyArea.style.display = 'none';
+                    }
+                }
+
+                const allButtons = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'start', 'pause'];
+                allButtons.forEach(btnName => {
+                    const element = document.getElementById(`btn-${btnName}`);
+                    if (element && element !== toggle && element !== showBtn) {
+                        if (this.controlsVisible) {
+                            element.classList.remove('controls-hidden');
+                            element.style.display = 'flex';
+                        } else {
+                            element.classList.add('controls-hidden');
+                            element.style.display = 'none';
+                        }
                     }
                 });
 
-                // Update toggle button appearance
                 if (toggle) {
                     toggle.style.opacity = this.controlsVisible ? '1' : '0.5';
+                }
+
+                if (this.controlsVisible) {
+                    this.updateButtonVisibility();
+                }
+
+                if (this.controlsVisible && showBtn) {
+                    if (!this.showButtonVisible) {
+                        this.showShowButton();
+                    }
+                    showBtn.innerHTML = '✕';
+                    showBtn.style.background = 'rgba(255,0,0,0.7)';
+                } else if (showBtn) {
+                    showBtn.innerHTML = '🎮';
+                    showBtn.style.background = 'rgba(0,0,0,0.7)';
                 }
             }
 

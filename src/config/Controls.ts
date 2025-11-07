@@ -406,6 +406,7 @@ export class InputManager {
     this.b5 = this.b5 || mobileControls.getButtonState('b5');
     this.b6 = this.b6 || mobileControls.getButtonState('b6');
     this.start = this.start || mobileControls.getButtonState('start');
+    this.menu = this.menu || mobileControls.getButtonState('pause');
   }
 
   /**

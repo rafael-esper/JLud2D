@@ -119,13 +119,6 @@ export class SettingsScene extends Phaser.Scene {
         action: () => this.toggleFullscreen()
       },
       {
-        label: 'Double Screen Mode',
-        type: 'toggle',
-        key: 'doubleWindowMode',
-        getValue: () => this.config.doubleWindowMode ? 'ON' : 'OFF',
-        action: () => this.toggleDoubleScreen()
-      },
-      {
         label: 'Show FPS',
         type: 'toggle',
         key: 'showFPS',
@@ -285,9 +278,6 @@ export class SettingsScene extends Phaser.Scene {
       case 'windowMode':
         this.toggleFullscreen();
         break;
-      case 'doubleWindowMode':
-        this.toggleDoubleScreen();
-        break;
       case 'showFPS':
         this.config.showFPS = !this.config.showFPS;
         break;
@@ -354,27 +344,7 @@ export class SettingsScene extends Phaser.Scene {
     }
   }
 
-  private toggleDoubleScreen() {
-    this.config.doubleWindowMode = !this.config.doubleWindowMode;
-
-    // Force window mode when enabling double screen (like Java version)
-    if (this.config.doubleWindowMode) {
-      this.config.windowMode = true;
-      if (this.scale.isFullscreen) {
-        this.scale.stopFullscreen();
-      }
-    }
-
-    // Update responsive scaling immediately
-    const game = (window as any).game;
-    if (game && game.updateScaling) {
-      game.updateScaling();
-    }
-
-    // Show update message
-    this.showUpdateMessage('Double Screen Mode Updated');
-  }
-
+ 
   private cycleResolution() {
     const resolutions = [
       { x: 320, y: 240 },   // Default

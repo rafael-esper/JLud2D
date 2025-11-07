@@ -35,7 +35,6 @@ class Game {
       // Log configuration details
       console.log(`Resolution: ${this.config.xRes}x${this.config.yRes}`);
       console.log(`Window Mode: ${this.config.windowMode ? 'ON' : 'OFF'}`);
-      console.log(`Double Window: ${this.config.doubleWindowMode ? 'ON' : 'OFF'}`);
       console.log(`Sound: ${this.config.noSound ? 'OFF' : 'ON'}`);
       console.log(`Debug: ${this.config.debug ? 'ON' : 'OFF'}`);
 
@@ -81,8 +80,7 @@ class Game {
     this.responsiveScaler = new ResponsiveScaler(
       this.game,
       this.config.xRes,
-      this.config.yRes,
-      this.config.doubleWindowMode
+      this.config.yRes
     );
 
     // Start with boot scene and pass config
@@ -119,6 +117,34 @@ class Game {
         } else {
           this.game.sound.resumeAll();
         }
+      }
+    });
+
+    // Handle window resize and fullscreen changes
+    window.addEventListener('resize', () => {
+      if (this.game && this.game.scale) {
+        // Force Phaser to recalculate scale after resize
+        setTimeout(() => {
+          this.game.scale.refresh();
+        }, 100);
+      }
+    });
+
+    // Handle fullscreen change events
+    document.addEventListener('fullscreenchange', () => {
+      if (this.game && this.game.scale) {
+        // Force refresh when entering/exiting fullscreen
+        setTimeout(() => {
+          this.game.scale.refresh();
+        }, 100);
+      }
+    });
+
+    document.addEventListener('webkitfullscreenchange', () => {
+      if (this.game && this.game.scale) {
+        setTimeout(() => {
+          this.game.scale.refresh();
+        }, 100);
       }
     });
   }
@@ -180,9 +206,7 @@ class Game {
 
   // Public method to update scaling when config changes
   public updateScaling() {
-    if (this.responsiveScaler && this.config) {
-      this.responsiveScaler.setDoubleMode(this.config.doubleWindowMode);
-    }
+
   }
 }
 

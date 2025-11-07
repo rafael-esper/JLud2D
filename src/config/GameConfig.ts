@@ -9,7 +9,6 @@ export interface IGameConfig {
   xRes: number;
   yRes: number;
   windowMode: boolean;
-  doubleWindowMode: boolean;
   fullscreen: boolean;
 
   // Audio settings
@@ -43,7 +42,6 @@ export class GameConfig implements IGameConfig {
   public xRes: number = 320;
   public yRes: number = 240;
   public windowMode: boolean = true;
-  public doubleWindowMode: boolean = true;
   public fullscreen: boolean = false;
 
   // Audio settings
@@ -141,9 +139,9 @@ export class GameConfig implements IGameConfig {
 
       scale: {
         mode: Phaser.Scale.FIT,           // FIT mode scales to fit screen while maintaining aspect ratio
-        autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,  // Center horizontally, align to top vertically
+        autoCenter: Phaser.Scale.CENTER_BOTH,  // Center both horizontally and vertically
         width: this.xRes,                 // Set the base resolution width
-        height: this.yRes                 // Set the base resolution height
+        height: this.yRes                // Set the base resolution height
       },
 
       render: {
