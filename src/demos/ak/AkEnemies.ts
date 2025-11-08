@@ -22,7 +22,7 @@ export class AkEnemies {
    */
   public static processEnemies(): void {
     this.monsterframe++;
-    if (this.monsterframe >= 12)
+    if (this.monsterframe >= 120)
       this.monsterframe = 0;
 
     const player = MainEngine.getPlayer();
@@ -60,6 +60,8 @@ export class AkEnemies {
           this.processDust(aa, entity);
         } else if (enemyName === 'BigDust') {
           this.processBigDust(aa, entity);
+        } else if (enemyName === 'Fire') {
+          this.processFire(aa, entity);
         }
       }
     }
@@ -85,8 +87,8 @@ export class AkEnemies {
     if (this.obstruct(entityIndex, 0, 24, 16)) // Check left direction
       entity.setFace(1); // Turn right
 
-    // Set animation frame
-    entity.setSpecframe((2 - (entity.getFace() * 2)) + Math.floor(this.monsterframe / 6));
+    // Set animation frame (Eagle: frames 2-3, 8 frames each for fast animation)
+    entity.setSpecframe((2 - (entity.getFace() * 2)) + Math.floor(this.monsterframe / 8) % 2);
 
     // Check if player attacks the eagle
     if (this.attackEnemy(entityIndex, 28, 16))
@@ -117,8 +119,8 @@ export class AkEnemies {
     if (this.obstruct(entityIndex, 0, 16, 14)) // Check left direction
       entity.setFace(1); // Turn right
 
-    // Set animation frame
-    entity.setSpecframe((6 - (entity.getFace() * 2)) + Math.floor(this.monsterframe / 6));
+    // Set animation frame (Fish: frames 6-7, 15 frames each)
+    entity.setSpecframe((6 - (entity.getFace() * 2)) + Math.floor(this.monsterframe / 15) % 2);
 
     // Check if player attacks the fish
     if (this.attackEnemy(entityIndex, 16, 16))
@@ -161,8 +163,8 @@ export class AkEnemies {
       if (this.monsterframe === 0) console.log(`Scorpion ${entityIndex}: left edge detected, turning right`);
     }
 
-    // Set animation frame
-    entity.setSpecframe((10 - (entity.getFace() * 2)) + Math.floor(this.monsterframe / 6));
+    // Set animation frame (Scorpion: frames 10-11, 15 frames each)
+    entity.setSpecframe((10 - (entity.getFace() * 2)) + Math.floor(this.monsterframe / 15) % 2);
 
     // Check if player attacks the scorpion
     if (this.attackEnemy(entityIndex, 14, 16))
@@ -190,7 +192,7 @@ export class AkEnemies {
         entity.setFace(7);
     }
 
-    if (entity.getFace() == 3 && this.monsterframe == 0)
+    if (entity.getFace() == 3 && this.monsterframe % 20 == 0)
       entity.incy(-10);
     else if (entity.getFace() >= 4 && entity.getFace() <= 5) { // jumping
       entity.incy(-(6 - entity.getFace()));
@@ -209,7 +211,7 @@ export class AkEnemies {
       entity.setFace(0);
     }
 
-    if (this.monsterframe == 0) {
+    if (this.monsterframe % 20 == 0) {
       entity.setFace(entity.getFace() + 1);
     }
 
@@ -226,8 +228,8 @@ export class AkEnemies {
    * Process SeaHorse enemy behavior
    */
   private static processSeaHorse(entityIndex: number, entity: any): void {
-    // Set animation frame (frames 37-38)
-    entity.setSpecframe(37 + Math.floor(this.monsterframe / 6));
+    // Set animation frame (SeaHorse: frames 37-38, 20 frames each)
+    entity.setSpecframe(37 + Math.floor(this.monsterframe / 20) % 2);
 
     // Movement based on face direction (circular pattern)
     if (entity.getFace() == 0)
@@ -251,7 +253,7 @@ export class AkEnemies {
     if (entity.getFace() >= 8)
       entity.setFace(0);
 
-    // Advance face every 12 frames
+    // Advance face every 120 frames
     if (this.monsterframe == 0) {
       entity.setFace(entity.getFace() + 1);
     }
@@ -277,9 +279,9 @@ export class AkEnemies {
 
     // Vertical movement based on face
     if (entity.getFace() == 0 || entity.getFace() == 1)
-      entity.incy(3);  // Moving down
+      entity.incy(1);  // Moving down
     if (entity.getFace() == 2 || entity.getFace() == 3)
-      entity.incy(-3); // Moving up
+      entity.incy(-1); // Moving up
 
     // Collision detection with walls
     if (this.obstruct(entityIndex, 1, 24, 16)) { // Right wall
@@ -289,8 +291,8 @@ export class AkEnemies {
       entity.setFace(entity.getFace() + 1);
     }
 
-    // Advance face every 12 frames
-    if (this.monsterframe == 0) {
+    // Advance face every 30 frames (4 times per cycle)
+    if (this.monsterframe % 30 == 0) {
       entity.setFace(entity.getFace() + 2);
     }
 
@@ -304,10 +306,10 @@ export class AkEnemies {
     if (entity.getFace() > 3)
       entity.setFace(entity.getFace() % 4);
 
-    // Calculate animation frame
-    let cc = (22 - ((entity.getFace() % 2) * 2)) + Math.floor(this.monsterframe / 6);
+    // Calculate animation frame (BigFish: frames 22-23, 20 frames each)
+    let cc = (22 - ((entity.getFace() % 2) * 2)) + Math.floor(this.monsterframe / 20) % 2;
     if (cc < 0)
-      cc = 0;
+      cc = 22;
     entity.setSpecframe(cc);
 
     // Check if player attacks the big fish
@@ -340,13 +342,13 @@ export class AkEnemies {
       entity.setFace(1); // Turn right when hitting left wall
 
     // Vertical bobbing movement
-    if (this.monsterframe < 6)
+    if (this.monsterframe < 60)
       entity.incy(2);  // Move down for first half
     else
       entity.incy(-2); // Move up for second half
 
-    // Set animation frame (30-31, changes every 6 frames)
-    entity.setSpecframe(30 + Math.floor(this.monsterframe / 6));
+    // Set animation frame (Bat: frames 30-31, changes every 12 frames)
+    entity.setSpecframe(30 + Math.floor(this.monsterframe / 12) % 2);
 
     // Check if player attacks the bat
     if (this.attackEnemy(entityIndex, 15, 16))
@@ -381,8 +383,8 @@ export class AkEnemies {
     if (!this.obstruct(entityIndex, 3, 15, 16))
       entity.incy(2);
 
-    // Set animation frame (28-29, changes every 6 frames)
-    entity.setSpecframe(28 + Math.floor(this.monsterframe / 6));
+    // Set animation frame (Owl: frames 28-29, changes every 15 frames)
+    entity.setSpecframe(28 + Math.floor(this.monsterframe / 15) % 2);
 
     // Check if player attacks the owl
     if (this.attackEnemy(entityIndex, 15, 15))
@@ -410,7 +412,7 @@ export class AkEnemies {
       entity.destroy();
     }
 
-    if (this.monsterframe === 0) {
+    if (this.monsterframe % 40 == 0) {
       entity.setFace(entity.getFace() + 1);
     }
   }
@@ -436,8 +438,46 @@ export class AkEnemies {
       entity.destroy();
     }
 
-    if (this.monsterframe === 0) {
+    if (this.monsterframe % 24 == 0) {
       entity.setFace(entity.getFace() + 1);
+    }
+  }
+
+  /**
+   * Process Fire enemy behavior with circular motion
+   */
+  private static processFire(entityIndex: number, entity: any): void {
+    // Use entity properties to store initial center position and internal counter
+    if (!entity.hasOwnProperty('_fireCenterX')) {
+      entity._fireCenterX = entity.getx();
+      entity._fireCenterY = entity.gety();
+      entity._fireAngleCounter = 0;
+    }
+
+    const centerX = entity._fireCenterX;
+    const centerY = entity._fireCenterY;
+    const radius = 30; // Circular motion radius
+
+    // Increment angle counter by small amount for slow circular motion
+    entity._fireAngleCounter += 0.05; // Slow rotation
+    if (entity._fireAngleCounter >= 2 * Math.PI) {
+      entity._fireAngleCounter = 0; // Reset after full circle
+    }
+
+    // Calculate new position in circle
+    const newX = centerX + Math.cos(entity._fireAngleCounter) * radius;
+    const newY = centerY + Math.sin(entity._fireAngleCounter) * radius;
+
+    // Move to new position
+    entity.setxy(Math.floor(newX), Math.floor(newY));
+
+    // Set animation frame (Fire: frames 26-27, changes every 20 frames)
+    let cc = 26 + Math.floor(this.monsterframe / 20) % 2;
+    entity.setSpecframe(cc);
+
+    // Check collision with player (15x15 hitbox)
+    if (this.akiddCollision(1, entity.getx(), entity.gety(), 15, 15)) {
+      AkActions.hitPlayer(1);
     }
   }
 

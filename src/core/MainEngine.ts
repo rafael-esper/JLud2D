@@ -484,6 +484,8 @@ export class MainEngine {
     if (!MainEngine.current_map || !MainEngine.current_scene) return;
 
     const camera = MainEngine.current_scene.cameras.main;
+    if (!camera || camera.width === undefined || camera.height === undefined) return;
+
     const mapWidth = MainEngine.current_map.getWidth() * MainEngine.current_map.getTileWidth();
     const mapHeight = MainEngine.current_map.getHeight() * MainEngine.current_map.getTileHeight();
 

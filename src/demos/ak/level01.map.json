@@ -778,6 +778,83 @@
                  "width":16,
                  "x":416,
                  "y":208
+                }, 
+                {
+                 "height":16,
+                 "id":4,
+                 "name":"Fire",
+                 "properties":[
+                        {
+                         "name":"activationEvent",
+                         "type":"string",
+                         "value":""
+                        }, 
+                        {
+                         "name":"autoface",
+                         "type":"string",
+                         "value":"false"
+                        }, 
+                        {
+                         "name":"chrname",
+                         "type":"string",
+                         "value":"monster.chr"
+                        }, 
+                        {
+                         "name":"face",
+                         "type":"string",
+                         "value":"2"
+                        }, 
+                        {
+                         "name":"movecode",
+                         "type":"string",
+                         "value":"0"
+                        }, 
+                        {
+                         "name":"obstructable",
+                         "type":"string",
+                         "value":"false"
+                        }, 
+                        {
+                         "name":"obstruction",
+                         "type":"string",
+                         "value":"false"
+                        }, 
+                        {
+                         "name":"speed",
+                         "type":"string",
+                         "value":"1"
+                        }, 
+                        {
+                         "name":"wanderDelay",
+                         "type":"string",
+                         "value":"0"
+                        }, 
+                        {
+                         "name":"wx1",
+                         "type":"string",
+                         "value":"0"
+                        }, 
+                        {
+                         "name":"wx2",
+                         "type":"string",
+                         "value":"0"
+                        }, 
+                        {
+                         "name":"wy1",
+                         "type":"string",
+                         "value":"0"
+                        }, 
+                        {
+                         "name":"wy2",
+                         "type":"string",
+                         "value":"0"
+                        }],
+                 "rotation":0,
+                 "type":"entity",
+                 "visible":true,
+                 "width":16,
+                 "x":352,
+                 "y":160
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -786,7 +863,7 @@
          "y":0
         }],
  "nextlayerid":5,
- "nextobjectid":4,
+ "nextobjectid":5,
  "orientation":"orthogonal",
  "properties":[
         {
