@@ -375,6 +375,14 @@ export class Entity {
     if (!this.chr || !this.sprite) return;
 
     const scene = this.sprite.scene;
+
+    // Guard against destroyed scene
+    if (!scene || !scene.add) {
+      console.log('Entity: Scene destroyed, skipping sprite recreation');
+      this.sprite = null;
+      return;
+    }
+
     const currentX = this.sprite.x;
     const currentY = this.sprite.y;
     const currentDepth = this.sprite.depth;

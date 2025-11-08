@@ -106,7 +106,7 @@ export class AkScene extends AkBaseScene {
     await MainEngine.mapinit(this, 'Ak.anim.json', 'src/demos/ak');
 
     // Set player position from level data
-    if (this.levelInfo) {
+    if (this.levelInfo && this.tiledMap) {
       const player = MainEngine.getPlayer();
       if (player) {
         // Convert tile coordinates to pixel coordinates
@@ -115,6 +115,8 @@ export class AkScene extends AkBaseScene {
         player.setxy(pixelX, pixelY);
         console.log(`AkScene: Set player start position to (${this.levelInfo.playerX}, ${this.levelInfo.playerY}) = (${pixelX}, ${pixelY}) pixels`);
       }
+    } else {
+      console.error('AkScene: Cannot set player position - missing levelInfo or tiledMap');
     }
 
     // Load monster CHR sprites
@@ -218,7 +220,6 @@ export class AkScene extends AkBaseScene {
 
     // Handle common input (includes menu/ESC handling)
     if (this.inputManager.justPressed('menu')) {
-      MainEngine.cleanup(); // AkScene-specific cleanup
       this.backToMainMenu();
     }
   }

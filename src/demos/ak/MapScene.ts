@@ -69,13 +69,23 @@ export class MapScene extends AkBaseScene {
 
     // Display the world map (scaled to fit screen if needed)
     this.mapImage = this.add.image(160, 120, 'worldmap');
+
+    if (!this.mapImage) {
+      console.error('MapScene: Failed to create worldmap image');
+      return;
+    }
+
     this.mapImage.setOrigin(0.5, 0.5);
 
     // Scale map to fit screen if it's too large
-    const scaleX = 320 / this.mapImage.width;
-    const scaleY = 240 / this.mapImage.height;
-    const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
-    this.mapImage.setScale(scale);
+    if (this.mapImage.width && this.mapImage.height) {
+      const scaleX = 320 / this.mapImage.width;
+      const scaleY = 240 / this.mapImage.height;
+      const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+      this.mapImage.setScale(scale);
+    } else {
+      console.error('MapScene: worldmap image has invalid dimensions');
+    }
 
     // Create level text at bottom
     this.levelText = this.add.text(10, 225, `Level ${MapScene.LevelId}: ${this.displayLevel}`, {
@@ -134,6 +144,11 @@ export class MapScene extends AkBaseScene {
     }
 
     // Adjust position based on map scale and offset
+    if (!this.mapImage || !this.mapImage.width || !this.mapImage.height) {
+      console.error('MapScene: Cannot update animation - mapImage not properly initialized');
+      return;
+    }
+
     const mapScale = this.mapImage.scaleX;
     const adjustedX = (this.mapImage.x - (this.mapImage.width * mapScale) / 2) + (this.displayMapx * mapScale);
     const adjustedY = (this.mapImage.y - (this.mapImage.height * mapScale) / 2) + (this.displayMapy * mapScale);
@@ -229,14 +244,10 @@ export class MapScene extends AkBaseScene {
     this.showMapScreen();
   }
 
-  /**
-   * Show the map screen (Java showMapScreen method)
-   */
   public static showMapScreen(): void {
-    // Clean up the current level before transitioning
-    MainEngine.cleanup();
+    // Clear entities from previous level but preserve game state (gold, energy, etc.)
+    MainEngine.clearEntities();
 
-    // Get the current scene through MainEngine and transition to MapScene
     const currentScene = MainEngine.getCurrentScene();
     if (currentScene) {
       currentScene.scene.start('MapScene', {
@@ -245,9 +256,6 @@ export class MapScene extends AkBaseScene {
     }
   }
 
-  /**
-   * Initialize level data (lazy loading to avoid circular dependencies)
-   */
   private static initializeLevelData(): void {
     if (this.levelData === null) {
       this.levelData = [
@@ -325,65 +333,38 @@ export class MapScene extends AkBaseScene {
     return levelInfo;
   }
 
-  /**
-   * Get current level ID
-   */
   public static getLevelId(): number {
     return this.LevelId;
   }
 
-  /**
-   * Set level ID (for testing or save/load)
-   */
   public static setLevelId(id: number): void {
     this.LevelId = Math.max(1, id);
   }
 
-  /**
-   * Get target player position after map switch
-   */
   public static getTargetPosition(): { x: number, y: number } {
     return { x: this.gotox, y: this.gotoy };
   }
 
-  /**
-   * Get target map position after map switch
-   */
   public static getTargetMapPosition(): { x: number, y: number } {
     return { x: this.mapx, y: this.mapy };
   }
 
-  /**
-   * Check if map change is pending
-   */
   public static isMapChangePending(): boolean {
     return this.changemap;
   }
 
-  /**
-   * Clear map change flag
-   */
   public static clearMapChangeFlag(): void {
     this.changemap = false;
   }
 
-  /**
-   * Get current music
-   */
   public static getCurrentMusic(): string {
     return this.currentMusic;
   }
 
-  /**
-   * Get current level name
-   */
   public static getCurrentLevelName(): string {
     return this.currentLevel;
   }
 
-  /**
-   * Reset level system
-   */
   public static reset(): void {
     this.LevelId = 1;
     this.gotox = 0;
@@ -395,9 +376,6 @@ export class MapScene extends AkBaseScene {
     this.changemap = false;
   }
 
-  /**
-   * Get all level data (for debugging)
-   */
   public static getAllLevels() {
     this.initializeLevelData();
     return [...this.levelData!];
