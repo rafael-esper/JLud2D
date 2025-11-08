@@ -843,9 +843,19 @@ export class MainEngine {
    * Initialize UI graphics object for drawing rectangles
    */
   private static ensureUIGraphics(): Phaser.GameObjects.Graphics | null {
-    if (!MainEngine.current_scene) return null;
+    if (!MainEngine.current_scene) {
+      console.error('MainEngine: No current scene for UI graphics');
+      return null;
+    }
+
+    // Check if existing graphics belongs to a different scene or is destroyed
+    if (MainEngine.uiGraphics && (!MainEngine.uiGraphics.scene || MainEngine.uiGraphics.scene !== MainEngine.current_scene)) {
+      console.log('MainEngine: UI graphics belongs to old scene, creating new one');
+      MainEngine.uiGraphics = null;
+    }
 
     if (!MainEngine.uiGraphics) {
+      console.log('MainEngine: Creating new UI graphics for scene');
       MainEngine.uiGraphics = MainEngine.current_scene.add.graphics();
       MainEngine.uiGraphics.setScrollFactor(0); // UI elements don't scroll with camera
       MainEngine.uiGraphics.setDepth(1000); // High depth to render on top
