@@ -475,6 +475,11 @@ export class AkActions {
       return; // Player is currently invincible
     }
 
+    // Check if already dying
+    if (AkCore.getIsDying()) {
+      return; // Player is already in death sequence
+    }
+
     // Check if player is punching - invincible while attacking
     if (AkCore.getAction() === Action.PUNCHING) {
       return;
@@ -491,25 +496,189 @@ export class AkActions {
       return;
     }
 
-    // Set invincibility frames (120 frames = 2 seconds at 60fps)
-    AkCore.setInvincible(120);
-
-    // Reduce energy/health
+    // Reduce energy/health first
     if (AkCore.getEnergy() > 0) {
       AkCore.decrementEnergy();
     }
 
-    console.log(`AkActions: Player hit by type ${type} (1=monster, 2=natural, 3=fire). Energy: ${AkCore.getEnergy()}, Invincible frames: ${AkCore.getInvincible()}`);
+    console.log(`AkActions: Player hit by type ${type} (1=monster, 2=natural, 3=fire). Energy: ${AkCore.getEnergy()}`);
 
-    // Die (Angel animation)
+    // Die (Angel animation) - block all input immediately
     if (AkCore.getEnergy() === 0 || type === 2) {
-      console.log(`AkActions: Player death triggered - TODO: Implement Angel death animation`);
-      // TODO: Implement Angel death animation
+      // Set dying state immediately to block all input and collision
+      AkCore.setIsDying(true);
+      AkCore.setInvincible(9999); // Max invincibility during death sequence
+      this.performDeathSequence(type);
+    } else {
+      // Normal hit - set invincibility frames
+      AkCore.setInvincible(120);
     }
 
     // Play hit sound effect
     Sound.playSound('snd_hit');
   }
+
+  // Death sequence variables
+  private static originalX: number = 0;
+  private static originalY: number = 0;
+  private static gameOverActive: boolean = false;
+  private static deathFrameCounter: number = 0;
+  private static originalCameraTracking: number = 0;
+  private static deathSequenceCompleted: boolean = false;
+
+  /**
+   * Perform death sequence with Angel animation (Java hitPlayer death code)
+   */
+  private static performDeathSequence(type: number): void {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    // Store original position
+    this.originalX = player.getx();
+    this.originalY = player.gety();
+    console.log(`AkActions: Death started, storing original position (${this.originalX}, ${this.originalY})`);
+
+    // Stop camera tracking and music immediately
+    this.originalCameraTracking = MainEngine.getCameraTracking();
+    MainEngine.setCameraTracking(0);
+    MainEngine.stopmusic();
+
+    // Play death sound immediately
+    Sound.playSound('snd_death');
+
+    // Start death frame counter
+    this.deathFrameCounter = 0;
+    this.deathSequenceCompleted = false;
+  }
+
+  /**
+   * Update death sequence (called from game loop)
+   */
+  public static updateDeathSequence(): void {
+    if (!AkCore.getIsDying() || this.deathSequenceCompleted) return;
+
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    this.deathFrameCounter++;
+
+    // Move up 1 pixel every frame (original was 200 moves over 200 frames)
+    player.incy(-1);
+
+    // After 200 frames, complete the sequence ONCE
+    if (this.deathFrameCounter >= 200) {
+      // Mark sequence as completed to prevent repeated calls
+      this.deathSequenceCompleted = true;
+      this.completeDeathSequence();
+    }
+  }
+
+  /**
+   * Complete the death sequence and restore player state
+   */
+  private static completeDeathSequence(): void {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    // Restore camera tracking
+    MainEngine.setCameraTracking(this.originalCameraTracking);
+
+    // Reset player position
+    console.log(`AkActions: Restoring player to (${this.originalX}, ${this.originalY})`);
+    player.setx(this.originalX);
+    player.sety(this.originalY);
+    AkCore.setEnergy(3); // Restore full energy
+    AkCore.setInvincible(180); // Give 3 seconds of invincibility to avoid immediate re-death
+    // Reset to normal condition and state
+    const currentCondition = AkCore.getCondition();
+    if (currentCondition === Condition.SWIM) {
+      AkCore.setCondition(Condition.SWIM);
+      AkCore.setState(Status.STOPPED); // Reset to stopped state
+    } else {
+      AkCore.setCondition(Condition.WALK);
+      AkCore.setState(Status.STOPPED); // Reset to stopped state
+    }
+
+    // Reset action to normal
+    AkCore.setAction(Action.NONE);
+
+    // Clear dying state - back to normal gameplay
+    AkCore.setIsDying(false);
+
+    // Restart appropriate music based on condition
+    const restoredCondition = AkCore.getCondition();
+    if (restoredCondition === Condition.SWIM) {
+      MainEngine.playmusic('swim');
+    } else if (restoredCondition === Condition.MOTO) {
+      MainEngine.playmusic('moto');
+    } else {
+      // Default field music for WALK, FLY, HELI, SURF, etc.
+      MainEngine.playmusic('field');
+    }
+
+    console.log(`AkActions: Music restarted for condition ${restoredCondition}`);
+  }
+
+  /**
+   * Game Over screen (Java gameOver method)
+   */
+  private static gameOver(): void {
+    if (this.gameOverActive) return; // Prevent multiple game over screens
+    this.gameOverActive = true;
+
+    const scene = MainEngine.getCurrentScene();
+    if (!scene) return;
+
+    // Create game over display
+    this.showGameOverScreen();
+
+    // Wait for input to restart
+    this.waitForRestartInput();
+  }
+
+  /**
+   * Show game over screen with black background and text
+   */
+  private static showGameOverScreen(): void {
+    // Clear all UI elements and fill screen with black
+    MainEngine.clearUIGraphics();
+    MainEngine.clearUITexts();
+    MainEngine.rectfill(0, 0, 320, 240, {r: 0, g: 0, b: 0});
+
+    // Display game over text
+    MainEngine.printString(120, 100, null, "GAME OVER");
+    MainEngine.printString(10, 120, null, "Not enough money to buy a new life (< $500)");
+  }
+
+  /**
+   * Wait for B1 input to restart the game
+   */
+  private static waitForRestartInput(): void {
+    const scene = MainEngine.getCurrentScene();
+    if (!scene) return;
+
+    const checkInput = () => {
+      const inputManager = (scene as any).inputManager;
+      if (inputManager && inputManager.justPressed('b1')) {
+        // Reset game state
+        AkCore.setInvincible(0);
+        AkCore.setEnergy(3);
+        AkCore.setGold(0);
+        AkCore.setIsDying(false);
+        MapScene.setLevelId(1); // Reset to level 1
+        this.gameOverActive = false;
+
+        // Restart the game (equivalent to autoexec)
+        MapScene.showMapScreen();
+      } else {
+        // Continue checking for input
+        scene.time.delayedCall(100, checkInput);
+      }
+    };
+
+    checkInput();
+  }
+
 
   /**
    * Reset all action states
@@ -517,6 +686,9 @@ export class AkActions {
   public static reset(): void {
     this.pdelay = 0;
     this.tdelay = 0;
+    this.originalX = 0;
+    this.originalY = 0;
+    this.gameOverActive = false;
     AkCore.setHasBrac(false);
     AkCore.setGold(0);
     this.playerDimensions = { x: 0, y: 0, width: 0, height: 0 };

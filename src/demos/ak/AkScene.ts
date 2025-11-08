@@ -168,6 +168,7 @@ export class AkScene extends AkBaseScene {
       AkCore.updatePlayerFrame();
       AkEnemies.processEnemies();
       AkSprites.processSprites();
+      AkActions.updateDeathSequence(); // Handle death animation
       // END GAME LOGIC
     }
 
@@ -208,6 +209,9 @@ export class AkScene extends AkBaseScene {
         this.debugGraphics.strokeRect(collisionBox.px, collisionBox.py, collisionBox.vx, collisionBox.vy);
       }
     }
+
+    // Draw energy display (equivalent to Java energy display code)
+    this.drawEnergyDisplay();
 
     MainEngine.handleCameraTracking();
     this.fpsDisplay.update();
@@ -278,6 +282,44 @@ export class AkScene extends AkBaseScene {
     } catch (error) {
       console.error('AkScene: Error loading monster sprites:', error);
     }
+  }
+
+  /**
+   * Draw energy display using MainEngine rect/rectfill methods
+   * Port of Java energy display code:
+   * for (int i = 0; i < Energy; i++) {
+   *   screen.rectfill(316 - (i * 12), 4, 307 - (i * 12), 9, new Color(0, 0, 0));
+   *   screen.rectfill(315 - (i * 12), 5, 308 - (i * 12), 8, new Color(30, 250, 50));
+   *   screen.rect(316 - (i * 12), 4, 307 - (i * 12), 9, new Color(50, 250, 50));
+   * }
+   */
+  private drawEnergyDisplay(): void {
+    // Clear previous UI elements
+    MainEngine.clearUIGraphics();
+    MainEngine.clearUITexts();
+
+    const energy = AkCore.getEnergy();
+    const gold = AkCore.getGold();
+
+    // Draw energy bars
+    for (let i = 0; i < energy; i++) {
+      const x1 = 316 - (i * 12);
+      const y1 = 4;
+      const x2 = 307 - (i * 12);
+      const y2 = 9;
+
+      // Black background
+      MainEngine.rectfill(x1, y1, x2, y2, {r: 0, g: 0, b: 0});
+
+      // Green fill (bright green)
+      MainEngine.rectfill(x1 - 1, y1 + 1, x2 + 1, y2 - 1, {r: 30, g: 250, b: 50});
+
+      // Green border (lighter green)
+      MainEngine.rect(x1, y1, x2, y2, {r: 50, g: 250, b: 50});
+    }
+
+    // Display gold amount
+    MainEngine.printString(10, 4, null, `Gold: $${gold}`, {r: 255, g: 255, b: 0});
   }
 
   destroy() {

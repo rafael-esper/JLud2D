@@ -93,6 +93,11 @@ export class AkMovement {
 
   // Main movement update method
   update(): void {
+    // Block movement if player is dying
+    if (AkCore.getIsDying()) {
+      return;
+    }
+
     // Decrement invincibility frames
     AkCore.decrementInvincible();
 
@@ -105,6 +110,11 @@ export class AkMovement {
 
   // Control input processing
   processControls(): void {
+    // Block all controls if player is dying
+    if (AkCore.getIsDying()) {
+      return;
+    }
+
     // Process debug controls first
     this.processDebugControls();
 

@@ -11,7 +11,7 @@ export class AkCore {
   // Centralized Akidd character object - use null values initially to avoid circular dependency
   private static akidd = {
     // Energy and health
-    energy: 4,
+    energy: 3,
     invincible: 0,
 
     // Movement and action state (will be initialized by ensureInitialized)
@@ -31,6 +31,9 @@ export class AkCore {
     // Game state
     hasBrac: false,
     gold: 0,
+
+    // Death state
+    isDying: false,
 
     // Debug state
     debug: false
@@ -95,6 +98,20 @@ export class AkCore {
     if (this.akidd.invincible > 0) {
       this.akidd.invincible--;
     }
+  }
+
+  /**
+   * Get dying state
+   */
+  public static getIsDying(): boolean {
+    return this.akidd.isDying;
+  }
+
+  /**
+   * Set dying state
+   */
+  public static setIsDying(value: boolean): void {
+    this.akidd.isDying = value;
   }
 
   /**
@@ -241,6 +258,12 @@ export class AkCore {
   public static showPlayer(): number {
     const player = MainEngine.getPlayer();
     if (!player) return 0;
+
+    // If player is dying, show death animation frames
+    if (this.akidd.isDying) {
+      // Alternate between angel frames 18 and 19 based on playerframe
+      return (this.akidd.playerframe < 3) ? 18 : 19;
+    }
 
     // Check for punch action frame (from AkActions)
     if (this.akidd.action === Action.PUNCHING) {

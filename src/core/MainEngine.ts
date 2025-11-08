@@ -320,6 +320,10 @@ export class MainEngine {
     return MainEngine.cameratracking;
   }
 
+  public static setCameraTracking(mode: number): void {
+    MainEngine.cameratracking = mode;
+  }
+
   /**
    * Set current map reference
    */
@@ -829,5 +833,141 @@ export class MainEngine {
    */
   public static resumeVGMAudio(): void {
     VGMPlayerAPI.resumeAudio();
+  }
+
+  // Graphics methods for UI drawing (like Java screen.rect/rectfill)
+  private static uiGraphics: Phaser.GameObjects.Graphics | null = null;
+  private static uiTexts: Phaser.GameObjects.Text[] = [];
+
+  /**
+   * Initialize UI graphics object for drawing rectangles
+   */
+  private static ensureUIGraphics(): Phaser.GameObjects.Graphics | null {
+    if (!MainEngine.current_scene) return null;
+
+    if (!MainEngine.uiGraphics) {
+      MainEngine.uiGraphics = MainEngine.current_scene.add.graphics();
+      MainEngine.uiGraphics.setScrollFactor(0); // UI elements don't scroll with camera
+      MainEngine.uiGraphics.setDepth(1000); // High depth to render on top
+    }
+    return MainEngine.uiGraphics;
+  }
+
+  /**
+   * Clear all UI graphics (but keep text)
+   */
+  public static clearUIGraphics(): void {
+    const graphics = MainEngine.ensureUIGraphics();
+    if (graphics) {
+      graphics.clear();
+    }
+  }
+
+  /**
+   * Clear all UI text objects
+   */
+  public static clearUITexts(): void {
+    MainEngine.uiTexts.forEach(text => {
+      if (text && text.scene) {
+        text.destroy();
+      }
+    });
+    MainEngine.uiTexts = [];
+  }
+
+  /**
+   * Draw filled rectangle (Java screen.rectfill equivalent)
+   * @param x1 Left coordinate
+   * @param y1 Top coordinate
+   * @param x2 Right coordinate
+   * @param y2 Bottom coordinate
+   * @param color RGB color object {r, g, b}
+   */
+  public static rectfill(x1: number, y1: number, x2: number, y2: number, color: {r: number, g: number, b: number}): void {
+    const graphics = MainEngine.ensureUIGraphics();
+    if (!graphics) return;
+
+    const hexColor = (color.r << 16) | (color.g << 8) | color.b;
+    graphics.fillStyle(hexColor, 1);
+
+    const left = Math.min(x1, x2);
+    const top = Math.min(y1, y2);
+    const width = Math.abs(x2 - x1) + 1;
+    const height = Math.abs(y2 - y1) + 1;
+
+    graphics.fillRect(left, top, width, height);
+  }
+
+  /**
+   * Draw rectangle outline (Java screen.rect equivalent)
+   * @param x1 Left coordinate
+   * @param y1 Top coordinate
+   * @param x2 Right coordinate
+   * @param y2 Bottom coordinate
+   * @param color RGB color object {r, g, b}
+   */
+  public static rect(x1: number, y1: number, x2: number, y2: number, color: {r: number, g: number, b: number}): void {
+    const graphics = MainEngine.ensureUIGraphics();
+    if (!graphics) return;
+
+    const hexColor = (color.r << 16) | (color.g << 8) | color.b;
+    graphics.lineStyle(1, hexColor, 1);
+
+    const left = Math.min(x1, x2);
+    const top = Math.min(y1, y2);
+    const width = Math.abs(x2 - x1) + 1;
+    const height = Math.abs(y2 - y1) + 1;
+
+    graphics.strokeRect(left, top, width, height);
+  }
+
+  /**
+   * Print text string (Java screen.printString equivalent)
+   * @param x X coordinate
+   * @param y Y coordinate
+   * @param fontStyle Font style (ignored for now, uses default)
+   * @param text Text to display
+   * @param color Optional color (default: white)
+   */
+  public static printString(x: number, y: number, fontStyle: any, text: string, color?: {r: number, g: number, b: number}): void {
+    if (!MainEngine.current_scene) return;
+
+    const hexColor = color ? ((color.r << 16) | (color.g << 8) | color.b) : 0xffffff;
+
+    const textObj = MainEngine.current_scene.add.text(x, y, text, {
+      fontFamily: 'monospace',
+      fontSize: '16px',
+      color: `#${hexColor.toString(16).padStart(6, '0')}`
+    });
+
+    textObj.setScrollFactor(0); // UI text doesn't scroll with camera
+    textObj.setDepth(1001); // Higher than UI graphics
+
+    // Track text objects for cleanup
+    MainEngine.uiTexts.push(textObj);
+  }
+
+  /**
+   * Clean up UI graphics when scene changes
+   */
+  public static cleanup(): void {
+    if (MainEngine.uiGraphics) {
+      MainEngine.uiGraphics.destroy();
+      MainEngine.uiGraphics = null;
+    }
+
+    MainEngine.clearUITexts();
+
+    MainEngine.entities = [];
+    MainEngine.numentities = 0;
+    MainEngine.player = -1;
+    MainEngine.myself = null;
+    MainEngine.current_map = null;
+    MainEngine.current_scene = null;
+    MainEngine.current_config = null;
+    MainEngine.cameratracking = 0;
+    MainEngine.entitiespaused = false;
+    MainEngine.screenTransitioning = false;
+    console.log('MainEngine cleanup completed');
   }
 }
