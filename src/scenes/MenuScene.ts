@@ -10,7 +10,7 @@ export class MenuScene extends Phaser.Scene {
   private config: GameConfig;
   private inputManager: InputManager;
   private selectedDemo: number = 0;
-  private menuItems: string[] = ['Demo 1 - Island World', 'Demo 2 - Golden Axe Warrior', 'Demo 3 - VGM Player', 'Demo 4 - Alex Kidd', 'Settings', 'Exit'];
+  private menuItems: string[] = ['Demo 1 - Island World', 'Demo 2 - Golden Axe Warrior', 'Demo 3 - VGM Player', 'Demo 4 - Alex Kidd', 'Demo 5 - Phantasy Star', 'Settings', 'Exit'];
   private menuTexts: Phaser.GameObjects.Text[] = [];
 
   constructor() {
@@ -40,13 +40,6 @@ export class MenuScene extends Phaser.Scene {
     });
     title.setOrigin(0.5);
 
-    // Subtitle
-    const subtitle = this.add.text(width / 2, 90, 'Select a demo to run:', {
-      fontSize: '16px',
-      fontFamily: 'monospace',
-      color: '#cccccc'
-    });
-    subtitle.setOrigin(0.5);
 
     // Menu items
     this.createMenu();
@@ -91,8 +84,8 @@ export class MenuScene extends Phaser.Scene {
 
   private createMenu() {
     const width = this.cameras.main.width;
-    const startY = 140;
-    const spacing = 30;
+    const startY = 110;
+    const spacing = 24;
 
     this.menuTexts = [];
 
@@ -136,14 +129,18 @@ export class MenuScene extends Phaser.Scene {
         this.scene.start('Demo3Scene', { demoPath: 'src/demos/demo3', config: this.config });
         break;
       case 3: // Demo 4
-        console.log('Starting TitleScene');
+        console.log('Starting AK TitleScene');
         this.scene.start('TitleScene', { demoPath: 'src/demos/ak' });
         break;
-      case 4: // Settings
+      case 4: // Demo 5
+        console.log('Starting PS TitleScene');
+        this.scene.start('PSTitleScene', { demoPath: 'src/demos/ps', config: this.config });
+        break;
+      case 5: // Settings
         console.log('Starting SettingsScene');
         this.scene.start('SettingsScene', { config: this.config });
         break;
-      case 5: // Exit
+      case 6: // Exit
         console.log('Exiting game');
         if (confirm('Exit game?')) {
           window.close();
