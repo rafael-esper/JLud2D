@@ -14,6 +14,23 @@ export enum MenuState {
   ANIM3 = 'ANIM3'
 }
 
+export class MenuStateHelper {
+  private static readonly stateConfigs = new Map<MenuState, { animIndex: number }>([
+    [MenuState.OPEN, { animIndex: 0 }],
+    [MenuState.TEXT, { animIndex: 0 }],
+    [MenuState.READY, { animIndex: 1 }],
+    [MenuState.CLOSE, { animIndex: 0 }],
+    [MenuState.END, { animIndex: 0 }],
+    [MenuState.ANIM1, { animIndex: 2 }],
+    [MenuState.ANIM2, { animIndex: 3 }],
+    [MenuState.ANIM3, { animIndex: 4 }]
+  ]);
+
+  public static getAnimIndex(state: MenuState): number {
+    return this.stateConfigs.get(state)?.animIndex || 0;
+  }
+}
+
 export abstract class MenuType {
   public static readonly MAX_DELAY: number = 12;
 

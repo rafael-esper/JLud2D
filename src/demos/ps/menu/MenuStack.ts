@@ -8,7 +8,7 @@ import { MenuPromptBox } from './MenuPromptBox';
 import { MenuTextBox } from './MenuTextBox';
 import { InputManager } from '../../../config/Controls';
 import { PSGame } from '../PSGame';
-import { PS1Sound } from '../PSLibSound';
+import { PS1Sound } from '../game/PSLibSound';
 
 export enum PSOutcome {
   NO_FADE = 'NO_FADE',

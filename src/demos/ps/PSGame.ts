@@ -4,9 +4,9 @@
  */
 
 import { MainEngine } from '../../core/MainEngine';
-import { PS1Music } from './PSLibMusic';
-import { PS1Image } from './PSLibImage';
-import { PS1Sound } from './PSLibSound';
+import { PS1Music } from './game/PSLibMusic';
+import { PS1Image } from './game/PSLibImage';
+import { PS1Sound } from './game/PSLibSound';
 
 export enum ScreenSize {
   SCREEN_320_240,

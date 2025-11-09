@@ -5,8 +5,8 @@
 
 import { PSScene, PSScene_Type, PSSpecialEntity } from './PSScene';
 import { PSGame, ScreenSize, GameType } from './PSGame';
-import { PS1Music } from './PSLibMusic';
-import { PS1Image } from './PSLibImage';
+import { PS1Music } from './game/PSLibMusic';
+import { PS1Image } from './game/PSLibImage';
 import { MenuPromptBox } from './menu/MenuPromptBox';
 import { PSCancellable } from './menu/MenuStack';
 

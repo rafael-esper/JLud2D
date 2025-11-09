@@ -6,7 +6,7 @@
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { PSGame, ScreenSize } from './PSGame';
-import { PS1Image } from './PSLibImage';
+import { PS1Image } from './game/PSLibImage';
 import { MenuStack, PSCancellable } from './menu/MenuStack';
 import { MenuPromptBox } from './menu/MenuPromptBox';
 import { MenuTextBox } from './menu/MenuTextBox';
