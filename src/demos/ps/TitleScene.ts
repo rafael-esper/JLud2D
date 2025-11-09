@@ -8,6 +8,7 @@ import { PSGame, ScreenSize, GameType } from './PSGame';
 import { PS1Music } from './PSLibMusic';
 import { PS1Image } from './PSLibImage';
 import { MenuPromptBox } from './menu/MenuPromptBox';
+import { PSCancellable } from './menu/MenuStack';
 
 export class TitleScene extends PSScene {
   constructor() {
@@ -52,16 +53,16 @@ export class TitleScene extends PSScene {
   private async startMainMenuLoop(): Promise<void> {
     while (true) {
       // Create main menu using the new ported system
-      const mainMenu = this.createPromptBox(90, 140, [
+      const mainMenu = this.menuStack.createPromptBox(90, 140, [
         PSGame.getString("Title_Newgame"),
         PSGame.getString("Title_Loadgame"),
         PSGame.getString("Title_Credits"),
         PSGame.getString("Title_Options_Language")
       ], true);
 
-      this.pushMenu(mainMenu);
-      const mainOpt = await this.waitOpt(true) + 1; // Java uses 1-based indexing
-      this.popMenu();
+      this.menuStack.push(mainMenu);
+      const mainOpt = await this.menuStack.waitOpt(PSCancellable.TRUE) + 1; // Java uses 1-based indexing
+      this.menuStack.pop();
 
       if (mainOpt === 0) {
         continue; // Cancelled
@@ -103,7 +104,7 @@ export class TitleScene extends PSScene {
    * Now uses the ported menu system with circles and red cursor
    */
   private async newGameMenu(): Promise<boolean> {
-    const gameMenu = this.createPromptBox(70, 130, [
+    const gameMenu = this.menuStack.createPromptBox(70, 130, [
       PSGame.getString("Title_Newgame_Alis"),
       PSGame.getString("Title_Newgame_Odin"),
       PSGame.getString("Title_Newgame_Noah"),
@@ -112,15 +113,15 @@ export class TitleScene extends PSScene {
       PSGame.getString("Title_Newgame_PSArena")
     ], true);
 
-    this.pushMenu(gameMenu);
+    this.menuStack.push(gameMenu);
 
     // Disable options (equivalent to Java setDisabled)
     gameMenu.setDisabled(2); // Noah
     gameMenu.setDisabled(3); // Party
     gameMenu.setDisabled(4); // Extended
 
-    const opt = await this.waitOpt(true);
-    this.popMenu();
+    const opt = await this.menuStack.waitOpt(PSCancellable.TRUE);
+    this.menuStack.pop();
 
     if (opt < 0) {
       return false; // Cancelled
@@ -167,15 +168,15 @@ export class TitleScene extends PSScene {
    * Now uses the ported menu system with circles and red cursor
    */
   private async creditsMenu(): Promise<void> {
-    const creditsMenu = this.createPromptBox(90, 140, [
+    const creditsMenu = this.menuStack.createPromptBox(90, 140, [
       PSGame.getString("Title_Credits_About"),
       PSGame.getString("Title_Credits_Game"),
       PSGame.getString("Title_Credits_Contact")
     ], true);
 
-    this.pushMenu(creditsMenu);
-    const creditsOpt = await this.waitOpt(true) + 1;
-    this.popMenu();
+    this.menuStack.push(creditsMenu);
+    const creditsOpt = await this.menuStack.waitOpt(PSCancellable.TRUE) + 1;
+    this.menuStack.pop();
 
     if (creditsOpt === 0) {
       return; // Cancelled
@@ -235,16 +236,16 @@ export class TitleScene extends PSScene {
    */
   private async showGameCredits(): Promise<void> {
     // Use the ported text box system
-    const textBox = this.createTextBox(
+    const textBox = this.menuStack.createTextBox(
       20, 50, 280, 140,
       "Game Credits - Original Game: Sega (1987)",
       "This Demo Port: JLud2D Team - TypeScript/Phaser",
       true, true
     );
 
-    this.pushMenu(textBox);
-    await this.waitAnyButton();
-    this.popMenu();
+    this.menuStack.push(textBox);
+    await this.menuStack.waitAnyButton();
+    this.menuStack.pop();
   }
 
   /**
@@ -252,16 +253,16 @@ export class TitleScene extends PSScene {
    */
   private async showContactInfo(): Promise<void> {
     // Use the ported text box system
-    const textBox = this.createTextBox(
+    const textBox = this.menuStack.createTextBox(
       20, 50, 280, 140,
       "Contact Information - JLud2D Project",
       "Phaser 4 Port - Check project documentation",
       true, true
     );
 
-    this.pushMenu(textBox);
-    await this.waitAnyButton();
-    this.popMenu();
+    this.menuStack.push(textBox);
+    await this.menuStack.waitAnyButton();
+    this.menuStack.pop();
   }
 
   destroy() {

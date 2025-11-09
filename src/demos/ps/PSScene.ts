@@ -175,56 +175,13 @@ export abstract class PSScene extends Phaser.Scene {
   }
 
   /**
-   * Wait for option selection (equivalent to Java waitOpt)
-   */
-  protected async waitOpt(cancellable: boolean = true): Promise<number> {
-    const psCancel = cancellable ? PSCancellable.TRUE : PSCancellable.FALSE;
-    return await this.menuStack.waitOpt(psCancel);
-  }
-
-  /**
-   * Create a prompt box menu
-   */
-  protected createPromptBox(x: number, y: number, options: string[], hasDelay: boolean = true): MenuPromptBox {
-    return this.menuStack.createPromptBox(x, y, options, hasDelay);
-  }
-
-  /**
-   * Create a text box
-   */
-  protected createTextBox(x: number, y: number, wx: number, wy: number, r1: string, r2: string, hasDelay: boolean, hasMore: boolean): MenuTextBox {
-    return this.menuStack.createTextBox(x, y, wx, wy, r1, r2, hasDelay, hasMore);
-  }
-
-  /**
-   * Push menu onto stack
-   */
-  protected pushMenu(menu: MenuPromptBox | MenuTextBox): void {
-    this.menuStack.push(menu);
-  }
-
-  /**
-   * Pop menu from stack
-   */
-  protected popMenu(): any {
-    return this.menuStack.pop();
-  }
-
-  /**
-   * Wait for any button press
-   */
-  protected async waitAnyButton(): Promise<void> {
-    await this.menuStack.waitAnyButton();
-  }
-
-  /**
    * Show scrolling text (placeholder for Stext equivalent)
    */
   protected async showScrollingText(text: string): Promise<void> {
     console.log(`PSScene: Showing text: ${text}`);
     // In full implementation, this would show scrolling text
     // For now, just wait for button press
-    await this.waitAnyButton();
+    await this.menuStack.waitAnyButton();
   }
 
   /**

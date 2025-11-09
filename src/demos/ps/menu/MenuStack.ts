@@ -7,6 +7,8 @@ import { MenuType, MenuState } from './MenuType';
 import { MenuPromptBox } from './MenuPromptBox';
 import { MenuTextBox } from './MenuTextBox';
 import { InputManager } from '../../../config/Controls';
+import { PSGame } from '../PSGame';
+import { PS1Sound } from '../PSLibSound';
 
 export enum PSOutcome {
   NO_FADE = 'NO_FADE',
@@ -229,12 +231,12 @@ export class MenuStack {
         }
 
         if (this.inputManager.justPressed('up')) {
-          // TODO: Play menu sound
+          PSGame.playSound(PS1Sound.MENU);
           box!.previousOption();
         }
 
         if (this.inputManager.justPressed('down')) {
-          // TODO: Play menu sound
+          PSGame.playSound(PS1Sound.MENU);
           box!.nextOption();
         }
 

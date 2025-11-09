@@ -6,6 +6,7 @@
 import { MainEngine } from '../../core/MainEngine';
 import { PS1Music } from './PSLibMusic';
 import { PS1Image } from './PSLibImage';
+import { PS1Sound } from './PSLibSound';
 
 export enum ScreenSize {
   SCREEN_320_240,
@@ -35,6 +36,9 @@ export class PSGameData {
 export class PSGame {
   public static gameData: PSGameData = new PSGameData();
   private static currentScene: Phaser.Scene | null = null;
+
+  // Sound library cache (equivalent to Java soundLIB HashMap)
+  private static soundLIB: Map<PS1Sound, string> = new Map();
 
   // Localization strings (simplified for demo - in original this loads from resource bundles)
   private static strings: { [key: string]: string } = {
@@ -131,5 +135,51 @@ export class PSGame {
    */
   public static languageMenu(x: number, y: number): void {
     console.log(`PSGame: Language menu at (${x}, ${y}) not implemented in demo`);
+  }
+
+  /**
+   * Play sound - direct port of Java PSGame.playSound()
+   */
+  public static playSound(sound: PS1Sound): void {
+    if (!sound) {
+      console.error("PSGame: Sound is null");
+      return;
+    }
+
+    if (!this.currentScene) {
+      console.error("PSGame: No current scene to play sound");
+      return;
+    }
+
+    try {
+      // Get sound path
+      const soundPath = sound as string;
+
+      // Create audio key from filename
+      const audioKey = soundPath.split('/').pop()?.replace('.wav', '') || 'unknown';
+
+      // Cache check - if not cached, load and cache it
+      if (!this.soundLIB.has(sound)) {
+        this.soundLIB.set(sound, soundPath);
+
+        // Load the sound if not already loaded
+        if (!this.currentScene.cache.audio.exists(audioKey)) {
+          this.currentScene.load.audio(audioKey, soundPath);
+          this.currentScene.load.once('complete', () => {
+            // Play sound once loaded
+            this.currentScene!.sound.play(audioKey, { volume: 0.7 });
+          });
+          this.currentScene.load.start();
+        } else {
+          // Sound already loaded, play it
+          this.currentScene.sound.play(audioKey, { volume: 0.7 });
+        }
+      } else {
+        // Sound is cached, play it directly
+        this.currentScene.sound.play(audioKey, { volume: 0.7 });
+      }
+    } catch (error) {
+      console.error(`PSGame: Error playing sound ${sound}:`, error);
+    }
   }
 }
