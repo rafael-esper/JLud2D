@@ -1,12 +1,13 @@
 /**
  * TitleScene - Phantasy Star Title Screen
- * Port of Title.java - Main title screen with menu system
+ * Updated to use the ported menu system with circles and red cursor
  */
 
 import { PSScene, PSScene_Type, PSSpecialEntity } from './PSScene';
 import { PSGame, ScreenSize, GameType } from './PSGame';
 import { PS1Music } from './PSLibMusic';
 import { PS1Image } from './PSLibImage';
+import { MenuPromptBox } from './menu/MenuPromptBox';
 
 export class TitleScene extends PSScene {
   constructor() {
@@ -44,30 +45,13 @@ export class TitleScene extends PSScene {
     await this.startMainMenuLoop();
   }
 
-  update() {
-    // Only handle input if no menu is currently active
-    if (this.inputManager && this.menuStack.isEmpty()) {
-      this.inputManager.updateControls();
-
-      // Handle ESC/Menu - Back to main menu
-      if (this.inputManager.justPressed('menu')) {
-        this.backToMainMenu();
-      }
-    }
-  }
-
-  private backToMainMenu(): void {
-    console.log('TitleScene: Returning to main menu...');
-    PSGame.stopMusic();
-    this.scene.start('MenuScene', { config: this.config });
-  }
-
   /**
    * Main menu loop - equivalent to Title.java startmap() method
+   * Now uses the ported menu system with circles and red cursor
    */
   private async startMainMenuLoop(): Promise<void> {
     while (true) {
-      // Create main menu (equivalent to Java createPromptBox)
+      // Create main menu using the new ported system
       const mainMenu = this.createPromptBox(90, 140, [
         PSGame.getString("Title_Newgame"),
         PSGame.getString("Title_Loadgame"),
@@ -116,6 +100,7 @@ export class TitleScene extends PSScene {
 
   /**
    * New Game menu - equivalent to Title.java newGameMenu() method
+   * Now uses the ported menu system with circles and red cursor
    */
   private async newGameMenu(): Promise<boolean> {
     const gameMenu = this.createPromptBox(70, 130, [
@@ -179,6 +164,7 @@ export class TitleScene extends PSScene {
 
   /**
    * Credits menu - equivalent to Title.java creditsMenu() method
+   * Now uses the ported menu system with circles and red cursor
    */
   private async creditsMenu(): Promise<void> {
     const creditsMenu = this.createPromptBox(90, 140, [
@@ -245,67 +231,37 @@ export class TitleScene extends PSScene {
   }
 
   /**
-   * Show game credits text
+   * Show game credits text using the ported menu system
    */
   private async showGameCredits(): Promise<void> {
-    const credits = [
-      "Game Credits",
-      "",
-      "Original Game: Sega",
-      "Original Release: 1987",
-      "Platform: Master System",
-      "",
-      "This Demo Port:",
-      "Programming: JLud2D Team",
-      "Music: Original VGM files",
-      "Graphics: Original assets",
-      "",
-      "Special Thanks:",
-      "Phantasy Star community"
-    ];
+    // Use the ported text box system
+    const textBox = this.createTextBox(
+      20, 50, 280, 140,
+      "Game Credits - Original Game: Sega (1987)",
+      "This Demo Port: JLud2D Team - TypeScript/Phaser",
+      true, true
+    );
 
-    // Create credit display (simplified version)
-    const creditText = this.add.text(10, 10, credits.join('\n'), {
-      fontSize: '12px',
-      fontFamily: 'monospace',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    });
-    creditText.setDepth(1000);
-
+    this.pushMenu(textBox);
     await this.waitAnyButton();
-    creditText.destroy();
+    this.popMenu();
   }
 
   /**
-   * Show contact information
+   * Show contact information using the ported menu system
    */
   private async showContactInfo(): Promise<void> {
-    const contactInfo = [
-      "Contact Information",
-      "",
-      "JLud2D Project",
-      "Phaser 4 Port",
-      "",
-      "Based on original Java engine",
-      "Ported to TypeScript/Phaser",
-      "",
-      "For more information:",
-      "Check project documentation",
-      "",
-      "Thank you for your interest!"
-    ];
+    // Use the ported text box system
+    const textBox = this.createTextBox(
+      20, 50, 280, 140,
+      "Contact Information - JLud2D Project",
+      "Phaser 4 Port - Check project documentation",
+      true, true
+    );
 
-    const contactText = this.add.text(40, 10, contactInfo.join('\n'), {
-      fontSize: '12px',
-      fontFamily: 'monospace',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    });
-    contactText.setDepth(1000);
-
+    this.pushMenu(textBox);
     await this.waitAnyButton();
-    contactText.destroy();
+    this.popMenu();
   }
 
   destroy() {

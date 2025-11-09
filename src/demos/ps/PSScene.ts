@@ -1,13 +1,15 @@
 /**
  * PSScene - Phantasy Star Base Scene
- * Port of PSMenu.java scene management functionality
+ * Updated to use the ported MenuStack system from Java
  */
 
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { PSGame, ScreenSize } from './PSGame';
 import { PS1Image } from './PSLibImage';
-import { MenuStack } from './menu/MenuStack';
+import { MenuStack, PSCancellable } from './menu/MenuStack';
+import { MenuPromptBox } from './menu/MenuPromptBox';
+import { MenuTextBox } from './menu/MenuTextBox';
 
 export enum PSScene_Type {
   BLACK,
@@ -82,11 +84,44 @@ export abstract class PSScene extends Phaser.Scene {
     // PS demo uses b1 for selection (start and menu are always included)
     this.inputManager.setMobileButtons(['b1']);
 
-    // Initialize menu stack
-    this.menuStack = new MenuStack(this);
+    // Initialize the new ported menu stack
+    this.menuStack = new MenuStack(this, this.inputManager);
 
     // Set scene reference in PSGame
     PSGame.setCurrentScene(this);
+
+    // Initialize PS menu system (equivalent to Java initPSMenu)
+    this.initPSMenu();
+  }
+
+  /**
+   * Initialize PS Menu system - equivalent to Java PSMenu.initPSMenu()
+   */
+  private initPSMenu(): void {
+    // Set screen dimensions based on camera
+    this.menuStack.MAX_SCREEN_X = this.cameras.main.width;
+    this.menuStack.MAX_SCREEN_Y = this.cameras.main.height;
+
+    // Font settings are already set in MenuStack as static values
+    console.log(`PSScene: Initialized menu system with screen ${this.menuStack.MAX_SCREEN_X}x${this.menuStack.MAX_SCREEN_Y}`);
+  }
+
+  /**
+   * Main update loop - handles menu drawing
+   */
+  update() {
+    // Draw all menus every frame
+    this.menuStack.drawMenus();
+
+    // Only handle input if no menu is currently active
+    if (!this.menuStack.hasMenu()) {
+      this.inputManager.updateControls();
+
+      // Handle ESC/Menu - Back to main menu
+      if (this.inputManager.justPressed('menu')) {
+        this.backToMainMenu();
+      }
+    }
   }
 
   /**
@@ -143,20 +178,28 @@ export abstract class PSScene extends Phaser.Scene {
    * Wait for option selection (equivalent to Java waitOpt)
    */
   protected async waitOpt(cancellable: boolean = true): Promise<number> {
-    return await this.menuStack.waitOpt(cancellable);
+    const psCancel = cancellable ? PSCancellable.TRUE : PSCancellable.FALSE;
+    return await this.menuStack.waitOpt(psCancel);
   }
 
   /**
    * Create a prompt box menu
    */
-  protected createPromptBox(x: number, y: number, options: string[], cancellable: boolean = true) {
-    return this.menuStack.createPromptBox(x, y, options, cancellable);
+  protected createPromptBox(x: number, y: number, options: string[], hasDelay: boolean = true): MenuPromptBox {
+    return this.menuStack.createPromptBox(x, y, options, hasDelay);
+  }
+
+  /**
+   * Create a text box
+   */
+  protected createTextBox(x: number, y: number, wx: number, wy: number, r1: string, r2: string, hasDelay: boolean, hasMore: boolean): MenuTextBox {
+    return this.menuStack.createTextBox(x, y, wx, wy, r1, r2, hasDelay, hasMore);
   }
 
   /**
    * Push menu onto stack
    */
-  protected pushMenu(menu: any): void {
+  protected pushMenu(menu: MenuPromptBox | MenuTextBox): void {
     this.menuStack.push(menu);
   }
 
@@ -171,7 +214,7 @@ export abstract class PSScene extends Phaser.Scene {
    * Wait for any button press
    */
   protected async waitAnyButton(): Promise<void> {
-    return await this.menuStack.waitAnyButton();
+    await this.menuStack.waitAnyButton();
   }
 
   /**
@@ -223,5 +266,11 @@ export abstract class PSScene extends Phaser.Scene {
         });
       }
     });
+  }
+
+  private backToMainMenu(): void {
+    console.log('PSScene: Returning to main menu...');
+    PSGame.stopMusic();
+    this.scene.start('MenuScene', { config: this.config });
   }
 }
