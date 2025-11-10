@@ -6,6 +6,8 @@
 import { MenuType, MenuState } from './MenuType';
 import { MenuPromptBox } from './MenuPromptBox';
 import { MenuTextBox } from './MenuTextBox';
+import { MenuLabelBox } from './MenuLabelBox';
+import { MenuImageBox } from './MenuImageBox';
 import { InputManager } from '../../../config/Controls';
 import { PSGame } from '../PSGame';
 import { PS1Sound } from '../game/PSLibSound';
@@ -80,47 +82,6 @@ export class MenuStack {
     return menu;
   }
 
-  /**
-   * Draw all menus - direct port of Java drawMenus()
-   */
-  public drawMenus(): void {
-    // Clear previous graphics
-    this.graphics.clear();
-
-    // Draw background
-    if (this.back === null) {
-      // Render scene background if no specific background set
-    } else {
-      // Draw background image
-      if (this.back && this.back.texture) {
-        // Background is already positioned
-      }
-    }
-
-    // Draw entity sprite if present
-    if (this.entitySprite) {
-      this.entitySprite.setPosition(this.entityX, this.entityY);
-    }
-
-    // If there is a waiting delay, don't draw menus, just the scene
-    if (this.waitDelay > 0) {
-      this.waitDelay--;
-      return;
-    }
-
-    // Draw each menu - only draw the top menu (last one on stack)
-    if (this.menus.length > 0) {
-      const topMenu = this.menus[this.menus.length - 1];
-
-      if (topMenu.drawDelay > 0) {
-        // Draw just the opening menu
-        topMenu.draw(true);
-      } else {
-        // Draw the active top menu
-        topMenu.draw(true);
-      }
-    }
-  }
 
   /**
    * Create prompt box - direct port of Java createPromptBox()
@@ -134,6 +95,55 @@ export class MenuStack {
    */
   public createTextBox(x: number, y: number, wx: number, wy: number, r1: string, r2: string, hasDelay: boolean, hasMore: boolean): MenuTextBox {
     return new MenuTextBox(this, x, y, wx, wy, r1, r2, hasDelay, hasMore);
+  }
+
+  /**
+   * Create one line label box - direct port of Java createOneLabelBox()
+   */
+  public createOneLabelBox(xpos: number, ypos: number, text: string, delay: boolean): MenuLabelBox {
+    return new MenuLabelBox(this.scene, this, xpos, ypos, [text], delay, false);
+  }
+
+  /**
+   * Create centered label box - direct port of Java createCenteredLabelBox()
+   */
+  public createCenteredLabelBox(xpos: number, ypos: number, text: string, delay: boolean): MenuLabelBox {
+    return new MenuLabelBox(this.scene, this, xpos, ypos, [text], delay, true);
+  }
+
+  /**
+   * Create multi-line label box - direct port of Java createLabelBox()
+   */
+  public createLabelBox(xpos: number, ypos: number, text: string[], delay: boolean): MenuLabelBox {
+    return new MenuLabelBox(this.scene, this, xpos, ypos, text, delay, false);
+  }
+
+  /**
+   * Create image box - direct port of Java createImageBox()
+   */
+  public createImageBox(xpos: number, ypos: number, image: any, delay: boolean): MenuImageBox {
+    return new MenuImageBox(this.scene, this, xpos, ypos, image, delay);
+  }
+
+  /**
+   * Get maximum text size - direct port of Java getMaxSize()
+   */
+  public static getMaxSize(options: string[]): number {
+    let max = 0;
+    for (const s of options) {
+      if (s && s.length > max) {
+        max = s.length;
+      }
+    }
+    return max;
+  }
+
+  /**
+   * Get text length - direct port of Java getTextLength()
+   */
+  public static getTextLength(s: string): number {
+    // In Java this uses FontMetrics, here we approximate
+    return s.length * MenuStack.fontXSize;
   }
 
   /**
@@ -325,5 +335,241 @@ export class MenuStack {
    */
   public setDelay(delay: number): void {
     this.waitDelay = delay;
+  }
+
+  /**
+   * Set delay (Java alias) - direct port of Java setdelay()
+   */
+  public setdelay(delay: number): void {
+    this.setDelay(delay);
+  }
+
+  // PS1 Player order matrix - direct port from Java
+  private static readonly playerOrder: number[][] = [
+    [0],
+    [0, 1],
+    [1, 0, 2],
+    [1, 2, 0, 3],
+    [2, 1, 3, 0, 4]
+  ];
+
+  // Background animation support
+  public backAnim: any = null; // MenuCHR reference
+  public static moreIcon: any = null; // VImage reference
+
+  /**
+   * Wait for button 1 press - direct port of Java waitB1()
+   */
+  public async waitB1(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.checkPreMenu();
+
+      const handleInput = () => {
+        this.inputManager.updateControls();
+
+        if (this.inputManager.justPressed('b1') || this.inputManager.justPressed('start')) {
+          resolve();
+          return;
+        }
+
+        this.drawMenus();
+        this.scene.time.delayedCall(16, handleInput);
+      };
+
+      handleInput();
+    }).then(() => {
+      this.checkPosMenu();
+    });
+  }
+
+  /**
+   * Wait for menu to reach READY state - direct port of Java waitReady()
+   */
+  public async waitReady(menu: MenuType): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.checkPreMenu();
+
+      const handleWait = () => {
+        if (menu.state === MenuState.READY) {
+          resolve();
+          return;
+        }
+
+        this.drawMenus();
+        this.scene.time.delayedCall(16, handleWait);
+      };
+
+      handleWait();
+    }).then(() => {
+      this.checkPosMenu();
+    });
+  }
+
+  /**
+   * Wait for animation to end - direct port of Java waitAnimationEnd()
+   */
+  public async waitAnimationEnd(menu: MenuType): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.checkPreMenu();
+
+      const handleWait = () => {
+        if (menu.state === MenuState.CLOSE) {
+          resolve();
+          return;
+        }
+
+        this.drawMenus();
+        this.scene.time.delayedCall(16, handleWait);
+      };
+
+      handleWait();
+    }).then(() => {
+      this.checkPosMenu();
+    });
+  }
+
+  /**
+   * Wait for specific time delay - direct port of Java waitDelay()
+   */
+  public async waitDelayFrames(delay: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.checkPreMenu();
+
+      let timer = 0;
+      const handleWait = () => {
+        if (timer >= delay) {
+          resolve();
+          return;
+        }
+
+        timer++;
+        this.drawMenus();
+        this.scene.time.delayedCall(16, handleWait);
+      };
+
+      handleWait();
+    }).then(() => {
+      this.checkPosMenu();
+    });
+  }
+
+  /**
+   * Wait for specific time delay - Java compatibility alias
+   */
+  public async waitDelay(delay: number): Promise<void> {
+    return this.waitDelayFrames(delay);
+  }
+
+  /**
+   * Wait for button 1 or timeout - direct port of Java waitB1OrTimeout()
+   */
+  public async waitB1OrTimeout(menu: MenuType): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.checkPreMenu();
+
+      const handleInput = () => {
+        this.inputManager.updateControls();
+
+        if ((this.inputManager.justPressed('b1') || this.inputManager.justPressed('start')) ||
+            menu.state === MenuState.CLOSE) {
+          resolve();
+          return;
+        }
+
+        this.drawMenus();
+        this.scene.time.delayedCall(16, handleInput);
+      };
+
+      handleInput();
+    });
+  }
+
+  /**
+   * Pre-menu processing - direct port of Java checkPreMenu()
+   */
+  public checkPreMenu(): void {
+    // Pause entity processing during menu display
+    // In original Java this would call setentitiespaused(true)
+    // For now, this is a placeholder for menu state setup
+  }
+
+  /**
+   * Post-menu processing - direct port of Java checkPosMenu()
+   */
+  public checkPosMenu(): void {
+    // Resume entity processing after menu
+    // In original Java this would call setentitiespaused(false)
+    // For now, this is a placeholder for menu state cleanup
+  }
+
+  /**
+   * Enhanced drawMenus with background animation support - enhanced from Java original
+   */
+  public drawMenus(): void {
+    // Clear previous graphics
+    this.graphics.clear();
+
+    // Draw background or render scene
+    if (this.back === null && this.backAnim === null) {
+      // Render scene background if no specific background set
+      // In original this would call screen.render()
+    } else if (this.back !== null) {
+      // Background image is already positioned by setBackground()
+    } else if (this.backAnim !== null) {
+      // Draw background animation
+      if (this.backAnim && typeof this.backAnim.draw === 'function') {
+        this.backAnim.draw(true);
+      }
+    }
+
+    // Draw entity sprite if present
+    if (this.entitySprite && this.entityX !== undefined && this.entityY !== undefined) {
+      this.entitySprite.setPosition(this.entityX, this.entityY);
+      this.entitySprite.setVisible(true);
+    }
+
+    // Draw NPC sprite if present
+    if (this.npc) {
+      // Draw NPC CHR at specified position
+      // This would need CHR rendering integration
+    }
+
+    // Draw player party if enabled
+    if (this.showPlayers) {
+      this.drawPlayerParty();
+    }
+
+    // Draw all menus in stack order
+    for (let i = 0; i < this.menus.length; i++) {
+      const menu = this.menus[i];
+      const isActive = (i === this.menus.length - 1); // Last menu is active
+      menu.draw(isActive);
+    }
+  }
+
+  /**
+   * Draw player party - port of Java player rendering logic
+   */
+  private drawPlayerParty(): void {
+    // This would need integration with Party system
+    // Original Java code renders party members based on playerOrder matrix
+    // Placeholder for now - would need Party class integration
+
+    const downPos = this.MAX_SCREEN_Y - 64; // Position players at bottom of screen
+
+    // Example of how this would work with party system:
+    // const party = PSGame.getParty();
+    // const partyCount = party.getMemberCount();
+    // if (partyCount > 0 && partyCount <= 5) {
+    //   const order = MenuStack.playerOrder[partyCount - 1];
+    //   for (let i = 0; i < order.length; i++) {
+    //     const member = party.getMember(order[i]);
+    //     if (member) {
+    //       const x = 308 - (partyCount - 1) * 20 + (order[i] * 40);
+    //       const y = downPos + 64;
+    //       // Render member sprite: member.getChr().render(x, y, frame)
+    //     }
+    //   }
+    // }
   }
 }
