@@ -1,111 +1,349 @@
-{
-  "tilesets" : [ {
-    "firstgid" : 1,
-    "source" : "3d.tiles.json"
-  }, {
-    "tilewidth" : 16,
-    "tileheight" : 16,
-    "tilecount" : 220,
-    "columns" : 20,
-    "spacing" : 0,
-    "firstgid" : 12,
-    "image" : "default.meta.png",
-    "name" : "Meta",
-    "tileproperties" : {
-      "20" : {
-        "name" : "exit",
-        "activationChance" : 255,
-        "activationDelay" : 0,
-        "activationEvent" : "exit",
-        "isObstruction" : false
-      },
-      "21" : {
-        "name" : "nextArea",
-        "activationChance" : 255,
-        "activationDelay" : 0,
-        "activationEvent" : "nextArea",
-        "isObstruction" : false
-      },
-      "22" : {
-        "name" : "stairs_1_2",
-        "activationChance" : 255,
-        "activationDelay" : 0,
-        "activationEvent" : "stairs_1_2",
-        "isObstruction" : false
-      },
-      "23" : {
-        "name" : "stairs_2_1",
-        "activationChance" : 255,
-        "activationDelay" : 0,
-        "activationEvent" : "stairs_2_1",
-        "isObstruction" : false
-      },
-      "24" : {
-        "name" : "stairs_2_3",
-        "activationChance" : 255,
-        "activationDelay" : 0,
-        "activationEvent" : "stairs_2_3",
-        "isObstruction" : false
-      },
-      "25" : {
-        "name" : "stairs_3_2",
-        "activationChance" : 255,
-        "activationDelay" : 0,
-        "activationEvent" : "stairs_3_2",
-        "isObstruction" : false
-      }
-    }
-  } ],
-  "properties" : {
-    "title" : "",
-    "musicName" : "",
-    "startEvent" : "startmap",
-    "startX" : 9,
-    "startY" : 10,
-    "renderString" : "1,E,R",
-    "horizontalWrappable" : false,
-    "verticalWrappable" : false
-  },
-  "layers" : [ {
-    "width" : 12,
-    "height" : 16,
-    "opacity" : 1,
-    "properties" : {
-      "id" : 0,
-      "parallax_y" : 1.0,
-      "parallax_x" : 1.0
-    },
-    "name" : "Layer 0",
-    "type" : "tilelayer",
-    "visible" : true,
-    "data" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 2, 2, 3, 0, 4, 2, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
-    "color" : "#99ff00"
-  }, {
-    "width" : 12,
-    "height" : 16,
-    "opacity" : 1,
-    "name" : "Meta",
-    "type" : "tilelayer",
-    "visible" : true,
-    "data" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 37, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 0, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
-    "color" : "#99ff00"
-  }, {
-    "width" : 12,
-    "height" : 16,
-    "opacity" : 1,
-    "name" : "Entities",
-    "type" : "objectgroup",
-    "visible" : true,
-    "objects" : [ ],
-    "color" : "#99ff00"
-  } ],
-  "orientation" : "orthogonal",
-  "renderorder" : "right-down",
-  "tiledversion" : "2017.07.26",
-  "tileheight" : 16,
-  "tilewidth" : 16,
-  "type" : "map",
-  "version" : 1,
-  "width" : 12,
-  "height" : 16
+{ "compressionlevel":-1,
+ "height":16,
+ "infinite":false,
+ "layers":[
+        {
+         "data":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0,
+            0, 2, 2, 2, 3, 0, 4, 2, 2, 0, 0, 0,
+            0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+         "height":16,
+         "id":1,
+         "name":"Layer 0",
+         "opacity":1,
+         "properties":[
+                {
+                 "name":"id",
+                 "type":"qlonglong",
+                 "value":0
+                }, 
+                {
+                 "name":"parallax_x",
+                 "type":"qlonglong",
+                 "value":1
+                }, 
+                {
+                 "name":"parallax_y",
+                 "type":"qlonglong",
+                 "value":1
+                }],
+         "type":"tilelayer",
+         "visible":true,
+         "width":12,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "data":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 46, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 45, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 43, 0, 44, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+         "height":16,
+         "id":2,
+         "name":"Meta",
+         "opacity":1,
+         "type":"tilelayer",
+         "visible":true,
+         "width":12,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "color":"#99ff00",
+         "draworder":"topdown",
+         "id":3,
+         "name":"Entities",
+         "objects":[],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
+        }],
+ "nextlayerid":4,
+ "nextobjectid":1,
+ "orientation":"orthogonal",
+ "properties":[
+        {
+         "name":"horizontalWrappable",
+         "type":"bool",
+         "value":false
+        }, 
+        {
+         "name":"musicName",
+         "type":"string",
+         "value":""
+        }, 
+        {
+         "name":"renderString",
+         "type":"string",
+         "value":"1,E,R"
+        }, 
+        {
+         "name":"startEvent",
+         "type":"string",
+         "value":"startmap"
+        }, 
+        {
+         "name":"startX",
+         "type":"qlonglong",
+         "value":9
+        }, 
+        {
+         "name":"startY",
+         "type":"qlonglong",
+         "value":10
+        }, 
+        {
+         "name":"title",
+         "type":"string",
+         "value":""
+        }, 
+        {
+         "name":"verticalWrappable",
+         "type":"bool",
+         "value":false
+        }],
+ "renderorder":"right-down",
+ "tiledversion":"1.11.2",
+ "tileheight":16,
+ "tilesets":[
+        {
+         "columns":20,
+         "firstgid":1,
+         "image":"3d.png",
+         "imageheight":16,
+         "imagewidth":320,
+         "margin":0,
+         "name":"Tiles",
+         "spacing":0,
+         "tilecount":20,
+         "tileheight":16,
+         "tiles":[
+                {
+                 "animation":[
+                        {
+                         "duration":0,
+                         "tileid":0
+                        }],
+                 "id":0
+                }],
+         "tilewidth":16
+        }, 
+        {
+         "columns":20,
+         "firstgid":21,
+         "image":"default.meta.png",
+         "imageheight":176,
+         "imagewidth":320,
+         "margin":0,
+         "name":"Meta",
+         "spacing":0,
+         "tilecount":220,
+         "tileheight":16,
+         "tiles":[
+                {
+                 "id":20,
+                 "properties":[
+                        {
+                         "name":"activationChance",
+                         "type":"qlonglong",
+                         "value":255
+                        }, 
+                        {
+                         "name":"activationDelay",
+                         "type":"qlonglong",
+                         "value":0
+                        }, 
+                        {
+                         "name":"activationEvent",
+                         "type":"string",
+                         "value":"exit"
+                        }, 
+                        {
+                         "name":"isObstruction",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"name",
+                         "type":"string",
+                         "value":"exit"
+                        }]
+                }, 
+                {
+                 "id":21,
+                 "properties":[
+                        {
+                         "name":"activationChance",
+                         "type":"qlonglong",
+                         "value":255
+                        }, 
+                        {
+                         "name":"activationDelay",
+                         "type":"qlonglong",
+                         "value":0
+                        }, 
+                        {
+                         "name":"activationEvent",
+                         "type":"string",
+                         "value":"nextArea"
+                        }, 
+                        {
+                         "name":"isObstruction",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"name",
+                         "type":"string",
+                         "value":"nextArea"
+                        }]
+                }, 
+                {
+                 "id":22,
+                 "properties":[
+                        {
+                         "name":"activationChance",
+                         "type":"qlonglong",
+                         "value":255
+                        }, 
+                        {
+                         "name":"activationDelay",
+                         "type":"qlonglong",
+                         "value":0
+                        }, 
+                        {
+                         "name":"activationEvent",
+                         "type":"string",
+                         "value":"stairs_1_2"
+                        }, 
+                        {
+                         "name":"isObstruction",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"name",
+                         "type":"string",
+                         "value":"stairs_1_2"
+                        }]
+                }, 
+                {
+                 "id":23,
+                 "properties":[
+                        {
+                         "name":"activationChance",
+                         "type":"qlonglong",
+                         "value":255
+                        }, 
+                        {
+                         "name":"activationDelay",
+                         "type":"qlonglong",
+                         "value":0
+                        }, 
+                        {
+                         "name":"activationEvent",
+                         "type":"string",
+                         "value":"stairs_2_1"
+                        }, 
+                        {
+                         "name":"isObstruction",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"name",
+                         "type":"string",
+                         "value":"stairs_2_1"
+                        }]
+                }, 
+                {
+                 "id":24,
+                 "properties":[
+                        {
+                         "name":"activationChance",
+                         "type":"qlonglong",
+                         "value":255
+                        }, 
+                        {
+                         "name":"activationDelay",
+                         "type":"qlonglong",
+                         "value":0
+                        }, 
+                        {
+                         "name":"activationEvent",
+                         "type":"string",
+                         "value":"stairs_2_3"
+                        }, 
+                        {
+                         "name":"isObstruction",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"name",
+                         "type":"string",
+                         "value":"stairs_2_3"
+                        }]
+                }, 
+                {
+                 "id":25,
+                 "properties":[
+                        {
+                         "name":"activationChance",
+                         "type":"qlonglong",
+                         "value":255
+                        }, 
+                        {
+                         "name":"activationDelay",
+                         "type":"qlonglong",
+                         "value":0
+                        }, 
+                        {
+                         "name":"activationEvent",
+                         "type":"string",
+                         "value":"stairs_3_2"
+                        }, 
+                        {
+                         "name":"isObstruction",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"name",
+                         "type":"string",
+                         "value":"stairs_3_2"
+                        }]
+                }],
+         "tilewidth":16
+        }],
+ "tilewidth":16,
+ "type":"map",
+ "version":"1.10",
+ "width":12
 }
