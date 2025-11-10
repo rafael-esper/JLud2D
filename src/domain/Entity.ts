@@ -452,6 +452,44 @@ export class Entity {
   public getFollower(): Entity | null { return this.follower; }
   public setFollower(follower: Entity | null): void { this.follower = follower; }
 
+  /**
+   * Make this entity stalk (follow) another entity
+   * Direct port from Java EntityImpl.stalk()
+   */
+  public stalk(entity: Entity): void {
+    this.follow = entity;
+    entity.setFollower(this);
+
+    // Set waypoint to current position
+    this.setWaypoint(Math.floor(this.getx() / 16), Math.floor(this.gety() / 16));
+
+    // Configure following behavior
+    this.setMovecode(0);
+    this.setObstruction(false);
+    this.setObstructable(false);
+    this.delay = 0;
+  }
+
+  /**
+   * Clear stalking behavior
+   * Direct port from Java EntityImpl.clear_stalk()
+   */
+  public clear_stalk(): void {
+    if (this.follow !== null) {
+      this.follow.setFollower(null);
+      this.follow = null;
+    }
+  }
+
+  /**
+   * Stop all movement and clear stalking
+   * Direct port from Java EntityImpl.setMotionless()
+   */
+  public setMotionless(): void {
+    this.clear_stalk();
+    this.clearWaypoints();
+  }
+
   // Destroy entity and cleanup
   public destroy(): void {
     if (this.sprite) {

@@ -7,6 +7,8 @@ import { MainEngine } from '../../core/MainEngine';
 import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
 import { PS1Sound } from './game/PSLibSound';
+import { Party } from './game/Party';
+import { Planet, City } from './game/City';
 
 export enum ScreenSize {
   SCREEN_320_240,
@@ -23,6 +25,7 @@ export enum GameType {
 export class PSGameData {
   public enableCheats: boolean = false;
   private screenSize: ScreenSize = ScreenSize.SCREEN_320_240;
+  public current_planet: any = null; // Planet enum reference
 
   public getScreenSize(): ScreenSize {
     return this.screenSize;
@@ -36,6 +39,9 @@ export class PSGameData {
 export class PSGame {
   public static gameData: PSGameData = new PSGameData();
   private static currentScene: Phaser.Scene | null = null;
+  private static party: Party | null = null;
+  private static gotox: number = 0;
+  private static gotoy: number = 0;
 
   // Sound library cache (equivalent to Java soundLIB HashMap)
   private static soundLIB: Map<PS1Sound, string> = new Map();
@@ -114,12 +120,15 @@ export class PSGame {
   }
 
   /**
-   * Initialize PS game with specified type
+   * Initialize PS game with specified type - direct port from Java
    */
   public static initPSGame(gameType: GameType): void {
     console.log(`PSGame: Initializing game type ${GameType[gameType]}`);
-    // In full implementation, this would set up character stats, party, etc.
-    // For title scene demo, we just log the selection
+
+    // Initialize party with specified game type
+    this.party = new Party(gameType);
+
+    console.log(`PSGame: Party initialized with ${this.party.partySize()} members`);
   }
 
   /**
@@ -135,6 +144,101 @@ export class PSGame {
    */
   public static languageMenu(x: number, y: number): void {
     console.log(`PSGame: Language menu at (${x}, ${y}) not implemented in demo`);
+  }
+
+  /**
+   * Get current party - direct port from Java
+   */
+  public static getParty(): Party {
+    if (!this.party) {
+      throw new Error("Party not initialized - call initPSGame() first");
+    }
+    return this.party;
+  }
+
+  /**
+   * Get goto X coordinate - direct port from Java
+   */
+  public static getgotox(): number {
+    return this.gotox;
+  }
+
+  /**
+   * Get goto Y coordinate - direct port from Java
+   */
+  public static getgotoy(): number {
+    return this.gotoy;
+  }
+
+  /**
+   * Map switch - direct port from Java mapswitch()
+   */
+  public static mapswitch(city: City, x: number, y: number): void {
+    console.log(`PSGame: Map switch to ${city} at position (${x}, ${y})`);
+    this.gotox = x;
+    this.gotoy = y;
+    // In full implementation, this would load the map and set up the scene
+  }
+
+  /**
+   * Transport off - direct port from Java transportOff()
+   */
+  public static transportOff(): void {
+    console.log("PSGame: Transport off");
+    // In full implementation, this would disable transport mode
+  }
+
+  /**
+   * Fade in screen - direct port from Java screen.fadeIn()
+   */
+  public static async fadeIn(duration: number, renderMap: boolean): Promise<void> {
+    console.log(`PSGame: Fading in over ${duration} frames, renderMap: ${renderMap}`);
+
+    if (!this.currentScene) {
+      console.error("PSGame: No current scene for fade in");
+      return;
+    }
+
+    return new Promise<void>((resolve) => {
+      let timer = 0;
+      const maxFrames = duration;
+
+      const fadeStep = () => {
+        if (timer >= maxFrames) {
+          // Fade complete
+          console.log("PSGame: Fade in complete");
+          this.currentScene!.cameras.main.setAlpha(1);
+          resolve();
+          return;
+        }
+
+        // Calculate fade progress (0 to 1)
+        const progress = timer / maxFrames;
+
+        if (renderMap) {
+          // In full implementation, this would render the map background
+        }
+
+        // Apply fade effect to camera
+        this.currentScene!.cameras.main.setAlpha(progress);
+
+        timer++;
+        this.currentScene!.time.delayedCall(16, fadeStep);
+      };
+
+      // Start with black screen
+      this.currentScene.cameras.main.setAlpha(0);
+      fadeStep();
+    });
+  }
+
+  /**
+   * Turn menu on - direct port from Java PSMenu.menuOn()
+   */
+  public static menuOn(): void {
+    console.log("PSGame: Menu system activated");
+    // In full implementation, this would enable the in-game menu system
+    // This would integrate with our ported menu system
   }
 
   /**

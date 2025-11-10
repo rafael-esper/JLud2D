@@ -9,6 +9,7 @@ import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
 import { MenuPromptBox } from './menu/MenuPromptBox';
 import { PSCancellable } from './menu/MenuStack';
+import { Planet, City } from './game/City';
 
 export class TitleScene extends PSScene {
   constructor() {
@@ -131,10 +132,16 @@ export class TitleScene extends PSScene {
     PSGame.stopMusic();
 
     if (opt === 0) {
-      // Start as Alis
+      // Start as Alis - implement required initialization
       PSGame.initPSGame(GameType.PS_ORIGINAL);
-      console.log("TitleScene: Starting game as Alis");
-      // TODO: map("space/Space.map");
+      PSGame.gameData.current_planet = Planet.PALMA;
+      PSGame.mapswitch(City.CAMINEET, 29, 9);
+
+      console.log("TitleScene: Starting game as Alis in Camineet");
+
+      // Transition to GameScene
+      this.scene.start('PSGameScene', { config: this.config });
+      return true;
     } else if (opt === 1) {
       // Start as Odin
       PSGame.initPSGame(GameType.PS_START_AS_ODIN);

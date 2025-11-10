@@ -14,6 +14,7 @@ import { AkScene } from './demos/ak/AkScene';
 import { TitleScene } from './demos/ak/TitleScene';
 import { MapScene } from './demos/ak/MapScene';
 import { TitleScene as PSTitleScene } from './demos/ps/TitleScene';
+import { GameScene as PSGameScene } from './demos/ps/GameScene';
 import { ResponsiveScaler } from './utils/ResponsiveScaler';
 
 class Game {
@@ -72,7 +73,8 @@ class Game {
       TitleScene,
       MapScene,
       AkScene,
-      PSTitleScene
+      PSTitleScene,
+      PSGameScene
     ];
 
     // Create the game

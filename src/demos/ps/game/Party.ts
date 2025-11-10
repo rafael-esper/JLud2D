@@ -7,10 +7,11 @@ import { PartyMember, Gender } from './PartyMember';
 import { Item, ItemType } from './Item';
 import { Job } from './Job';
 import { Specie } from './Specie';
-import { GameType } from './GameData';
+import { GameType } from '../PSGame';
 import { PS1Image } from './PSLibImage';
 import { PS1Sound } from './PSLibSound';
 import { PSGame } from '../PSGame';
+import { MainEngine } from '../../../core/MainEngine';
 
 // Forward declarations for types that will be implemented later
 export interface Entity {
@@ -35,21 +36,28 @@ export class Party {
   private order: number[] = [];
 
   constructor(gametype?: GameType) {
-    if (!gametype) {
+    console.log(`Party constructor: gametype = ${gametype}, GameType.PS_ORIGINAL = ${GameType.PS_ORIGINAL}`);
+
+    if (gametype === undefined) {
       // Empty constructor
+      console.log('Party constructor: No gametype provided');
       return;
     }
 
+    console.log(`Party constructor: Creating party for gametype ${gametype}`);
+
     switch (gametype) {
       case GameType.PS_ORIGINAL:
+        console.log('Party constructor: Creating PS_ORIGINAL party with Alis');
         this.addMember(new PartyMember(
           Gender.FEMALE,
           Specie.PALMAN,
           Job.ADVENTURER,
           PSGame.getString("Name_Alis"),
           PS1Image.PORTRAIT_ALIS,
-          "chars/alis.chr"
+          "Alis.anim.json"
         ));
+        console.log(`Party constructor: Added member, party size now ${this.members.length}`);
         // Commented out additional members from original
         // this.addMember(new PartyMember(Gender.MALE, Specie.MUSK_CAT, Job.NATURER, PSGame.getString("Name_Myau"), "chars/myau.chr"));
         // this.addMember(new PartyMember(Gender.MALE, Specie.PALMAN, Job.FIGHTER, PSGame.getString("Name_Odin"), "chars/odin.chr"));
@@ -114,7 +122,13 @@ export class Party {
         // this.getMember(1)?.equipItem(PSGame.getItem(OriginalItem.Armor_Frad_Cloak));
         // this.getMember(1)?.equipItem(PSGame.getItem(OriginalItem.Weapon_Psycho_Wand));
         break;
+
+      default:
+        console.error(`Party constructor: Unknown gametype ${gametype}`);
+        break;
     }
+
+    console.log(`Party constructor completed: ${this.members.length} members, order: [${this.order}]`);
   }
 
   public partySize(): number {
@@ -203,33 +217,54 @@ export class Party {
   /**
    * Allocate party entities in the map - direct port from Java
    */
-  public allocate(gotox: number, gotoy: number): void {
-    // Note: This would need full Entity system implementation
-    console.warn('Party.allocate() not fully implemented - requires Entity system');
+  public async allocate(gotox: number, gotoy: number): Promise<void> {
+    console.log(`Party.allocate: Allocating ${this.members.length} party members at (${gotox}, ${gotoy})`);
+    console.log(`Party.allocate: Order array:`, this.order);
+    console.log(`Party.allocate: Members:`, this.members.map(m => m.getName()));
 
-    /*
+    const currentScene = PSGame.getCurrentScene();
+    if (!currentScene) {
+      console.error('Party.allocate: No current scene available');
+      return;
+    }
+
     let last = -1;
     for (let i = this.members.length - 1; i >= 0; i--) {
       const player = this.members[this.order[i]];
 
       if (player.getHp() <= 0) {
+        console.log(`Party.allocate: Skipping dead member ${player.getName()}`);
         continue;
       }
 
+      console.log(`Party.allocate: Spawning ${player.getName()} with chr ${player.getCharPath()}`);
+      console.log(`Party.allocate: Expected charPath should be "Alis", got:`, player.getCharPath());
+
       if (last === -1) {
-        last = entityspawn(gotox, gotoy, player.getCharPath());
+        // First party member (usually the player character)
+        last = await MainEngine.entityspawn(currentScene, gotox, gotoy, player.getCharPath(), 'src/demos/ps/chars');
+        console.log(`Party.allocate: First member spawned at index ${last}`);
       } else {
         const previous = last;
-        last = entityspawn(gotox, gotoy, player.getCharPath());
-        entitystalk(previous, last);
+        last = await MainEngine.entityspawn(currentScene, gotox, gotoy, player.getCharPath(), 'src/demos/ps/chars');
+        MainEngine.entitystalk(previous, last);
+        console.log(`Party.allocate: Member spawned at index ${last}, stalking ${previous}`);
       }
     }
-    setplayer(last);
-    entities.get(player).setSpeed(Party.WALKING_SPEED);
 
-    playerdiagonals = true;
-    smoothdiagonals = true;
-    */
+    if (last !== -1) {
+      // Set the last spawned entity as the player
+      const playerEntity = MainEngine.setplayer(last);
+      if (playerEntity) {
+        playerEntity.setSpeed(Party.WALKING_SPEED);
+        console.log(`Party.allocate: Player set to entity ${last} with speed ${Party.WALKING_SPEED}`);
+      }
+    }
+
+    // Set player movement preferences
+    MainEngine.setPlayerDiagonals(true);
+    MainEngine.setSmoothDiagonals(true);
+    console.log('Party.allocate: Player movement settings configured');
   }
 
   /**

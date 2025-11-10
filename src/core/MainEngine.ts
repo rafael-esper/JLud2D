@@ -17,6 +17,8 @@ export class MainEngine {
   protected static myself: Entity | null = null;
   protected static playerstep: number = 4;
   protected static cameratracking: number = 0; // 0 = manual, 1 = follow player
+  protected static playerdiagonals: boolean = true;
+  protected static smoothdiagonals: boolean = true;
 
   // Input state (for ProcessControls)
   protected static up: boolean = false;
@@ -143,6 +145,30 @@ export class MainEngine {
     MainEngine.myself = MainEngine.entities[entityIndex];
 
     return MainEngine.myself;
+  }
+
+  /**
+   * Make one entity stalk another
+   * Equivalent to Java Script.entitystalk()
+   */
+  public static entitystalk(stalkerIndex: number, stalkeeIndex: number): void {
+    if (stalkerIndex < 0 || stalkerIndex >= MainEngine.numentities) {
+      return;
+    }
+    if (stalkeeIndex < 0 || stalkeeIndex >= MainEngine.numentities) {
+      MainEngine.entities[stalkerIndex].clear_stalk();
+      return;
+    }
+
+    const stalker = MainEngine.entities[stalkerIndex];
+    const stalkee = MainEngine.entities[stalkeeIndex];
+
+    // Position stalker at stalkee's position
+    stalker.setx(stalkee.getx());
+    stalker.sety(stalkee.gety());
+
+    // Set up stalking behavior
+    stalker.stalk(stalkee);
   }
 
   /**
@@ -387,6 +413,34 @@ export class MainEngine {
    */
   public static getPlayerStep(): number {
     return MainEngine.playerstep;
+  }
+
+  /**
+   * Get player diagonal movement setting
+   */
+  public static getPlayerDiagonals(): boolean {
+    return MainEngine.playerdiagonals;
+  }
+
+  /**
+   * Set player diagonal movement setting
+   */
+  public static setPlayerDiagonals(enabled: boolean): void {
+    MainEngine.playerdiagonals = enabled;
+  }
+
+  /**
+   * Get smooth diagonal movement setting
+   */
+  public static getSmoothDiagonals(): boolean {
+    return MainEngine.smoothdiagonals;
+  }
+
+  /**
+   * Set smooth diagonal movement setting
+   */
+  public static setSmoothDiagonals(enabled: boolean): void {
+    MainEngine.smoothdiagonals = enabled;
   }
 
   /**

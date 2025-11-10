@@ -97,13 +97,13 @@ export class PartyMember extends Battler {
     this.setJob(job);
     this.name = name;
 
-    if (typeof portraitOrCharPath === 'string') {
-      // Second constructor variant (no portrait)
-      this.setCharPath(portraitOrCharPath || '');
-    } else {
-      // First constructor variant (with portrait)
-      this.portrait = portraitOrCharPath;
+    if (charPath !== undefined) {
+      // First constructor variant (with portrait) - 6 parameters
+      this.portrait = portraitOrCharPath as PS1Image;
       this.setCharPath(charPath || '');
+    } else {
+      // Second constructor variant (no portrait) - 5 parameters
+      this.setCharPath(portraitOrCharPath as string || '');
     }
 
     this.xp = 0;
