@@ -119,13 +119,21 @@ export class ResponsiveScaler {
    */
   public updateScale(): void {
     const availableWidth = window.innerWidth;
-    const availableHeight = window.innerHeight;
+    let availableHeight = window.innerHeight;
+
+    // In portrait mode, reserve space at bottom for mobile controls
+    const isPortrait = availableHeight > availableWidth;
+    if (isPortrait) {
+      // Reserve bottom space for mobile controls (about 150px or 15% of screen, whichever is smaller)
+      const reservedSpace = Math.min(150, Math.floor(availableHeight * 0.15));
+      availableHeight = availableHeight - reservedSpace;
+    }
 
     // Game resolution is ALWAYS the base resolution (never changes)
     const gameWidth = this.baseWidth;
     const gameHeight = this.baseHeight;
 
-    // Calculate scale factors to fit the screen
+    // Calculate scale factors to fit the available screen space
     const scaleX = availableWidth / gameWidth;
     const scaleY = availableHeight / gameHeight;
 
@@ -182,7 +190,22 @@ export class ResponsiveScaler {
 
       // Center the canvas in the available space
       const offsetX = Math.floor((availableWidth - canvasWidth) / 2);
-      const offsetY = Math.floor((availableHeight - canvasHeight) / 2);
+
+      // Check if we're in portrait mode for positioning
+      const isPortrait = window.innerHeight > window.innerWidth;
+
+      let offsetY;
+      // Check if there's significant vertical space (more than 100px of black border)
+      const verticalSpace = window.innerHeight - canvasHeight;
+      const hasVerticalSpace = verticalSpace > 100;
+
+      if (hasVerticalSpace) {
+        // When there's vertical space, position towards top leaving space for controls
+        offsetY = Math.floor(verticalSpace * 0.15); // Start at 15% of the vertical space from top
+      } else {
+        // When space is tight, center normally
+        offsetY = Math.floor(verticalSpace / 2);
+      }
 
       canvas.style.position = 'absolute';
       canvas.style.left = offsetX + 'px';
