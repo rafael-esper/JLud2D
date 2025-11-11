@@ -922,6 +922,31 @@ export class TiledMap {
   }
 
   /**
+   * Get zone script name - direct port of Java getScriptZone()
+   */
+  public getScriptZone(zone: number): string {
+    const tileId = zone + TiledMap.ZONE_OFFSET;
+    return this.getTileProperty(tileId, "activationEvent") || "";
+  }
+
+  /**
+   * Get zone encounter percentage - direct port of Java getPercentZone()
+   */
+  public getPercentZone(zone: number): number {
+    const tileId = zone + TiledMap.ZONE_OFFSET;
+    return this.getTileProperty(tileId, "activationChance") || 0;
+  }
+
+  /**
+   * Get zone method - direct port of Java getMethodZone()
+   */
+  public getMethodZone(zone: number): number {
+    const tileId = zone + TiledMap.ZONE_OFFSET;
+    return this.getTileProperty(tileId, "isObstruction") ? 1 : 0;
+  }
+
+
+  /**
    * Cleanup map resources
    */
   public destroy(): void {

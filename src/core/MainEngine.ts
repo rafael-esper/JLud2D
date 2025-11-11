@@ -38,6 +38,17 @@ export class MainEngine {
   protected static cameraSpeed: number = 4;
   protected static screenTransitioning: boolean = false;
 
+  // Zone and event system (for PS demo)
+  protected static px: number = 0; // Player tile X position
+  protected static py: number = 0; // Player tile Y position
+  protected static event_tx: number = 0; // Event trigger tile X
+  protected static event_ty: number = 0; // Event trigger tile Y
+  protected static event_zone: number = 0; // Current event zone
+  protected static timer: number = 0; // System timer
+  protected static lastentitythink: number = 0; // Last entity think time
+  protected static systemtime: number = 0; // Current system time
+  protected static done: boolean = false; // Game done flag
+
   // System path for resource loading (like Java systemclass)
   protected static systemPath: string = '';
 
@@ -817,6 +828,9 @@ export class MainEngine {
 
       // Set current map reference
       MainEngine.setCurrentMap(tiledMap);
+
+      // Load script context for this map
+      await MainEngine.loadScriptContextForMap(mapFilename, basePath);
     } else {
       console.error('MainEngine: Failed to load TiledMap');
     }
@@ -871,6 +885,9 @@ export class MainEngine {
    * Should be called from scene update() method
    */
   public static updateEngine(inputManager: any): void {
+    // Process timed entity updates and zone checking (for PS demo)
+    MainEngine.TimedProcessEntities();
+
     // Update all entities
     MainEngine.updateEntities();
 
@@ -1087,5 +1104,196 @@ export class MainEngine {
     MainEngine.cameratracking = 0;
     MainEngine.entitiespaused = false;
     MainEngine.screenTransitioning = false;
+  }
+
+  /**
+   * Check zone events - direct port of Java CheckZone()
+   * Called when player moves to new tile
+   */
+  public static CheckZone(): void {
+    if (!MainEngine.current_map) return;
+
+    const cur_timer = MainEngine.timer;
+    const cz = MainEngine.current_map.getzone(MainEngine.px, MainEngine.py);
+
+    console.log(`CheckZone: Player at (${MainEngine.px}, ${MainEngine.py}), zone=${cz}`);
+
+    if (cz > 0) {
+      const percent = MainEngine.current_map.getPercentZone(cz);
+      const script = MainEngine.current_map.getScriptZone(cz);
+      console.log(`CheckZone: Zone ${cz} has ${percent}% chance, script="${script}"`);
+
+      // In the original system, 0 means 100% chance (always trigger)
+      let actualPercent = percent;
+      if (percent === 0) {
+        actualPercent = 255; // 100% chance
+      }
+
+      const rnd = Math.floor(255 * Math.random());
+      console.log(`CheckZone: Random roll ${rnd} vs ${actualPercent} (original: ${percent})`);
+
+      if (rnd < actualPercent) {
+        MainEngine.event_zone = cz;
+        console.log(`Zone event triggered: zone=${cz}, event=${script}`);
+
+        // Call the script function
+        MainEngine.callScriptFunction(script);
+      }
+    }
+    MainEngine.timer = cur_timer;
+  }
+
+  /**
+   * Timed entity processing with zone checking - direct port of Java TimedProcessEntities()
+   * Called from update loop
+   */
+  public static TimedProcessEntities(): void {
+    if (MainEngine.entitiespaused) return;
+
+    // Update system time (in real implementation, this would be actual time)
+    MainEngine.systemtime++;
+
+    while (MainEngine.lastentitythink < MainEngine.systemtime) {
+      if (MainEngine.done) break;
+
+      if (MainEngine.myself !== null) {
+        // Update player tile position from pixel position
+        const hw = MainEngine.myself.getChr()?.getHw() || 16;
+        const hh = MainEngine.myself.getChr()?.getHh() || 16;
+        MainEngine.px = Math.floor((MainEngine.myself.getx() + (hw / 2)) / 16);
+        MainEngine.py = Math.floor((MainEngine.myself.gety() + (hh / 2)) / 16);
+      }
+
+      MainEngine.updateEntities();
+
+      if (MainEngine.invc === 0) {
+        // Note: ProcessControls needs inputManager, will be called separately in updateEngine
+        // MainEngine.ProcessControls();
+      }
+
+      if (MainEngine.myself !== null && MainEngine.invc === 0) {
+        // Check if player has moved to a new tile
+        const hw = MainEngine.myself.getChr()?.getHw() || 16;
+        const hh = MainEngine.myself.getChr()?.getHh() || 16;
+        const new_px = Math.floor((MainEngine.myself.getx() + (hw / 2)) / 16);
+        const new_py = Math.floor((MainEngine.myself.gety() + (hh / 2)) / 16);
+
+        if ((MainEngine.px !== new_px) || (MainEngine.py !== new_py)) {
+          MainEngine.px = new_px;
+          MainEngine.py = new_py;
+
+          MainEngine.event_tx = MainEngine.px;
+          MainEngine.event_ty = MainEngine.py;
+
+          MainEngine.onStep();
+          MainEngine.CheckZone();
+          MainEngine.afterStep();
+        }
+      }
+      MainEngine.lastentitythink++;
+    }
+  }
+
+  /**
+   * Called when player steps on new tile - override in city scripts
+   */
+  public static onStep(): void {
+    // Default implementation - override in city-specific scripts
+  }
+
+  /**
+   * Called after step processing - override in city scripts
+   */
+  public static afterStep(): void {
+    // Default implementation - override in city-specific scripts
+  }
+
+  /**
+   * Get current player tile X position
+   */
+  public static getPx(): number {
+    return MainEngine.px;
+  }
+
+  /**
+   * Get current player tile Y position
+   */
+  public static getPy(): number {
+    return MainEngine.py;
+  }
+
+  /**
+   * Get current event zone
+   */
+  public static getEventZone(): number {
+    return MainEngine.event_zone;
+  }
+
+  // Current script context (set by the current map/scene)
+  protected static currentScriptContext: any = null;
+
+  /**
+   * Set the current script context for function calls
+   */
+  public static setScriptContext(context: any): void {
+    MainEngine.currentScriptContext = context;
+  }
+
+  /**
+   * Load script context based on map name - generic script loading system
+   */
+  public static async loadScriptContextForMap(mapName: string, basePath: string): Promise<void> {
+    try {
+      // Extract map name without extension (e.g., "Camineet.map.json" -> "Camineet")
+      const scriptName = mapName.replace('.map.json', '');
+
+      // Construct the script path - same folder as the map
+      const scriptPath = `${basePath}/${scriptName}`;
+
+      console.log(`Loading script context from: ${scriptPath}`);
+
+      // Dynamically import the script module
+      const scriptModule = await import(scriptPath);
+
+      // Look for a class with the same name as the script
+      if (scriptModule[scriptName]) {
+        MainEngine.setScriptContext(scriptModule[scriptName]);
+        console.log(`Script context loaded: ${scriptName}`);
+      } else {
+        console.warn(`Script class ${scriptName} not found in module ${scriptPath}`);
+      }
+    } catch (error) {
+      console.warn(`Could not load script context for map ${mapName}:`, error);
+      // Clear script context if loading fails
+      MainEngine.setScriptContext(null);
+    }
+  }
+
+  /**
+   * Call script function by name - generic script calling system
+   */
+  public static callScriptFunction(functionName: string): void {
+    if (!functionName || functionName === "") {
+      return;
+    }
+
+    console.log(`Calling script function: ${functionName}`);
+
+    if (!MainEngine.currentScriptContext) {
+      console.warn(`No script context set for function ${functionName}`);
+      return;
+    }
+
+    try {
+      // Check if the function exists in the current script context
+      if (typeof MainEngine.currentScriptContext[functionName] === 'function') {
+        console.log(`Executing ${functionName}()`);
+        MainEngine.currentScriptContext[functionName]();
+      } else {
+        console.warn(`Function ${functionName} not found in current script context`);
+      }
+    } catch (error) {
+      console.error(`Error calling script function ${functionName}:`, error);
+    }
   }
 }

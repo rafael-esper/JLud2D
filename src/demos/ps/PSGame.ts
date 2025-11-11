@@ -158,6 +158,14 @@ export class PSGame {
   }
 
   /**
+   * Get current game type
+   */
+  public static getGameType(): GameType {
+    // For now return PS_ORIGINAL, could be stored in gameData
+    return GameType.PS_ORIGINAL;
+  }
+
+  /**
    * Get goto X coordinate - direct port from Java
    */
   public static getgotox(): number {

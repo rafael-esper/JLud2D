@@ -689,13 +689,7 @@ public class MainEngine extends Thread {
 	static void CheckZone() {
 		int cur_timer = timer;
 		int cz = current_map.getzone(px, py);
-		// the following line is probably now correct, since .percent is in
-		// [0,255]
-		// and so the max rnd() will produce is 254, which will still always
-		// trigger
-		// if .percent is 255, and the lowest is 0, which will never trigger,
-		// even if
-		// .percent is 0
+
 		int rnd = (int) (255 * Math.random());
 		if (rnd < current_map.getPercentZone(cz)) {
 			event_zone = cz;
