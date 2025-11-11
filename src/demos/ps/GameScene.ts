@@ -5,6 +5,7 @@
 
 import { PSGame } from './PSGame';
 import { PS1Music } from './game/PSLibMusic';
+import { City, CityHelper } from './game/City';
 import { MainEngine } from '../../core/MainEngine';
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
@@ -58,6 +59,18 @@ export class GameScene extends Phaser.Scene {
     console.log(`GameScene: Loading map ${mapName} from ${mapBasePath}`);
     this.tiledMap = await MainEngine.loadAndInitMap(this, mapName, mapBasePath);
 
+    // Set screen to black IMMEDIATELY after map loads to prevent flash
+    this.cameras.main.setAlpha(0);
+    console.log("GameScene: Screen set to black, ready for fade-in");
+
+    // Play music based on current city
+    const currentCity = PSGame.getCurrentCity();
+    if (currentCity) {
+      const cityMusic = CityHelper.getMusic(currentCity);
+      console.log(`GameScene: Playing city music for ${currentCity}: ${cityMusic}`);
+      await PSGame.playMusic(cityMusic);
+    }
+
     // Start the map (equivalent to Phantasy.java startmap())
     await this.startmap();
 
@@ -80,9 +93,7 @@ export class GameScene extends Phaser.Scene {
     await PSGame.getParty().allocate(PSGame.getgotox(), PSGame.getgotoy());
 
     // Fade in screen (equivalent to Java screen.fadeIn(30, true))
-    // Temporarily disabled to debug darkness issue
-    // await PSGame.fadeIn(30, true);
-    console.log("GameScene: Skipping fade-in for debugging");
+    await PSGame.fadeIn(30, true);
 
     // Turn menu on (equivalent to Java PSMenu.menuOn())
     PSGame.menuOn();
@@ -114,6 +125,7 @@ export class GameScene extends Phaser.Scene {
     // Handle ESC/Menu - Back to main menu
     if (this.inputManager.justPressed('menu')) {
       console.log('GameScene: Menu key pressed, returning to main menu');
+      PSGame.stopMusic(); // Stop the city music
       MainEngine.cleanup();
       this.scene.start('MenuScene', { config: this.config });
     }

@@ -42,6 +42,7 @@ export class PSGame {
   private static party: Party | null = null;
   private static gotox: number = 0;
   private static gotoy: number = 0;
+  private static currentCity: any = null; // Current city for music and location
 
   // Sound library cache (equivalent to Java soundLIB HashMap)
   private static soundLIB: Map<PS1Sound, string> = new Map();
@@ -173,11 +174,19 @@ export class PSGame {
   /**
    * Map switch - direct port from Java mapswitch()
    */
-  public static mapswitch(city: City, x: number, y: number): void {
+  public static mapswitch(city: any, x: number, y: number): void {
     console.log(`PSGame: Map switch to ${city} at position (${x}, ${y})`);
+    this.currentCity = city;
     this.gotox = x;
     this.gotoy = y;
     // In full implementation, this would load the map and set up the scene
+  }
+
+  /**
+   * Get current city
+   */
+  public static getCurrentCity(): any {
+    return this.currentCity;
   }
 
   /**
@@ -198,6 +207,9 @@ export class PSGame {
       console.error("PSGame: No current scene for fade in");
       return;
     }
+
+    // START WITH BLACK SCREEN IMMEDIATELY
+    this.currentScene.cameras.main.setAlpha(0);
 
     return new Promise<void>((resolve) => {
       let timer = 0;
@@ -226,8 +238,7 @@ export class PSGame {
         this.currentScene!.time.delayedCall(16, fadeStep);
       };
 
-      // Start with black screen
-      this.currentScene.cameras.main.setAlpha(0);
+      // Start fade animation
       fadeStep();
     });
   }

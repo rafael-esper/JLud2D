@@ -250,13 +250,54 @@ export class MainEngine {
       let canMove = true;
       if (MainEngine.current_map) {
         canMove = !MainEngine.current_map.getobspixel(targetX, targetY);
+
+        // For diagonal movement, also check that we can't squeeze between diagonal obstacles
+        if (canMove && moveX !== 0 && moveY !== 0) {
+          // Check the two adjacent cells for diagonal movement
+          const horizontalX = currentX + (moveX * 16);
+          const horizontalY = currentY;
+          const verticalX = currentX;
+          const verticalY = currentY + (moveY * 16);
+
+          const horizontalBlocked = MainEngine.current_map.getobspixel(horizontalX, horizontalY);
+          const verticalBlocked = MainEngine.current_map.getobspixel(verticalX, verticalY);
+
+          // If both adjacent cells are blocked, don't allow diagonal movement through the corner
+          if (horizontalBlocked && verticalBlocked) {
+            console.log(`MainEngine: Diagonal movement blocked - cannot squeeze through corner`);
+            canMove = false;
+          }
+        }
       }
 
-      // Only move if target position is not obstructed (like Java dist != 0 check)
-      if (canMove) {
-        // Set waypoint for movement (convert tile movement to pixels)
+      // If diagonal movement is blocked, try fallback to single direction
+      if (!canMove && moveX !== 0 && moveY !== 0) {
+        // Try horizontal movement first
+        const horizontalTargetX = currentX + (moveX * 16);
+        const horizontalTargetY = currentY;
+
+        if (MainEngine.current_map && !MainEngine.current_map.getobspixel(horizontalTargetX, horizontalTargetY)) {
+          // Horizontal movement is possible
+          console.log(`MainEngine: Diagonal blocked, falling back to horizontal movement`);
+          MainEngine.myself.setWaypointRelative(moveX * 16, 0, false);
+          canMove = true; // Mark as handled
+        } else {
+          // Try vertical movement
+          const verticalTargetX = currentX;
+          const verticalTargetY = currentY + (moveY * 16);
+
+          if (MainEngine.current_map && !MainEngine.current_map.getobspixel(verticalTargetX, verticalTargetY)) {
+            // Vertical movement is possible
+            console.log(`MainEngine: Diagonal blocked, falling back to vertical movement`);
+            MainEngine.myself.setWaypointRelative(0, moveY * 16, false);
+            canMove = true; // Mark as handled
+          }
+        }
+      } else if (canMove) {
+        // Original diagonal or straight movement is possible
         MainEngine.myself.setWaypointRelative(moveX * 16, moveY * 16, false);
       }
+      // If still blocked after fallback attempts, no movement occurs
 
       // Update last player direction for diagonal handling
       MainEngine.lastplayerdir = newDirection;
