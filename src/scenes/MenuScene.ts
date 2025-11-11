@@ -19,6 +19,14 @@ export class MenuScene extends Phaser.Scene {
 
   init(data: { config: GameConfig }) {
     this.config = data.config;
+
+    // Reset ResponsiveScaler to main config resolution when returning to menu
+    const globalGame = (window as any).game;
+    if (globalGame && globalGame.updateScaling) {
+      console.log(`MenuScene: Resetting ResponsiveScaler to main config ${data.config.xRes}x${data.config.yRes}`);
+      globalGame.updateScaling(data.config);
+    }
+
     const controlsConfig = new ControlsConfig();
     this.inputManager = new InputManager(this, controlsConfig);
 
@@ -118,11 +126,11 @@ export class MenuScene extends Phaser.Scene {
     switch (this.selectedDemo) {
       case 0: // Demo 1
         console.log('Starting Demo1Scene');
-        this.scene.start('Demo1Scene', { demoPath: 'src/demos/demo1' });
+        this.scene.start('Demo1Scene', { demoPath: 'src/demos/demo1', config: this.config });
         break;
       case 1: // Demo 2
         console.log('Starting Demo2Scene');
-        this.scene.start('Demo2Scene', { demoPath: 'src/demos/demo2' });
+        this.scene.start('Demo2Scene', { demoPath: 'src/demos/demo2', config: this.config });
         break;
       case 2: // Demo 3
         console.log('Starting Demo3Scene');
@@ -130,7 +138,7 @@ export class MenuScene extends Phaser.Scene {
         break;
       case 3: // Demo 4
         console.log('Starting AK TitleScene');
-        this.scene.start('TitleScene', { demoPath: 'src/demos/ak' });
+        this.scene.start('TitleScene', { demoPath: 'src/demos/ak', config: this.config });
         break;
       case 4: // Demo 5
         console.log('Starting PS TitleScene');

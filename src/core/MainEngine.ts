@@ -57,6 +57,25 @@ export class MainEngine {
     return MainEngine.systemPath;
   }
 
+
+  /**
+   * Update ResponsiveScaler to use demo's resolution for proper scaling
+   */
+  public static updateResponsiveScaler(config: any): void {
+    try {
+      // Get global game instance
+      const globalGame = (window as any).game;
+      if (globalGame && globalGame.updateScaling) {
+        console.log(`MainEngine: Updating ResponsiveScaler base resolution to ${config.xRes}x${config.yRes}`);
+        globalGame.updateScaling(config);
+      } else {
+        console.warn('MainEngine: Cannot update ResponsiveScaler - global game instance not available');
+      }
+    } catch (error) {
+      console.error('MainEngine: Error updating ResponsiveScaler:', error);
+    }
+  }
+
   /**
    * Initialize main engine with demo-specific config (like Java initMainEngine)
    */
@@ -86,6 +105,9 @@ export class MainEngine {
       // Store config
       MainEngine.current_config = config;
 
+      // Update ResponsiveScaler to use demo's resolution for scaling
+      MainEngine.updateResponsiveScaler(config);
+
       return { config, mapname };
     } catch (error) {
       console.error('Error in initMainEngine:', error);
@@ -93,6 +115,7 @@ export class MainEngine {
       const { GameConfig } = await import('../config/GameConfig');
       const config = new GameConfig();
       MainEngine.current_config = config;
+
       return { config, mapname: mapname || '' };
     }
   }
@@ -264,7 +287,6 @@ export class MainEngine {
 
           // If both adjacent cells are blocked, don't allow diagonal movement through the corner
           if (horizontalBlocked && verticalBlocked) {
-            console.log(`MainEngine: Diagonal movement blocked - cannot squeeze through corner`);
             canMove = false;
           }
         }
@@ -278,7 +300,6 @@ export class MainEngine {
 
         if (MainEngine.current_map && !MainEngine.current_map.getobspixel(horizontalTargetX, horizontalTargetY)) {
           // Horizontal movement is possible
-          console.log(`MainEngine: Diagonal blocked, falling back to horizontal movement`);
           MainEngine.myself.setWaypointRelative(moveX * 16, 0, false);
           canMove = true; // Mark as handled
         } else {
@@ -288,7 +309,6 @@ export class MainEngine {
 
           if (MainEngine.current_map && !MainEngine.current_map.getobspixel(verticalTargetX, verticalTargetY)) {
             // Vertical movement is possible
-            console.log(`MainEngine: Diagonal blocked, falling back to vertical movement`);
             MainEngine.myself.setWaypointRelative(0, moveY * 16, false);
             canMove = true; // Mark as handled
           }
@@ -552,23 +572,17 @@ export class MainEngine {
     const mapWidth = MainEngine.current_map.getWidth() * MainEngine.current_map.getTileWidth();
     const mapHeight = MainEngine.current_map.getHeight() * MainEngine.current_map.getTileHeight();
 
-    // CRITICAL: Camera viewport is ALWAYS the config resolution
-    const cameraWidth = config.xRes;
-    const cameraHeight = config.yRes;
-
     // Set camera bounds to the map size (this constrains scrolling)
     scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
-
-    // Set camera viewport to exact config resolution
-    scene.cameras.main.setViewport(0, 0, cameraWidth, cameraHeight);
 
     // Set initial camera position using map's start position
     const startX = MainEngine.current_map.getStartX() * MainEngine.current_map.getTileWidth();
     const startY = MainEngine.current_map.getStartY() * MainEngine.current_map.getTileHeight();
 
-
     // Center camera on start position with proper clamping
     MainEngine.setCameraPosition(startX, startY);
+
+    console.log(`Camera setup: demo resolution ${config.xRes}x${config.yRes}, map bounds ${mapWidth}x${mapHeight}, camera at ${startX},${startY}`);
   }
 
   /**
@@ -947,12 +961,10 @@ export class MainEngine {
 
     // Check if existing graphics belongs to a different scene or is destroyed
     if (MainEngine.uiGraphics && (!MainEngine.uiGraphics.scene || MainEngine.uiGraphics.scene !== MainEngine.current_scene)) {
-      console.log('MainEngine: UI graphics belongs to old scene, creating new one');
       MainEngine.uiGraphics = null;
     }
 
     if (!MainEngine.uiGraphics) {
-      console.log('MainEngine: Creating new UI graphics for scene');
       MainEngine.uiGraphics = MainEngine.current_scene.add.graphics();
       MainEngine.uiGraphics.setScrollFactor(0); // UI elements don't scroll with camera
       MainEngine.uiGraphics.setDepth(1000); // High depth to render on top
@@ -1075,6 +1087,5 @@ export class MainEngine {
     MainEngine.cameratracking = 0;
     MainEngine.entitiespaused = false;
     MainEngine.screenTransitioning = false;
-    console.log('MainEngine cleanup completed');
   }
 }

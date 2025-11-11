@@ -12,6 +12,7 @@ import { DemoUI } from '../../utils/DemoUI';
 
 export class Demo1Scene extends Phaser.Scene {
   private config: GameConfig;
+  private mainConfig: GameConfig;
   private inputManager: InputManager;
   private fpsDisplay: FPSDisplay;
   private tiledMap: any = null;
@@ -27,10 +28,11 @@ export class Demo1Scene extends Phaser.Scene {
     DemoUI.createLoadingText(this, 'Loading Island World...');
   }
 
-  async init(data: { demoPath: string }) {
+  async init(data: { demoPath: string, config?: any }) {
     MainEngine.setSystemPath(data.demoPath);
     const { config } = await MainEngine.initMainEngine();
     this.config = config;
+    this.mainConfig = data.config; // Store main config for returning to menu
   }
 
   async create() {
@@ -73,7 +75,7 @@ export class Demo1Scene extends Phaser.Scene {
     // Back to menu
     if (this.inputManager.justPressed('menu')) {
       MainEngine.cleanup();
-      this.scene.start('MenuScene', { config: this.config });
+      this.scene.start('MenuScene', { config: this.mainConfig || this.config });
     }
   }
 }

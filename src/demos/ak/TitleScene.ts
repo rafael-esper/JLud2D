@@ -27,10 +27,11 @@ export class TitleScene extends AkBaseScene {
     this.load.image('title', 'src/demos/ak/res/image/Title.PNG');
   }
 
-  async init(data: { demoPath: string }) {
+  async init(data: { demoPath: string, config?: any }) {
     MainEngine.setSystemPath(data.demoPath);
     const { config } = await MainEngine.initMainEngine();
     this.config = config;
+    this.mainConfig = data.config; // Store main config for returning to menu
   }
 
   async create() {

@@ -209,8 +209,19 @@ class Game {
   }
 
   // Public method to update scaling when config changes
-  public updateScaling() {
-
+  public updateScaling(newConfig?: GameConfig) {
+    if (newConfig && this.responsiveScaler && this.game) {
+      // Update base resolution in ResponsiveScaler
+      console.log(`Main: Updating ResponsiveScaler to ${newConfig.xRes}x${newConfig.yRes}`);
+      this.responsiveScaler.destroy();
+      this.responsiveScaler = new ResponsiveScaler(
+        this.game,
+        newConfig.xRes,
+        newConfig.yRes,
+        newConfig.fullscreen
+      );
+      this.responsiveScaler.forceUpdate();
+    }
   }
 }
 
