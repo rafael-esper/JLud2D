@@ -1,11 +1,11 @@
 /**
  * BattlePosition - Battle Position Management
- * Direct port of BattlePosition.java - Handles positioning of entities in battle scenes
+ * Handles positioning of entities in battle scenes
  */
 
 export enum SceneType {
-  OPEN = 'OPEN',
-  CLOSE = 'CLOSE'
+  OPEN,
+  CLOSE
 }
 
 export class SceneTypeHelper {
@@ -20,14 +20,7 @@ export class SceneTypeHelper {
 }
 
 enum Size {
-  NANO = 'NANO',
-  MICRO = 'MICRO',
-  TINY = 'TINY',
-  SMALL = 'SMALL',
-  MEDIUM = 'MEDIUM',
-  BIG = 'BIG',
-  LARGE = 'LARGE',
-  HUGE = 'HUGE'
+  NANO,  MICRO, TINY, SMALL, MEDIUM, BIG, LARGE, HUGE
 }
 
 class SizeHelper {
@@ -71,7 +64,7 @@ export class BattlePosition {
   }
 
   /**
-   * Calculate front row position - direct port of Java frontPosition()
+   * Calculate front row position
    */
   private static frontPosition(index: number, num: number, screenSize: number, scene: SceneType): number {
     if (num <= 0 || num > SizeHelper.maxNum(Size.NANO, scene)) {
@@ -89,7 +82,7 @@ export class BattlePosition {
   }
 
   /**
-   * Get size based on width - direct port of Java getSize()
+   * Get size based on width
    */
   private static getSize(wSize: number, screenSize: number, scene: SceneType): Size {
     let mSize = Size.HUGE;
@@ -104,7 +97,7 @@ export class BattlePosition {
   }
 
   /**
-   * Distribute positions for entities - direct port of Java distributePositions()
+   * Distribute positions for entities
    */
   public static distributePositions(wSize: number, num: number, scene: SceneType): number[] {
     const screenSize = SceneTypeHelper.getScreenSize(scene);

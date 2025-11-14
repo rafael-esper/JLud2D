@@ -3,34 +3,12 @@
  * Direct port of Battler.java - Base class for all entities that can participate in battle
  */
 
-// Forward declarations for types that will be implemented later
-export interface PSEffect {
-  // Will be defined when we port PSEffect
-}
-
-export interface Spell {
-  // Will be defined when we port PSLibSpell
-}
-
-export interface Item {
-  // Will be defined when we port Item
-}
-
-export interface MenuCHR {
-  // Will be defined when we port MenuCHR
-}
-
-export interface MenuLabelBox {
-  // Will be defined when we port MenuLabelBox
-}
-
-export enum Action {
-  // Will be defined when we port PSBattle
-  ATTACK = 'ATTACK',
-  SPELL = 'SPELL',
-  ITEM = 'ITEM',
-  RUN = 'RUN'
-}
+import { Action } from './PSBattle';
+import { PSEffect } from './PSEffect';
+import { Spell } from './PSLibSpell';
+import { Item } from './Item';
+import { MenuCHR } from '../menu/MenuCHR';
+import { MenuLabelBox } from '../menu/MenuLabelBox';
 
 export abstract class Battler {
   // Abstract methods that must be implemented by subclasses
@@ -65,14 +43,14 @@ export abstract class Battler {
   public enemyBox: MenuLabelBox | null = null;
 
   /**
-   * Get sprite - direct port of Java getSprite()
+   * Get sprite
    */
   public getSprite(): MenuCHR | null {
     return this.sprite;
   }
 
   /**
-   * Clean battle state - direct port of Java clean()
+   * Clean battle state
    */
   public clean(): void {
     this.paralyzed = 0;
@@ -80,7 +58,7 @@ export abstract class Battler {
   }
 
   /**
-   * Get natural order of battlers - direct port of Java getNaturalOrder()
+   * Get natural order of battlers
    */
   public static getNaturalOrder(battlers: Battler[]): number[] {
     const ret: number[] = [];
@@ -108,7 +86,7 @@ export abstract class Battler {
   }
 
   /**
-   * Get natural order comparator - direct port of Java getNaturalComparator()
+   * Get natural order comparator
    */
   public static getNaturalComparator(): (a: Battler, b: Battler) => number {
     return (arg0: Battler, arg1: Battler) => {
@@ -117,7 +95,7 @@ export abstract class Battler {
   }
 
   /**
-   * Get precedence comparator - direct port of Java getPrecedenceComparator()
+   * Get precedence comparator
    */
   public static getPrecedenceComparator(): (a: Battler, b: Battler) => number {
     return (arg0: Battler, arg1: Battler) => {
