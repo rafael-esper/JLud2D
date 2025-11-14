@@ -1,15 +1,13 @@
 /**
  * City - City and Location Management
- * Direct port of City.java - Defines all cities and locations in the PS universe
+ * Defines all cities and locations in the PS universe
  */
 
 import { PS1Music } from './PSLibMusic';
 import { PSGame } from '../PSGame';
 
 export enum Planet {
-  PALMA = 'PALMA',
-  MOTAVIA = 'MOTAVIA',
-  DEZORIS = 'DEZORIS'
+  PALMA, MOTAVIA, DEZORIS
 }
 
 export class PlanetHelper {
@@ -29,41 +27,40 @@ export class PlanetHelper {
 }
 
 enum Flyable {
-  YES = 'YES',
-  NO = 'NO'
+  YES, NO
 }
 
 export enum City {
   // Palma cities and villages
-  CAMINEET = 'CAMINEET',
-  PAROLIT = 'PAROLIT',
-  SCION = 'SCION',
-  EPPI = 'EPPI',
-  GOTHIC = 'GOTHIC',
-  BORTEVO = 'BORTEVO',
-  LOAR = 'LOAR',
-  ABION = 'ABION',
-  DRASGOW = 'DRASGOW',
+  CAMINEET,
+  PAROLIT,
+  SCION,
+  EPPI,
+  GOTHIC,
+  BORTEVO,
+  LOAR,
+  ABION,
+  DRASGOW,
 
   // Spaceports
-  SPACEPORT1 = 'SPACEPORT1',
-  SPACEPORT2 = 'SPACEPORT2',
+  SPACEPORT1,
+  SPACEPORT2,
 
   // Motavia cities and villages
-  PASEO = 'PASEO',
-  UZO = 'UZO',
-  CASBA = 'CASBA',
-  SOPIA = 'SOPIA',
-  TONOE = 'TONOE',
+  PASEO,
+  UZO,
+  CASBA,
+  SOPIA,
+  TONOE,
 
   // Dezoris locations
-  SKURE_ENTRANCE = 'SKURE_ENTRANCE',
-  SKURE = 'SKURE',
-  AUKBA_ENTRANCE = 'AUKBA_ENTRANCE',
-  AUKBA = 'AUKBA',
+  SKURE_ENTRANCE,
+  SKURE,
+  AUKBA_ENTRANCE,
+  AUKBA,
 
   // Special locations
-  SKY_CASTLE = 'SKY_CASTLE'
+  SKY_CASTLE
 }
 
 export class CityHelper {
@@ -101,7 +98,7 @@ export class CityHelper {
   ]);
 
   /**
-   * Get visited cities from planet - direct port of Java getVisitedCitiesFromPlanet()
+   * Get visited cities from planet
    */
   public static getVisitedCitiesFromPlanet(chosenPlanet: Planet, visitedCities?: Set<City>): City[] {
     const lstCities: City[] = [];
@@ -160,7 +157,7 @@ export class CityHelper {
   }
 
   /**
-   * Get localized city name - direct port of Java toString()
+   * Get localized city name
    */
   public static toString(city: City): string {
     const s = city.toString();
@@ -169,7 +166,7 @@ export class CityHelper {
   }
 
   /**
-   * Get map path - direct port of Java getPath()
+   * Get map path
    */
   public static getPath(city: City): string {
     const name = city.toString();

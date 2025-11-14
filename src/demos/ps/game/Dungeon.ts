@@ -1,6 +1,6 @@
 /**
  * Dungeon - Dungeon and Cave Management
- * Direct port of Dungeon.java - Defines all dungeons, caves and underground areas in PS
+ * Defines all dungeons, caves and underground areas in PS
  */
 
 import { PS1Music } from './PSLibMusic';
@@ -8,18 +8,18 @@ import { PS1Music } from './PSLibMusic';
 const BASE_FOLDER = "src/demos/ps";
 
 export enum DungeonType {
-  FIRE = 'FIRE',
-  GREY = 'GREY',
-  GREEN = 'GREEN',
-  YELLOW = 'YELLOW',
-  BLUE = 'BLUE',
-  ILLUSION = 'ILLUSION',
-  COLOR = 'COLOR',
-  MOTA = 'MOTA',
-  ORANGE = 'ORANGE',
-  EMERALD = 'EMERALD',
-  COLD = 'COLD',
-  RUBY = 'RUBY'
+  FIRE,
+  GREY,
+  GREEN,
+  YELLOW,
+  BLUE,
+  ILLUSION,
+  COLOR,
+  MOTA,
+  ORANGE,
+  EMERALD,
+  COLD,
+  RUBY
 }
 
 export class DungeonTypeHelper {
@@ -52,67 +52,67 @@ export enum EntityDirection {
 }
 
 enum Dark {
-  TRUE = 'TRUE',
-  FALSE = 'FALSE'
+  TRUE,
+  FALSE
 }
 
 export enum Dungeon {
   // Special/None
-  NONE = 'NONE',
+  NONE,
 
   // Palma dungeons
-  WAREHOUSE = 'WAREHOUSE',
-  ODIN_CAVE = 'ODIN_CAVE',
-  IALA = 'IALA',
-  NAULA = 'NAULA',
-  GOTHIC_PASSAGEWAY_IN = 'GOTHIC_PASSAGEWAY_IN',
-  GOTHIC_PASSAGEWAY_OUT = 'GOTHIC_PASSAGEWAY_OUT',
-  PRISON_IN = 'PRISON_IN',
-  PRISON_OUT = 'PRISON_OUT',
-  TRIADA = 'TRIADA',
-  BORTEVO_IN = 'BORTEVO_IN',
-  BORTEVO_OUT = 'BORTEVO_OUT',
-  ABION_DUNGEON_IN = 'ABION_DUNGEON_IN',
-  ABION_DUNGEON_OUT = 'ABION_DUNGEON_OUT',
-  DRASGOW_DUNGEON = 'DRASGOW_DUNGEON',
-  CAVE_BAYA_IN = 'CAVE_BAYA_IN',
-  CAVE_BAYA_OUT = 'CAVE_BAYA_OUT',
-  LOST_ISLAND = 'LOST_ISLAND',
-  MEDUSA_TOWER = 'MEDUSA_TOWER',
-  BAYA_MALAY = 'BAYA_MALAY',
+  WAREHOUSE,
+  ODIN_CAVE,
+  IALA,
+  NAULA,
+  GOTHIC_PASSAGEWAY_IN,
+  GOTHIC_PASSAGEWAY_OUT,
+  PRISON_IN,
+  PRISON_OUT,
+  TRIADA,
+  BORTEVO_IN,
+  BORTEVO_OUT,
+  ABION_DUNGEON_IN,
+  ABION_DUNGEON_OUT,
+  DRASGOW_DUNGEON,
+  CAVE_BAYA_IN,
+  CAVE_BAYA_OUT,
+  LOST_ISLAND,
+  MEDUSA_TOWER,
+  BAYA_MALAY,
 
   // Motavia dungeons
-  GOVERNOR_IN = 'GOVERNOR_IN',
-  GOVERNOR_OUT = 'GOVERNOR_OUT',
-  NAHARU = 'NAHARU',
-  CASBA_CAVE_IN = 'CASBA_CAVE_IN',
-  CASBA_CAVE_OUT = 'CASBA_CAVE_OUT',
-  TAJIMA_CAVE = 'TAJIMA_CAVE',
-  BLUEBERRY_MINE = 'BLUEBERRY_MINE',
-  DARKFALZ_DUNGEON = 'DARKFALZ_DUNGEON',
+  GOVERNOR_IN,
+  GOVERNOR_OUT,
+  NAHARU,
+  CASBA_CAVE_IN,
+  CASBA_CAVE_OUT,
+  TAJIMA_CAVE,
+  BLUEBERRY_MINE,
+  DARKFALZ_DUNGEON,
 
   // Dezoris dungeons
-  SKURE_TUNNEL_IN = 'SKURE_TUNNEL_IN',
-  SKURE_TUNNEL_OUT = 'SKURE_TUNNEL_OUT',
-  DEZO_CAVE1_IN = 'DEZO_CAVE1_IN',
-  DEZO_CAVE1_OUT = 'DEZO_CAVE1_OUT',
-  DEZO_CAVE2_IN = 'DEZO_CAVE2_IN',
-  DEZO_CAVE2_OUT = 'DEZO_CAVE2_OUT',
-  DEZO_CAVE3_IN = 'DEZO_CAVE3_IN',
-  DEZO_CAVE3_OUT = 'DEZO_CAVE3_OUT',
-  DEZO_CAVE4_IN = 'DEZO_CAVE4_IN',
-  DEZO_CAVE4_OUT = 'DEZO_CAVE4_OUT',
-  DEZO_CAVE_AUKBA_IN = 'DEZO_CAVE_AUKBA_IN',
-  DEZO_CAVE_AUKBA_OUT = 'DEZO_CAVE_AUKBA_OUT',
-  AUKBA_TUNNEL_IN = 'AUKBA_TUNNEL_IN',
-  AUKBA_TUNNEL_OUT = 'AUKBA_TUNNEL_OUT',
-  PRISM_CAVE = 'PRISM_CAVE',
-  CORONA = 'CORONA',
-  GUARON_MORGUE = 'GUARON_MORGUE',
-  FROST_CAVE = 'FROST_CAVE',
+  SKURE_TUNNEL_IN,
+  SKURE_TUNNEL_OUT,
+  DEZO_CAVE1_IN,
+  DEZO_CAVE1_OUT,
+  DEZO_CAVE2_IN,
+  DEZO_CAVE2_OUT,
+  DEZO_CAVE3_IN,
+  DEZO_CAVE3_OUT,
+  DEZO_CAVE4_IN,
+  DEZO_CAVE4_OUT,
+  DEZO_CAVE_AUKBA_IN,
+  DEZO_CAVE_AUKBA_OUT,
+  AUKBA_TUNNEL_IN,
+  AUKBA_TUNNEL_OUT,
+  PRISM_CAVE,
+  CORONA,
+  GUARON_MORGUE,
+  FROST_CAVE,
 
   // Final dungeon
-  LASSIC_CASTLE = 'LASSIC_CASTLE'
+  LASSIC_CASTLE
 }
 
 export class DungeonHelper {
@@ -191,49 +191,49 @@ export class DungeonHelper {
   }
 
   /**
-   * Get dungeon X coordinate - direct port of Java getX()
+   * Get dungeon X coordinate
    */
   public static getX(dungeon: Dungeon): number {
     return this.dungeonConfigs.get(dungeon)?.x || 0;
   }
 
   /**
-   * Get dungeon Y coordinate - direct port of Java getY()
+   * Get dungeon Y coordinate
    */
   public static getY(dungeon: Dungeon): number {
     return this.dungeonConfigs.get(dungeon)?.y || 0;
   }
 
   /**
-   * Get dungeon direction - direct port of Java getDir()
+   * Get dungeon direction
    */
   public static getDir(dungeon: Dungeon): EntityDirection {
     return this.dungeonConfigs.get(dungeon)?.dir || EntityDirection.NORTH;
   }
 
   /**
-   * Get dungeon type - direct port of Java getType()
+   * Get dungeon type
    */
   public static getType(dungeon: Dungeon): DungeonType | null {
     return this.dungeonConfigs.get(dungeon)?.type || null;
   }
 
   /**
-   * Get dungeon map path - direct port of Java getPath()
+   * Get dungeon map path
    */
   public static getPath(dungeon: Dungeon): string | null {
     return this.dungeonConfigs.get(dungeon)?.mapPath || null;
   }
 
   /**
-   * Check if dungeon is dark - direct port of Java isDark()
+   * Check if dungeon is dark
    */
   public static isDark(dungeon: Dungeon): boolean {
     return this.dungeonConfigs.get(dungeon)?.isDark || false;
   }
 
   /**
-   * Get dungeon music - direct port of Java getMusic()
+   * Get dungeon music
    */
   public static getMusic(dungeon: Dungeon): PS1Music | null {
     return this.dungeonConfigs.get(dungeon)?.music || null;

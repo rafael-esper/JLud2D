@@ -1,6 +1,6 @@
 /**
  * Battler - Abstract Battle Entity
- * Direct port of Battler.java - Base class for all entities that can participate in battle
+ * Base class for all entities that can participate in battle
  */
 
 import { Action } from './PSBattle';
