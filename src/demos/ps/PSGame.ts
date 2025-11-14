@@ -9,18 +9,7 @@ import { PS1Image } from './game/PSLibImage';
 import { PS1Sound } from './game/PSLibSound';
 import { Party } from './game/Party';
 import { Planet, City } from './game/City';
-
-export enum ScreenSize {
-  SCREEN_320_240,
-  SCREEN_640_480
-}
-
-export enum GameType {
-  PS_ORIGINAL,
-  PS_START_AS_ODIN,
-  PS_START_AS_NOAH,
-  PS_ARENA
-}
+import { ScreenSize, GameType } from './game/GameData';
 
 export class PSGameData {
   public enableCheats: boolean = false;

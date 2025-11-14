@@ -7,7 +7,7 @@ import { PartyMember, Gender } from './PartyMember';
 import { Item, ItemType } from './Item';
 import { Job } from './Job';
 import { Specie } from './Specie';
-import { GameType } from '../PSGame';
+import { GameType } from './GameData';
 import { PS1Image } from './PSLibImage';
 import { PS1Sound } from './PSLibSound';
 import { PSGame } from '../PSGame';
