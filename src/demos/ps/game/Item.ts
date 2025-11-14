@@ -1,6 +1,6 @@
 /**
  * Item - Game Item System
- * Direct port of Item.java - Defines items, equipment, and their properties
+ * Defines items, equipment, and their properties
  */
 
 import { PS1Sound } from './PSLibSound';
@@ -10,38 +10,36 @@ import { CHR } from '../../../domain/CHR';
 import { Effect, EffectPlace, EffectTarget } from './PSEffect';
 
 export enum EquipPlace {
-  WEAPON = 'WEAPON',
-  CHEST = 'CHEST',
-  COVER = 'COVER'
+  WEAPON, CHEST, COVER
 }
 
 export enum ItemType {
   // Weapons
-  WAND = 'WAND',
-  SWORD = 'SWORD',
-  AXE = 'AXE',
-  SLICER = 'SLICER',
-  CLAW = 'CLAW',
-  PISTOL = 'PISTOL',
-  CANNON = 'CANNON',
+  WAND,
+  SWORD,
+  AXE,
+  SLICER,
+  CLAW,
+  PISTOL,
+  CANNON,
 
   // Armor
-  MAIL = 'MAIL',
-  ARMOR = 'ARMOR',
-  MANTLE = 'MANTLE',
-  FUR = 'FUR',
+  MAIL,
+  ARMOR,
+  MANTLE,
+  FUR,
 
   // Shields/Covers
-  GLOVES = 'GLOVES',
-  BARRIER = 'BARRIER',
-  LIGHT_SHIELD = 'LIGHT_SHIELD',
-  HEAVY_SHIELD = 'HEAVY_SHIELD',
+  GLOVES,
+  BARRIER,
+  LIGHT_SHIELD,
+  HEAVY_SHIELD,
 
   // Non-equipment
-  ITEM = 'ITEM',
-  QUEST = 'QUEST',
-  VEHICLE = 'VEHICLE',
-  SECRET = 'SECRET'
+  ITEM,
+  QUEST,
+  VEHICLE,
+  SECRET
 }
 
 export class ItemTypeHelper {
@@ -94,7 +92,7 @@ export class Item {
 
   public effect: Effect;
 
-  // Constructor with weapon animation - direct port of Java
+  // Constructor with weapon animation
   constructor(str: string, mesetas: number, type: ItemType, modifier: number, chrWeapon: string, sound: PS1Sound);
   constructor(name: string, price: number, type: ItemType, modifier: number, effect: Effect);
   constructor(
@@ -173,7 +171,7 @@ export class Item {
     return this.getName();
   }
 
-  // Static utility methods - direct port from Java
+  // Static utility methods
   public static toString(items: Item[], showCost: boolean): string[] {
     return this.toStringFromList(items, showCost);
   }

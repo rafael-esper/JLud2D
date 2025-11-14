@@ -1,6 +1,6 @@
 /**
  * Enemy - Battle Enemy System
- * Direct port of Enemy.java - Defines enemy entities with builder pattern
+ * Defines enemy entities with builder pattern
  */
 
 import { PS1Sound } from './PSLibSound';
@@ -8,69 +8,69 @@ import { PSGame } from '../PSGame';
 import { CHR } from '../../../domain/CHR';
 
 export enum EnemyType {
-  NONE = 'NONE',
-  PALMA = 'PALMA',
-  MOTAVIA = 'MOTAVIA',
-  DEZORIS = 'DEZORIS',
-  SPECIAL = 'SPECIAL',
-  UNDEAD = 'UNDEAD'
+  NONE,
+  PALMA,
+  MOTAVIA,
+  DEZORIS,
+  SPECIAL,
+  UNDEAD
 }
 
 export enum HasItem {
-  NONE = 'NONE',
-  COLA = 'COLA',
-  DIMATE = 'DIMATE',
-  FLASH = 'FLASH'
+  NONE,
+  COLA,
+  DIMATE,
+  FLASH
 }
 
 export enum CanTalk {
-  YES = 'YES',
-  NO = 'NO'
+  YES,
+  NO
 }
 
 export enum CanChat {
-  YES = 'YES',
-  NO = 'NO'
+  YES,
+  NO
 }
 
 export enum CanRope {
-  YES = 'YES',
-  NO = 'NO'
+  YES,
+  NO
 }
 
 export enum CanProt {
-  YES = 'YES',
-  NO = 'NO'
+  YES,
+  NO
 }
 
 export enum HasWing {
-  YES = 'YES',
-  NO = 'NO'
+  YES,
+  NO
 }
 
 export enum FireRes {
-  YES = 'YES',
-  NO = 'NO'
+  YES,
+  NO
 }
 
 export enum Special {
-  NONE = 'NONE',
-  FIRE = 'FIRE',
-  THUNDER = 'THUNDER',
-  THUNDER2 = 'THUNDER2',
-  ROPE = 'ROPE',
-  HELP = 'HELP',
-  PETRIFY = 'PETRIFY',
-  CURE = 'CURE',
-  MP_DRAIN = 'MP_DRAIN',
-  DOUBLE_ATTACK = 'DOUBLE_ATTACK'
+  NONE,
+  FIRE,
+  THUNDER,
+  THUNDER2,
+  ROPE,
+  HELP,
+  PETRIFY,
+  CURE,
+  MP_DRAIN,
+  DOUBLE_ATTACK
 }
 
 export enum Mental {
-  LOWEST = 'LOWEST',
-  LOWER = 'LOWER',
-  NORMAL = 'NORMAL',
-  HIGHER = 'HIGHER'
+  LOWEST,
+  LOWER,
+  NORMAL,
+  HIGHER
 }
 
 export class Enemy {
@@ -240,13 +240,14 @@ export class Enemy {
     return this.num;
   }
 
-  // Lazy load CHR - direct port of Java getChr()
-  public async getChr(scene?: Phaser.Scene): Promise<CHR | null> {
-    if (this.animCHR === null && this.strAnimCHR) {
-      if (scene) {
-        // Note: This would need to be adapted based on how CHR.loadChr works in the TypeScript version
-        // For now, returning null as placeholder
-        console.warn('CHR loading not yet implemented in TypeScript version');
+  // Lazy load CHR
+  public async getChr(scene?: Phaser.Scene, basePath: string = 'src/demos/ps'): Promise<CHR | null> {
+    if (this.animCHR === null && this.strAnimCHR && scene) {
+      try {
+        this.animCHR = await CHR.loadChr(scene, this.strAnimCHR, basePath);
+        console.log(`Enemy CHR loaded: ${this.strAnimCHR}`);
+      } catch (error) {
+        console.error(`Failed to load enemy CHR ${this.strAnimCHR}:`, error);
       }
     }
     return this.animCHR;

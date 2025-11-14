@@ -1,27 +1,27 @@
 /**
  * Job - Character Job System
- * Direct port of Job.java - Defines character jobs/classes with stats and spell progression
+ * Defines character jobs/classes with stats and spell progression
  */
 
 import { PSGame } from '../PSGame';
 import { Spell, PS1Spell, SpellFactory } from './PSLibSpell';
 import { Specie, SpecieHelper } from './Specie';
 
-// Job enum with stats - direct port from Job.java
+// Job enum with stats
 export enum Job {
-  ADVENTURER = 'ADVENTURER', // Alis, Rolf, Chaz - 36 Weap (9) + ATKTech(10) + ORITech (5) = 60
-  NATURER = 'NATURER',       // Nei, Ryka, Myau - 39 Weap (6) + CURTech (10) + AGI (5) = 60
-  FIGHTER = 'FIGHTER',       // Odin, Rudo - 48 Weap(12) = 60
-  ESPER = 'ESPER',           // Noah, Rune - 33 Weap (3) + ATK2Tech (18) + MiscTech (6) = 60
-  ROBOT = 'ROBOT',           // Hapsby
-  HUNTER = 'HUNTER',         // Anna, Alys, Kyra - 39 Weap (6) + CBTTech(10) + AGI (5)
-  MECHANIC = 'MECHANIC',     // Kain, Gryz - 45 Weap (9) + AntiTech (6) = 60
-  PRIEST = 'PRIEST',         // Raja - 34 Weap (3) + CUR2Tech (18) + DEFTech (5) = 60
-  SCHOLAR = 'SCHOLAR',       // Hahn, Hugh - 32 Weap (3) + CURTech (10) + CBTTech(10) + DEFTech (5) = 60
-  HEALER = 'HEALER',         // Amy - 33 Weap (3) + CUR2Tech (18) + MiscTech (6) = 60
-  THIEF = 'THIEF',           // Shir - 34 Weap (3) + MiscTech (6) + AGI (5) + THI (12) = 60
-  GUARDIAN = 'GUARDIAN',     // Wren - 42 Weap (6) + MiscTech (6) + AutoCure (6) = 60
-  WATCHER = 'WATCHER'        // Demi - 38 Weap (6) + CURTech (10) + AutoCure (6) = 60
+  ADVENTURER, // Alis, Rolf, Chaz - 36 Weap (9) + ATKTech(10) + ORITech (5) = 60
+  NATURER,    // Nei, Ryka, Myau - 39 Weap (6) + CURTech (10) + AGI (5) = 60
+  FIGHTER,    // Odin, Rudo - 48 Weap(12) = 60
+  ESPER,      // Noah, Rune - 33 Weap (3) + ATK2Tech (18) + MiscTech (6) = 60
+  ROBOT,      // Hapsby
+  HUNTER,     // Anna, Alys, Kyra - 39 Weap (6) + CBTTech(10) + AGI (5)
+  MECHANIC,   // Kain, Gryz - 45 Weap (9) + AntiTech (6) = 60
+  PRIEST,     // Raja - 34 Weap (3) + CUR2Tech (18) + DEFTech (5) = 60
+  SCHOLAR,    // Hahn, Hugh - 32 Weap (3) + CURTech (10) + CBTTech(10) + DEFTech (5) = 60
+  HEALER,     // Amy - 33 Weap (3) + CUR2Tech (18) + MiscTech (6) = 60
+  THIEF,      // Shir - 34 Weap (3) + MiscTech (6) + AGI (5) + THI (12) = 60
+  GUARDIAN,   // Wren - 42 Weap (6) + MiscTech (6) + AutoCure (6) = 60
+  WATCHER     // Demi - 38 Weap (6) + CURTech (10) + AutoCure (6) = 60
 }
 
 export class JobHelper {
@@ -62,7 +62,7 @@ export class JobHelper {
     return this.jobConfigs.get(job)?.dMod || 0;
   }
 
-  // HP calculation - direct port from Java
+  // HP calculation
   public static getHp(job: Job, specie: Specie, level: number): number {
     const baseHp = this.getBaseHp(job);
     const modHp = SpecieHelper.getModHp(specie);
@@ -75,7 +75,7 @@ export class JobHelper {
     return Math.round(value);
   }
 
-  // MP calculation - direct port from Java
+  // MP calculation
   public static getMp(job: Job, specie: Specie, level: number): number {
     const baseMp = this.getBaseMp(job);
     const modMp = SpecieHelper.getModMp(specie);
@@ -95,7 +95,7 @@ export class JobHelper {
     }
   }
 
-  // XP calculation - direct port from Java
+  // XP calculation
   public static getXp(job: Job, level: number): number {
     const baseHp = this.getBaseHp(job);
     const baseMp = this.getBaseMp(job);
@@ -110,7 +110,7 @@ export class JobHelper {
     return Math.floor(value);
   }
 
-  // ATK calculation - direct port from Java
+  // ATK calculation
   public static getAtk(job: Job, level: number): number {
     const aMod = this.getAMod(job);
     let atk = Math.floor(aMod * 4);
@@ -122,7 +122,7 @@ export class JobHelper {
     return Math.round(atk);
   }
 
-  // DEF calculation - direct port from Java
+  // DEF calculation
   public static getDef(job: Job, level: number): number {
     const dMod = this.getDMod(job);
     let def = Math.round(dMod * 3);
@@ -145,7 +145,7 @@ export class JobHelper {
   private static initLevelSpellMapping(job: Job): void {
     const mapping = new Map<number, Spell[]>();
 
-    // Direct port of Java spell mappings
+    // Spell mappings
     switch (job) {
       case Job.ADVENTURER:
         mapping.set(4, [SpellFactory.createSpell(PS1Spell.REST)]);
@@ -192,7 +192,7 @@ export class JobHelper {
     this.spellMappings.set(job, mapping);
   }
 
-  // Localized job name - direct port from Java
+  // Localized job name
   public static toString(job: Job): string {
     const s = job.toString();
     const formatted = s.substring(0, 1) + s.substring(1).toLowerCase();

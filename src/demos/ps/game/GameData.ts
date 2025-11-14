@@ -6,29 +6,22 @@
 import { Planet } from './City';
 import { Dungeon } from './Dungeon';
 import { City } from './City';
+import { Party } from './Party';
+import { PS1Enemy } from './PSLibEnemy';
 
-// Forward declarations for types that will be implemented later
-export interface Party {
-  // Will be defined when we port Party.java
-}
-
-export interface PS1Enemy {
-  // Will be defined when we port PSLibEnemy.java
-}
-
-// Game configuration enums - direct port from PSGame.java
+// Game configuration enums
 export enum GameType {
-  PS_ORIGINAL = 'PS_ORIGINAL',
-  PS_START_AS_ODIN = 'PS_START_AS_ODIN',
-  PS_START_AS_NOAH = 'PS_START_AS_NOAH',
-  PS_PARTY = 'PS_PARTY',
-  PS_EXTENDED = 'PS_EXTENDED',
-  PS_ARENA = 'PS_ARENA'
+  PS_ORIGINAL,
+  PS_START_AS_ODIN,
+  PS_START_AS_NOAH,
+  PS_PARTY,
+  PS_EXTENDED,
+  PS_ARENA
 }
 
 export enum ScreenSize {
-  SCREEN_320_240 = 'SCREEN_320_240',
-  SCREEN_640_480 = 'SCREEN_640_480'
+  SCREEN_320_240,
+  SCREEN_640_480
 }
 
 // Game flags - direct port from PSGame.java

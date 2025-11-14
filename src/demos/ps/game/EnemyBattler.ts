@@ -4,7 +4,7 @@
  */
 
 import { Battler } from './Battler';
-import { Enemy, EnemyType, HasWing } from './Enemy';
+import { Enemy, EnemyType } from './Enemy';
 
 export class EnemyBattler extends Battler {
   private enemy: Enemy;
@@ -68,12 +68,12 @@ export class EnemyBattler extends Battler {
   // Where to place the enemy sprite
   public getVerticalPos(): number {
     return this.enemy.vertical;
-    // Original commented code: return 110 + enemy.vertical +20-(enemy.getChr().fysize/2);
+    // return 110 + enemy.vertical +20-(enemy.getChr().fysize/2);
   }
 
   // Where the player weapon animation / magic animation connects
   public getContactPos(): number {
     return this.enemy.contact;
-    // Original commented code: return 110 + enemy.vertical + enemy.getChr().hh;
+    // return 110 + enemy.vertical + enemy.getChr().hh;
   }
 }
