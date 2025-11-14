@@ -3,7 +3,8 @@
  * TypeScript port of Camineet.java
  */
 
-import { PSGame, GameType } from '../PSGame';
+import { PSGame } from '../PSGame';
+import { GameType } from '../game/GameData';
 import { Planet, City } from '../game/City';
 import { PS1Sound } from '../game/PSLibSound';
 import { PS1Image } from '../game/PSLibImage';

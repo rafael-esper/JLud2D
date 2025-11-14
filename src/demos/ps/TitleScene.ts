@@ -4,7 +4,8 @@
  */
 
 import { PSScene, PSScene_Type, PSSpecialEntity } from './PSScene';
-import { PSGame, ScreenSize, GameType } from './PSGame';
+import { PSGame } from './PSGame';
+import { ScreenSize, GameType } from './game/GameData';
 import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
 import { MenuPromptBox } from './menu/MenuPromptBox';
