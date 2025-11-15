@@ -230,6 +230,48 @@ export class ScriptEngine {
   }
 
   /**
+   * Draw text string at specified position (port of screen.g.drawString)
+   * @param x X coordinate
+   * @param y Y coordinate
+   * @param text Text to display
+   * @param fontSize Font size in pixels
+   * @param color Optional color (default: white)
+   */
+  public static drawText(x: number, y: number, text: string, fontSize: number, color?: {r: number, g: number, b: number}): Phaser.GameObjects.Text | null {
+    if (!ScriptEngine.currentScene) return null;
+    if (!text || text.length === 0) return null;
+
+    const hexColor = color ? ((color.r << 16) | (color.g << 8) | color.b) : 0xffffff;
+
+    try {
+      const textObj = ScriptEngine.currentScene.add.text(x, y, text, {
+        fontFamily: 'monospace',
+        fontSize: `${fontSize}px`,
+        color: `#${hexColor.toString(16).padStart(6, '0')}`,
+        resolution: 1
+      });
+
+      textObj.setOrigin(0, 0);
+      textObj.setDepth(1002); // Above menu graphics and images
+      return textObj;
+    } catch (error) {
+      console.error('Error drawing text:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get left substring utility function
+   * @param str Source string
+   * @param length Number of characters from the left
+   */
+  public static left(str: string, length: number): string {
+    if (length <= 0) return '';
+    if (length >= str.length) return str;
+    return str.substring(0, length);
+  }
+
+  /**
    * Clean up all script engine resources
    */
   public static cleanup(): void {

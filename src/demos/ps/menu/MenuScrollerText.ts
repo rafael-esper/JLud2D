@@ -5,6 +5,7 @@
 
 import { MenuType, MenuState } from './MenuType';
 import { MenuStack } from './MenuStack';
+import { ScriptEngine } from '../../../core/ScriptEngine';
 
 export class MenuScrollerText extends MenuType {
   private text: string[];
@@ -41,8 +42,11 @@ export class MenuScrollerText extends MenuType {
 
     let nextTextPos = this.textPos;
     for (let i = 0; i < this.text.length; i++) {
-      const str = nextTextPos > 0 ? this.left(this.text[i], nextTextPos) : '';
-      this.drawText(this.x, this.y + (MenuStack.fontYSize + 5) * i, str);
+      const str = nextTextPos > 0 ? ScriptEngine.left(this.text[i], nextTextPos) : '';
+      const textObj = ScriptEngine.drawText(this.x, this.y + (MenuStack.fontYSize + 5) * i, str, MenuStack.fontYSize);
+      if (textObj) {
+        this.textObjects.push(textObj);
+      }
       nextTextPos -= this.text[i].length;
     }
 
@@ -51,40 +55,6 @@ export class MenuScrollerText extends MenuType {
     }
   }
 
-  /**
-   * Draw text at specified position
-   * Port of screen.g.drawString() functionality for Phaser
-   */
-  private drawText(x: number, y: number, text: string): void {
-    if (!text || text.length === 0) {
-      return;
-    }
-
-    try {
-      const textObj = this.scene.add.text(x, y, text, {
-        fontFamily: 'monospace',
-        fontSize: `${MenuStack.fontYSize}px`,
-        color: `#${MenuScrollerText.WHITE.toString(16).padStart(6, '0')}`,
-        resolution: 1
-      });
-
-      textObj.setOrigin(0, 0);
-      textObj.setDepth(1002); // Above menu graphics and images
-      this.textObjects.push(textObj);
-    } catch (error) {
-      console.error('Error drawing scrolling text:', error);
-    }
-  }
-
-  /**
-   * Get left substring - equivalent to Java left() function
-   * Direct port from MenuTextBox.ts
-   */
-  private left(str: string, length: number): string {
-    if (length <= 0) return '';
-    if (length >= str.length) return str;
-    return str.substring(0, length);
-  }
 
   /**
    * Clear all text objects from the scene
