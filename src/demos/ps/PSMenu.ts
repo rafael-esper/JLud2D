@@ -14,7 +14,7 @@ import { CHR } from '../../domain/CHR';
 import { VImage } from '../../domain/VImage';
 import { ScreenSize } from './game/GameData';
 
-export enum Scene {
+export enum PSSceneType {
   BLACK, BLUE_HOUSE, YELLOW_HOUSE, HOSPITAL, CHURCH, SHOP_CENTRAL, SHOP_FOOD, SHOP_HAND, SHOP_WEAPON,
   VILLAGE_HOUSE, SHOP_FOOD_VILLAGE, SHOP_HAND_VILLAGE, SHOP_WEAPON_VILLAGE, HOSPITAL_VILLAGE, CHURCH_VILLAGE,
   RUINED_HOUSE, SPACESHIP, PALACE, VILLA, CITY, BAYA, ALTAR, SCREEN, SCREEN_NOFADE, TITLE, ENDING,
@@ -185,7 +185,7 @@ export class PSMenu {
     // Position entity sprite if present
     if (PSMenu.instance.entitySprite) {
       PSMenu.instance.entityX = 320 / 2; // - (PSMenu.instance.entitySprite.width / 2);
-      if (scene === Scene.DUNGEON || scene === Scene.CORRIDOR) {
+      if (scene === PSSceneType.DUNGEON || scene === PSSceneType.CORRIDOR) {
         PSMenu.instance.entityY += 13;
       }
     }
@@ -195,9 +195,9 @@ export class PSMenu {
     PSMenu.menuOff();
 
     // Handle scene fading
-    if (scene === Scene.DUNGEON || scene === Scene.SCREEN || scene === Scene.BLACK || scene === Scene.ALTAR) {
+    if (scene === PSSceneType.DUNGEON || scene === PSSceneType.SCREEN || scene === PSSceneType.BLACK || scene === PSSceneType.ALTAR) {
       // TODO: screen.fadeIn(25, false);
-    } else if (scene === Scene.CORRIDOR || scene === Scene.SCREEN_NOFADE) {
+    } else if (scene === PSSceneType.CORRIDOR || scene === PSSceneType.SCREEN_NOFADE) {
       // Do nothing
     } else {
       // TODO: screen.fade(25, true);
@@ -209,82 +209,82 @@ export class PSMenu {
 
     // Set scene-specific background and outcome
     switch (scene) {
-      case Scene.BLUE_HOUSE:
-      case Scene.YELLOW_HOUSE:
-      case Scene.SHOP_FOOD:
-      case Scene.SHOP_HAND:
-      case Scene.SHOP_WEAPON:
-      case Scene.HOSPITAL:
-      case Scene.CHURCH:
-      case Scene.VILLAGE_HOUSE:
-      case Scene.SHOP_FOOD_VILLAGE:
-      case Scene.SHOP_HAND_VILLAGE:
-      case Scene.SHOP_WEAPON_VILLAGE:
-      case Scene.HOSPITAL_VILLAGE:
-      case Scene.CHURCH_VILLAGE:
-      case Scene.RUINED_HOUSE:
-      case Scene.SPACESHIP:
-      case Scene.PALACE:
-      case Scene.VILLA:
-      case Scene.CITY:
-      case Scene.TITLE:
-      case Scene.ENDING:
+      case PSSceneType.BLUE_HOUSE:
+      case PSSceneType.YELLOW_HOUSE:
+      case PSSceneType.SHOP_FOOD:
+      case PSSceneType.SHOP_HAND:
+      case PSSceneType.SHOP_WEAPON:
+      case PSSceneType.HOSPITAL:
+      case PSSceneType.CHURCH:
+      case PSSceneType.VILLAGE_HOUSE:
+      case PSSceneType.SHOP_FOOD_VILLAGE:
+      case PSSceneType.SHOP_HAND_VILLAGE:
+      case PSSceneType.SHOP_WEAPON_VILLAGE:
+      case PSSceneType.HOSPITAL_VILLAGE:
+      case PSSceneType.CHURCH_VILLAGE:
+      case PSSceneType.RUINED_HOUSE:
+      case PSSceneType.SPACESHIP:
+      case PSSceneType.PALACE:
+      case PSSceneType.VILLA:
+      case PSSceneType.CITY:
+      case PSSceneType.TITLE:
+      case PSSceneType.ENDING:
         PSMenu.instance.back = PSGame.getImage(scene);
         PSMenu.instance.outcome = PSOutcome.FADE_HOUSE;
         break;
 
-      case Scene.CAVE:
-      case Scene.FOREST:
-      case Scene.FIELDS:
-      case Scene.DESERT:
-      case Scene.ARTIC:
-      case Scene.PINES:
-      case Scene.SKY:
+      case PSSceneType.CAVE:
+      case PSSceneType.FOREST:
+      case PSSceneType.FIELDS:
+      case PSSceneType.DESERT:
+      case PSSceneType.ARTIC:
+      case PSSceneType.PINES:
+      case PSSceneType.SKY:
         PSMenu.instance.back = PSGame.getImage(scene);
         PSMenu.instance.outcome = PSOutcome.FADE;
         break;
 
-      case Scene.BAYA:
+      case PSSceneType.BAYA:
         PSMenu.instance.setdelay(0);
         PSMenu.instance.back = PSGame.getImage(scene);
         PSMenu.instance.outcome = PSOutcome.FADE;
         break;
 
-      case Scene.LAVA:
+      case PSSceneType.LAVA:
         // PSMenu.instance.backAnim = new MenuCHR(0, 0, PSGame.getCHR(PS1CHR.ANIM_LAVA));
         PSMenu.instance.outcome = PSOutcome.FADE;
         break;
 
-      case Scene.BEACH:
+      case PSSceneType.BEACH:
         // PSMenu.instance.backAnim = new MenuCHR(0, 0, PSGame.getCHR(PS1CHR.ANIM_BEACH));
         PSMenu.instance.outcome = PSOutcome.FADE;
         break;
 
-      case Scene.SEA:
+      case PSSceneType.SEA:
         // PSMenu.instance.backAnim = new MenuCHR(0, 0, PSGame.getCHR(PS1CHR.ANIM_SEA));
         PSMenu.instance.outcome = PSOutcome.FADE;
         break;
 
-      case Scene.GAS:
+      case PSSceneType.GAS:
         // PSMenu.instance.backAnim = new MenuCHR(0, 0, PSGame.getCHR(PS1CHR.ANIM_GAS));
         PSMenu.instance.outcome = PSOutcome.FADE;
         break;
 
-      case Scene.ALTAR:
+      case PSSceneType.ALTAR:
         PSMenu.instance.back = PSGame.getImage(scene);
         PSMenu.instance.outcome = PSOutcome.FADE_DUNGEON;
         break;
 
-      case Scene.DUNGEON:
+      case PSSceneType.DUNGEON:
         PSMenu.instance.outcome = PSOutcome.FADE_DUNGEON;
         break;
 
-      case Scene.CORRIDOR:
+      case PSSceneType.CORRIDOR:
         PSMenu.instance.outcome = PSOutcome.NO_FADE;
         break;
 
-      case Scene.SCREEN:
-      case Scene.SCREEN_NOFADE:
+      case PSSceneType.SCREEN:
+      case PSSceneType.SCREEN_NOFADE:
         PSMenu.instance.outcome = PSOutcome.FADE_HOUSE;
         PSMenu.instance.setdelay(0);
         break;

@@ -10,60 +10,9 @@ import { PS1Image } from './game/PSLibImage';
 import { MenuStack, PSCancellable } from './menu/MenuStack';
 import { MenuPromptBox } from './menu/MenuPromptBox';
 import { MenuTextBox } from './menu/MenuTextBox';
+import { PSSceneType, SpecialEntity } from './PSMenu';
 
-export enum PSScene_Type {
-  BLACK,
-  BLUE_HOUSE,
-  YELLOW_HOUSE,
-  HOSPITAL,
-  CHURCH,
-  SHOP_CENTRAL,
-  SHOP_FOOD,
-  SHOP_HAND,
-  SHOP_WEAPON,
-  VILLAGE_HOUSE,
-  SHOP_FOOD_VILLAGE,
-  SHOP_HAND_VILLAGE,
-  SHOP_WEAPON_VILLAGE,
-  HOSPITAL_VILLAGE,
-  CHURCH_VILLAGE,
-  RUINED_HOUSE,
-  SPACESHIP,
-  PALACE,
-  VILLA,
-  CITY,
-  BAYA,
-  ALTAR,
-  SCREEN,
-  SCREEN_NOFADE,
-  TITLE,
-  ENDING,
-  DUNGEON,
-  CORRIDOR,
-  FOREST,
-  FIELDS,
-  DESERT,
-  ARTIC,
-  PINES,
-  SKY,
-  BEACH,
-  SEA,
-  LAVA,
-  GAS,
-  CAVE
-}
 
-export enum PSSpecialEntity {
-  NONE,
-  OLDMAN,
-  BEGGAR,
-  ROBOTCOP,
-  PRIEST,
-  LUVENO,
-  HASHIM,
-  DEZOMAN,
-  DEZO_PRIEST
-}
 
 export abstract class PSScene extends Phaser.Scene {
   protected config: GameConfig;
@@ -127,23 +76,23 @@ export abstract class PSScene extends Phaser.Scene {
   /**
    * Start a scene with background (equivalent to Java startScene)
    */
-  protected startScene(sceneType: PSScene_Type, specialEntity: PSSpecialEntity = PSSpecialEntity.NONE): void {
-    console.log(`PSScene: Starting scene ${PSScene_Type[sceneType]}`);
+  protected startScene(sceneType: PSSceneType, specialEntity: SpecialEntity = SpecialEntity.NONE): void {
+    console.log(`PSScene: Starting scene ${PSSceneType[sceneType]}`);
 
     // Clear any existing menu stack
     this.menuStack.clear();
 
     // Handle different scene types
     switch (sceneType) {
-      case PSScene_Type.TITLE:
+      case PSSceneType.TITLE:
         this.setupTitleScene();
         break;
-      case PSScene_Type.BLACK:
+      case PSSceneType.BLACK:
         this.setupBlackScene();
         break;
       // Add more scene types as needed
       default:
-        console.warn(`PSScene: Scene type ${PSScene_Type[sceneType]} not fully implemented`);
+        console.warn(`PSScene: Scene type ${PSSceneType[sceneType]} not fully implemented`);
         break;
     }
   }

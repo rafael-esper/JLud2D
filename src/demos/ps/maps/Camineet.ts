@@ -9,19 +9,19 @@ import { Planet, City } from '../game/City';
 import { PS1Sound } from '../game/PSLibSound';
 import { PS1Image } from '../game/PSLibImage';
 import { Item, OriginalItem } from '../game/Item';
-import { PSScene_Type, PSSpecialEntity } from '../PSScene';
+import { PSSceneType, SpecialEntity } from '../PSMenu';
 import { PSCancellable } from '../menu/MenuStack';
 
 export class Camineet {
 
   public static alis(): void {
     if (PSGame.getGameType() === GameType.PS_ORIGINAL) {
-      // PSMenu.startScene(Scene.YELLOW_HOUSE, SpecialEntity.NONE);
+      // PSMenu.startScene(PSSceneType.YELLOW_HOUSE, SpecialEntity.NONE);
       // PSMenu.Stext(PSGame.getString("Camineet_House_Alis"));
       // PSMenu.endScene();
       console.log("Camineet: Alis house (PS_ORIGINAL)");
     } else {
-      // PSMenu.startScene(Scene.YELLOW_HOUSE, LargeEntity.ALIS);
+      // PSMenu.startScene(PSSceneType.YELLOW_HOUSE, LargeEntity.ALIS);
       // PSMenu.Stext(PSGame.getString("Camineet_House_Alis_Odin"));
       // PSMenu.endScene();
       console.log("Camineet: Alis house (other game type)");
@@ -34,21 +34,21 @@ export class Camineet {
   }
 
   public static church(): void {
-    // PSMenu.startScene(Scene.CHURCH, SpecialEntity.PRIEST);
+    // PSMenu.startScene(PSSceneType.CHURCH, SpecialEntity.PRIEST);
     // PSGame.Church(1);
     // PSMenu.endScene();
     console.log("Camineet: Church - healing services");
   }
 
   public static yellow(): void { // house
-    // PSMenu.startScene(Scene.YELLOW_HOUSE, EntityType.CITY_MAN_BLOND, EntityClothes.RED);
+    // PSMenu.startScene(PSSceneType.YELLOW_HOUSE, EntityType.CITY_MAN_BLOND, EntityClothes.RED);
     // PSMenu.Stext(PSGame.getString("Camineet_House_Man"));
     // PSMenu.endScene();
     console.log("Camineet: Yellow house man");
   }
 
   public static oldman(): void { // house
-    // PSMenu.startScene(Scene.BLUE_HOUSE, SpecialEntity.OLDMAN);
+    // PSMenu.startScene(PSSceneType.BLUE_HOUSE, SpecialEntity.OLDMAN);
     // if (PSMenu.Prompt(PSGame.getString("Camineet_House_Oldman"), PSGame.getYesNo()) === 1) {
     //   PSMenu.StextLast(PSGame.getString("Camineet_House_Oldman_Yes"));
     // } else {
@@ -60,7 +60,7 @@ export class Camineet {
   }
 
   public static nekise(): void {
-    // PSMenu.startScene(Scene.BLUE_HOUSE, EntityType.CITY_MAN_BLOND, EntityClothes.GREEN);
+    // PSMenu.startScene(PSSceneType.BLUE_HOUSE, EntityType.CITY_MAN_BLOND, EntityClothes.GREEN);
     if (PSGame.getGameType() === GameType.PS_ORIGINAL) {
       // if (!PSGame.hasFlag(Flags.VISIT_NEKISE)) {
       //   PSGame.setFlag(Flags.VISIT_NEKISE);
@@ -79,7 +79,7 @@ export class Camineet {
   }
 
   public static suelo(): void {
-    // PSMenu.startScene(Scene.YELLOW_HOUSE, EntityType.VILLA_WMN_BLOND, EntityClothes.RED);
+    // PSMenu.startScene(PSSceneType.YELLOW_HOUSE, EntityType.VILLA_WMN_BLOND, EntityClothes.RED);
 
     if (PSGame.getGameType() === GameType.PS_ORIGINAL) {
       // if (!PSGame.hasFlag(Flags.VISIT_SUELO)) {
@@ -102,7 +102,7 @@ export class Camineet {
   }
 
   public static weap_shop(): void {
-    // PSMenu.startScene(Scene.SHOP_WEAPON, EntityType.CITY_MAN_BLOND, EntityClothes.RED);
+    // PSMenu.startScene(PSSceneType.SHOP_WEAPON, EntityType.CITY_MAN_BLOND, EntityClothes.RED);
     // PSGame.Shop(PSGame.getString("Shop_Weapon_Welcome"), false, [
     //   PSGame.getItem(OriginalItem.Shield_Leather_Shield),
     //   PSGame.getItem(OriginalItem.Shield_Iron_Shield),
@@ -113,7 +113,7 @@ export class Camineet {
   }
 
   public static food_shop(): void {
-    // PSMenu.startScene(Scene.SHOP_FOOD, EntityType.CITY_MAN_BLOND, EntityClothes.BLUE);
+    // PSMenu.startScene(PSSceneType.SHOP_FOOD, EntityType.CITY_MAN_BLOND, EntityClothes.BLUE);
     // PSGame.Shop(PSGame.getString("Shop_Pharmacy_Welcome"), false, [
     //   PSGame.getItem(OriginalItem.Inventory_Monomate),
     //   PSGame.getItem(OriginalItem.Inventory_Dimate)
@@ -123,7 +123,7 @@ export class Camineet {
   }
 
   public static hand_shop(): void {
-    // PSMenu.startScene(Scene.SHOP_HAND, EntityType.CITY_MAN_BROWN, EntityClothes.GREEN);
+    // PSMenu.startScene(PSSceneType.SHOP_HAND, EntityType.CITY_MAN_BROWN, EntityClothes.GREEN);
     // PSGame.Shop(PSGame.getString("Shop_Tool_Welcome"), true, [
     //   PSGame.getItem(OriginalItem.Inventory_Flash),
     //   PSGame.getItem(OriginalItem.Inventory_Escape_Cloth),

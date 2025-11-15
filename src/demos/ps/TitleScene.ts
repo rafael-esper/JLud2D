@@ -3,7 +3,8 @@
  * Updated to use the ported menu system with circles and red cursor
  */
 
-import { PSScene, PSScene_Type, PSSpecialEntity } from './PSScene';
+import { PSScene } from './PSScene';
+import { PSSceneType, SpecialEntity } from './PSMenu';
 import { PSGame } from './PSGame';
 import { ScreenSize, GameType } from './game/GameData';
 import { PS1Music } from './game/PSLibMusic';
@@ -42,7 +43,7 @@ export class TitleScene extends PSScene {
     await PSGame.playMusic(PS1Music.TITLE);
 
     // Start the title scene (equivalent to Java PSMenu.startScene)
-    this.startScene(PSScene_Type.TITLE, PSSpecialEntity.NONE);
+    this.startScene(PSSceneType.TITLE, SpecialEntity.NONE);
 
     // Start the main menu loop (equivalent to Java startmap() while loop)
     await this.startMainMenuLoop();
@@ -206,14 +207,14 @@ export class TitleScene extends PSScene {
     }
 
     // Return to title scene
-    this.startScene(PSScene_Type.TITLE, PSSpecialEntity.NONE);
+    this.startScene(PSSceneType.TITLE, SpecialEntity.NONE);
   }
 
   /**
    * Show about credits with image slideshow
    */
   private async showAboutCredits(): Promise<void> {
-    this.startScene(PSScene_Type.BLACK, PSSpecialEntity.NONE);
+    this.startScene(PSSceneType.BLACK, SpecialEntity.NONE);
 
     // Show credit images in sequence (equivalent to Java credit slideshow)
     const creditImages = [
