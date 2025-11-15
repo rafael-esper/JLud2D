@@ -1,31 +1,33 @@
 /**
  * PSLibMusic - Phantasy Star Music Library
- * Port of PSLibMusic.java - Defines all music tracks for PS demo
+ * Defines all music tracks for PS demo
  */
 
+const BASE_FOLDER = "src/demos/ps";
+
 export enum PS1Music {
-  PALMA = "src/demos/ps/music/Palma.vgz",
-  MOTAVIA = "src/demos/ps/music/Motavia.vgz",
-  DEZORIS = "src/demos/ps/music/Dezoris.vgz",
+  PALMA = `${BASE_FOLDER}/music/Palma.vgz`,
+  MOTAVIA = `${BASE_FOLDER}/music/Motavia.vgz`,
+  DEZORIS = `${BASE_FOLDER}/music/Dezoris.vgz`,
 
-  CAVE = "src/demos/ps/music/Cave.vgz",
-  PALACE = "src/demos/ps/music/Dungeon.vgz",
-  TOWER = "src/demos/ps/music/Tower.vgz",
+  CAVE = `${BASE_FOLDER}/music/Cave.vgz`,
+  PALACE = `${BASE_FOLDER}/music/Dungeon.vgz`,
+  TOWER = `${BASE_FOLDER}/music/Tower.vgz`,
 
-  TOWN = "src/demos/ps/music/Town.vgz",
-  VILLAGE = "src/demos/ps/music/Village.vgz",
-  CHURCH = "src/demos/ps/music/Church.vgz",
-  SHOP = "src/demos/ps/music/Shop.vgz",
+  TOWN = `${BASE_FOLDER}/music/Town.vgz`,
+  VILLAGE = `${BASE_FOLDER}/music/Village.vgz`,
+  CHURCH = `${BASE_FOLDER}/music/Church.vgz`,
+  SHOP = `${BASE_FOLDER}/music/Shop.vgz`,
 
-  BATTLE = "src/demos/ps/music/Battle.vgz",
-  LASSIC = "src/demos/ps/music/Lassic.vgz",
-  DARKFALZ = "src/demos/ps/music/DarkFalz.vgz",
-  GAMEOVER = "src/demos/ps/music/GameOver.vgz",
+  BATTLE = `${BASE_FOLDER}/music/Battle.vgz`,
+  LASSIC = `${BASE_FOLDER}/music/Lassic.vgz`,
+  DARKFALZ = `${BASE_FOLDER}/music/DarkFalz.vgz`,
+  GAMEOVER = `${BASE_FOLDER}/music/GameOver.vgz`,
 
-  TITLE = "src/demos/ps/music/Title.vgz",
-  INTRO = "src/demos/ps/music/Intro.vgz",
-  STORY = "src/demos/ps/music/Story.vgz",
-  ENDING = "src/demos/ps/music/Ending.vgz",
+  TITLE = `${BASE_FOLDER}/music/Title.vgz`,
+  INTRO = `${BASE_FOLDER}/music/Intro.vgz`,
+  STORY = `${BASE_FOLDER}/music/Story.vgz`,
+  ENDING = `${BASE_FOLDER}/music/Ending.vgz`,
 
-  VEHICLE = "src/demos/ps/music/Vehicle.vgz"
+  VEHICLE = `${BASE_FOLDER}/music/Vehicle.vgz`
 }

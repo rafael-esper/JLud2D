@@ -1,110 +1,43 @@
 /**
  * PSLibEnemy - Phantasy Star Enemy Library
- * Direct port of PSLibEnemy.java - Defines all enemies with complete stats and properties
+ * Defines all enemies with complete stats and properties
  */
 
 import { Enemy, EnemyType, CanChat, CanProt, CanRope, CanTalk, FireRes, HasItem, HasWing, Mental, Special } from './Enemy';
 import { PS1Sound } from './PSLibSound';
 
-// Generic enemy interface - direct port from Java
+// Generic enemy interface
 export interface GenericEnemy {
   // Marker interface for all enemy types
 }
 
-// PS1 Enemy enum - direct port from PSLibEnemy.java
+// PS1 Enemy enum
 // http://www.pscave.com/ps1/monsterlist.txt
 export enum PS1Enemy {
-  AMMONITE,
-  AMUNDSEN,
-  ANDROCOP,
-  ANT_LION,
-  BARBRIAN,
-  BATALION,
-  BIG_CLUB,
-  BL_DRAGN,
-  BL_SLIME,
-  CENTAUR,
-  CRAWLER,
-  DARKFALZ,
-  DEADTREE,
-  DEZORIAN,
-  DR_MAD,
-  E_FARMER,
-  ELEPHANT,
-  EVILDEAD,
-  EVILHEAD,
-  EXECUTER,
-  FISHMAN,
-  FROSTMAN,
-  G_SCORPI,
-  GD_DRAGN,
-  GHOUL,
-  GIANT,
-  GIANTFLY,
-  GOLDLENS,
-  GOLEM,
-  GR_DRAGN,
-  GR_SLIME,
-  HORSEMAN,
-  LASSIC,
-  LEECH,
-  LICH,
-  MAGICIAN,
-  MAMMOTH,
-  MANEATER,
-  MANTICORE,
-  MARAUDER,
-  MARMAN,
-  MEDUSA,
-  N_FARMER,
-  NESSIE,
-  OCTOPUS,
-  OWL_BEAR,
-  RD_DRAGN,
-  RD_SLIME,
-  REAPER,
-  ROBOTCOP,
-  SACCUBUS,
-  SANDWORM,
-  SCORPION,
-  SCORPIUS,
-  SERPENT,
-  SHADOW,
-  SHELFISH,
-  SKELETON,
-  SKULL_EN,
-  SORCERER,
-  SPHINX,
-  STALKER,
-  SWORM,
-  TARANTUL,
-  TARZIMAL,
-  TENTACLE,
-  TITAN,
-  VAMPIRE,
-  WEREBAT,
-  WIGHT,
-  WING_EYE,
-  WT_DRAGN,
-  WYVERN,
-  ZOMBIE,
+  AMMONITE,    AMUNDSEN,    ANDROCOP,    ANT_LION,
+  BARBRIAN,    BATALION,    BIG_CLUB,    BL_DRAGN,
+  BL_SLIME,    CENTAUR,     CRAWLER,     DARKFALZ,
+  DEADTREE,    DEZORIAN,    DR_MAD,      E_FARMER,
+  ELEPHANT,    EVILDEAD,    EVILHEAD,    EXECUTER,
+  FISHMAN,     FROSTMAN,    G_SCORPI,    GD_DRAGN,
+  GHOUL,       GIANT,       GIANTFLY,    GOLDLENS,
+  GOLEM,       GR_DRAGN,    GR_SLIME,    HORSEMAN,
+  LASSIC,      LEECH,       LICH,        MAGICIAN,
+  MAMMOTH,     MANEATER,    MANTICORE,   MARAUDER,
+  MARMAN,      MEDUSA,      N_FARMER,    NESSIE,
+  OCTOPUS,     OWL_BEAR,    RD_DRAGN,    RD_SLIME,
+  REAPER,      ROBOTCOP,    SACCUBUS,    SANDWORM,
+  SCORPION,    SCORPIUS,    SERPENT,     SHADOW,
+  SHELFISH,    SKELETON,    SKULL_EN,    SORCERER,
+  SPHINX,      STALKER,     SWORM,       TARANTUL,
+  TARZIMAL,    TENTACLE,    TITAN,       VAMPIRE,
+  WEREBAT,     WIGHT,       WING_EYE,    WT_DRAGN,
+  WYVERN,      ZOMBIE,
   // New enemies
-  VAMPIRE_LORD,
-  STORM_FLY,
-  WIZARD,
-  OLIPHANT,
-  DRAINER_CRAB,
-  GAIA,
-  SNOW_LION,
-  POISON_PLANT,
-  GIANT_SPIDER,
-  MOTA_SHOOTER,
-  DEZO_PRIEST,
-  NANO_COP,
-  DEATH_KNIGHT,
-  SKELETON_GUARD,
-  REVENANT,
-  CYCLOP
+  VAMPIRE_LORD, STORM_FLY,   WIZARD,      OLIPHANT,
+  DRAINER_CRAB, GAIA,        SNOW_LION,   POISON_PLANT,
+  GIANT_SPIDER, MOTA_SHOOTER, DEZO_PRIEST, NANO_COP,
+  DEATH_KNIGHT, SKELETON_GUARD, REVENANT,  CYCLOP
 }
 
 export enum PS4Enemy {
@@ -127,7 +60,7 @@ declare module './PSLibEnemy' {
 
 export class PSLibEnemy {
   /**
-   * Initialize all original PS enemies - direct port from Java
+   * Initialize all original PS enemies
    */
   public static initializeOriginalEnemies(): Map<GenericEnemy, Enemy> {
     const enemies = new Map<GenericEnemy, Enemy>();
@@ -204,7 +137,7 @@ export class PSLibEnemy {
   }
 
   /**
-   * Add enemy to collection - direct port from Java addEnemy()
+   * Add enemy to collection
    */
   private static addEnemy(enemies: Map<GenericEnemy, Enemy>, enemy: GenericEnemy, enemyObj: Enemy): void {
     enemies.set(enemy, enemyObj);
@@ -218,35 +151,4 @@ export class PSLibEnemy {
     return enemies.get(enemyType) || null;
   }
 
-  /**
-   * Get all PS1 enemies
-   */
-  public static getAllPS1Enemies(): Enemy[] {
-    const enemies = this.initializeOriginalEnemies();
-    const ps1Enemies: Enemy[] = [];
-
-    for (const [key, enemy] of enemies) {
-      if (typeof key === 'number' && key < Object.keys(PS1Enemy).length / 2) {
-        ps1Enemies.push(enemy);
-      }
-    }
-
-    return ps1Enemies;
-  }
-
-  /**
-   * Get enemies by type
-   */
-  public static getEnemiesByType(type: EnemyType): Enemy[] {
-    const allEnemies = Array.from(this.initializeOriginalEnemies().values());
-    return allEnemies.filter(enemy => enemy.type === type);
-  }
-
-  /**
-   * Get boss enemies (no run chance)
-   */
-  public static getBossEnemies(): Enemy[] {
-    const allEnemies = Array.from(this.initializeOriginalEnemies().values());
-    return allEnemies.filter(enemy => enemy.run === 0);
-  }
 }

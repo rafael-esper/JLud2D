@@ -1,19 +1,19 @@
 /**
  * Specie - Character Species System
- * Direct port of Specie.java - Defines character species with stat modifiers
+ * Defines character species with stat modifiers
  */
 
 import { PSGame } from '../PSGame';
 
-// Specie enum - direct port from Specie.java
+// Specie enum
 export enum Specie {
-  PALMAN = 'PALMAN',
-  MUSK_CAT = 'MUSK_CAT',
-  NUMAN = 'NUMAN',
-  ANDROID = 'ANDROID',
-  MOTAVIAN = 'MOTAVIAN',
-  DEZORIAN = 'DEZORIAN',
-  CYBORG = 'CYBORG'
+  PALMAN,
+  MUSK_CAT,
+  NUMAN,
+  ANDROID,
+  MOTAVIAN,
+  DEZORIAN,
+  CYBORG
 }
 
 export class SpecieHelper {
@@ -32,14 +32,14 @@ export class SpecieHelper {
   ]);
 
   /**
-   * Get HP modifier for species - direct port from Java getModHp()
+   * Get HP modifier for species
    */
   public static getModHp(specie: Specie): number {
     return this.specieConfigs.get(specie)?.modHp || 0;
   }
 
   /**
-   * Get MP modifier for species - direct port from Java getModMp()
+   * Get MP modifier for species
    */
   public static getModMp(specie: Specie): number {
     return this.specieConfigs.get(specie)?.modMp || 0;
@@ -67,38 +67,11 @@ export class SpecieHelper {
   }
 
   /**
-   * Get localized species name - direct port from Java toString()
+   * Get localized species name
    */
   public static toString(specie: Specie): string {
     const s = specie.toString();
     const formatted = s.substring(0, 1) + s.substring(1).toLowerCase();
     return PSGame.getString(`Specie_${formatted}`);
-  }
-
-  /**
-   * Get all available species
-   */
-  public static getAllSpecies(): Specie[] {
-    return [
-      Specie.PALMAN,
-      Specie.MUSK_CAT,
-      Specie.NUMAN,
-      Specie.ANDROID,
-      Specie.MOTAVIAN,
-      Specie.DEZORIAN,
-      Specie.CYBORG
-    ];
-  }
-
-  /**
-   * Validate species balance (debug helper)
-   * All species should have total modifier sum of 0 when weighted
-   */
-  public static validateBalance(specie: Specie): number {
-    const config = this.specieConfigs.get(specie);
-    if (!config) return 0;
-
-    // hp=4 points, mp=3 points, other=1 point each
-    return (config.modHp * 4) + (config.modMp * 3) + config.modAgi + config.modStr + config.modMen;
   }
 }

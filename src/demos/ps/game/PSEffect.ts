@@ -1,6 +1,6 @@
 /**
  * PSEffect - Phantasy Star Effect System
- * Direct port of PSEffect.java - Handles spell and item effects with complete game logic
+ * Handles spell and item effects with complete game logic
  */
 
 import { PartyMember } from './PartyMember';
@@ -22,77 +22,77 @@ export interface PSMenu {
 }
 
 export enum Action {
-  NONE = 'NONE',
-  ATTACK = 'ATTACK',
-  SPELL = 'SPELL',
-  ITEM = 'ITEM',
-  RUN = 'RUN'
+  NONE,
+  ATTACK,
+  SPELL,
+  ITEM,
+  RUN
 }
 
-// Effect enums - direct port from PSEffect.java
+// Effect enums
 export enum EffectTarget {
-  NONE = 'NONE',
-  MEMBER = 'MEMBER',
-  ALIVE_MEMBER = 'ALIVE_MEMBER',
-  ENEMY = 'ENEMY',
-  ALL_MEMBERS = 'ALL_MEMBERS',
-  ALL_ENEMIES = 'ALL_ENEMIES'
+  NONE,
+  MEMBER,
+  ALIVE_MEMBER,
+  ENEMY,
+  ALL_MEMBERS,
+  ALL_ENEMIES
 }
 
 export enum EffectPlace {
-  ANY = 'ANY',
-  WORLD = 'WORLD',
-  BATTLE = 'BATTLE'
+  ANY,
+  WORLD,
+  BATTLE
 }
 
 export enum EffectOutcome {
-  NONE = 'NONE',
-  FAIL = 'FAIL',
-  SUCCESS = 'SUCCESS',
-  CLOSE_ALL = 'CLOSE_ALL'
+  NONE,
+  FAIL,
+  SUCCESS,
+  CLOSE_ALL
 }
 
 export enum Effect {
-  NONE = 'NONE',
+  NONE,
 
   // Healing effects
-  CURE = 'CURE',
-  WCURE = 'WCURE',
-  REVIVE = 'REVIVE',
-  F_REVIVE = 'F_REVIVE',
+  CURE,
+  WCURE,
+  REVIVE,
+  F_REVIVE,
 
   // World effects
-  FLY = 'FLY',
-  EXIT = 'EXIT',
-  TRAP = 'TRAP',
-  TRAP_CHEST = 'TRAP_CHEST',
-  OPEN = 'OPEN',
+  FLY,
+  EXIT,
+  TRAP,
+  TRAP_CHEST,
+  OPEN,
 
   // Communication effects
-  RUN = 'RUN',
-  TALK = 'TALK',
-  ESCAPE = 'ESCAPE',
-  CHAT = 'CHAT',
-  TELE = 'TELE',
+  RUN,
+  TALK,
+  ESCAPE,
+  CHAT,
+  TELE,
 
   // Control effects
-  ROPE = 'ROPE',
-  ROPE_ALL = 'ROPE_ALL',
-  FEAR = 'FEAR',
-  FEAR_ALL = 'FEAR_ALL',
-  FORCE = 'FORCE',
-  WALL = 'WALL',
-  PROT = 'PROT',
+  ROPE,
+  ROPE_ALL,
+  FEAR,
+  FEAR_ALL,
+  FORCE,
+  WALL,
+  PROT,
 
   // Attack effects
-  FIRE = 'FIRE',
-  GIFIRE = 'GIFIRE',
-  WIND = 'WIND',
-  THUNDER = 'THUNDER',
+  FIRE,
+  GIFIRE,
+  WIND,
+  THUNDER,
 
   // Utility effects
-  LIGHT = 'LIGHT',
-  MUSIC = 'MUSIC'
+  LIGHT,
+  MUSIC
 }
 
 export class EffectHelper {

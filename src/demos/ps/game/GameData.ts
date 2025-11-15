@@ -1,6 +1,6 @@
 /**
  * GameData - Game State Management
- * Direct port of GameData.java - Stores all game data including party, flags, and settings
+ * Stores all game data including party, flags, and settings
  */
 
 import { Planet } from './City';
@@ -24,59 +24,59 @@ export enum ScreenSize {
   SCREEN_640_480
 }
 
-// Game flags - direct port from PSGame.java
+// Game flags
 export enum Flags {
-  VISIT_SUELO = 'VISIT_SUELO',
-  VISIT_NEKISE = 'VISIT_NEKISE',
-  SCION_INSIST_1 = 'SCION_INSIST_1',
-  SCION_INSIST_2 = 'SCION_INSIST_2',
-  GOT_MYAU = 'GOT_MYAU',
-  GOT_ODIN = 'GOT_ODIN',
-  INFO_KEY = 'INFO_KEY',
-  GOVERNOR_CAKE = 'GOVERNOR_CAKE',
-  MET_GOVERNOR = 'MET_GOVERNOR',
-  GOT_NOAH = 'GOT_NOAH'
+  VISIT_SUELO,
+  VISIT_NEKISE,
+  SCION_INSIST_1,
+  SCION_INSIST_2,
+  GOT_MYAU,
+  GOT_ODIN,
+  INFO_KEY,
+  GOVERNOR_CAKE,
+  MET_GOVERNOR,
+  GOT_NOAH
   // Note: This enum likely has more entries in the full Java file
 }
 
-// Chest flags - direct port from PSGame.java
+// Chest flags
 export enum Chest {
-  WAREHOUSE_CHEST1 = 'WAREHOUSE_CHEST1',
-  WAREHOUSE_CHESTKEY = 'WAREHOUSE_CHESTKEY',
-  ODIN_CHEST1 = 'ODIN_CHEST1',
-  ODIN_CHEST2 = 'ODIN_CHEST2',
-  ODIN_COMPASS = 'ODIN_COMPASS',
-  IALA_CAVE_CHEST1 = 'IALA_CAVE_CHEST1',
-  IALA_CAVE_CHEST2 = 'IALA_CAVE_CHEST2',
-  IALA_CAVE_CHEST3 = 'IALA_CAVE_CHEST3'
+  WAREHOUSE_CHEST1,
+  WAREHOUSE_CHESTKEY,
+  ODIN_CHEST1,
+  ODIN_CHEST2,
+  ODIN_COMPASS,
+  IALA_CAVE_CHEST1,
+  IALA_CAVE_CHEST2,
+  IALA_CAVE_CHEST3
   // Note: This enum likely has more entries in the full Java file
 }
 
-// Trap flags - direct port from PSGame.java
+// Trap flags
 export enum Trap {
-  BAYA_MALAY_TRAP1 = 'BAYA_MALAY_TRAP1',
-  INFO_BAYA_MALAY_TRAP1 = 'INFO_BAYA_MALAY_TRAP1',
-  BAYA_MALAY_TRAP2 = 'BAYA_MALAY_TRAP2',
-  INFO_BAYA_MALAY_TRAP2 = 'INFO_BAYA_MALAY_TRAP2',
-  BAYA_MALAY_TRAP3 = 'BAYA_MALAY_TRAP3',
-  INFO_BAYA_MALAY_TRAP3 = 'INFO_BAYA_MALAY_TRAP3',
-  BAYA_MALAY_TRAP4 = 'BAYA_MALAY_TRAP4',
-  INFO_BAYA_MALAY_TRAP4 = 'INFO_BAYA_MALAY_TRAP4',
-  CORONA_TRAP1 = 'CORONA_TRAP1',
-  INFO_CORONA_TRAP1 = 'INFO_CORONA_TRAP1',
-  CORONA_TRAP2 = 'CORONA_TRAP2',
-  INFO_CORONA_TRAP2 = 'INFO_CORONA_TRAP2',
-  CORONA_TRAP3 = 'CORONA_TRAP3',
-  INFO_CORONA_TRAP3 = 'INFO_CORONA_TRAP3',
-  CORONA_TRAP4 = 'CORONA_TRAP4',
-  INFO_CORONA_TRAP4 = 'INFO_CORONA_TRAP4',
-  CORONA_TRAP5 = 'CORONA_TRAP5',
-  INFO_CORONA_TRAP5 = 'INFO_CORONA_TRAP5'
+  BAYA_MALAY_TRAP1,
+  INFO_BAYA_MALAY_TRAP1,
+  BAYA_MALAY_TRAP2,
+  INFO_BAYA_MALAY_TRAP2,
+  BAYA_MALAY_TRAP3,
+  INFO_BAYA_MALAY_TRAP3,
+  BAYA_MALAY_TRAP4,
+  INFO_BAYA_MALAY_TRAP4,
+  CORONA_TRAP1,
+  INFO_CORONA_TRAP1,
+  CORONA_TRAP2,
+  INFO_CORONA_TRAP2,
+  CORONA_TRAP3,
+  INFO_CORONA_TRAP3,
+  CORONA_TRAP4,
+  INFO_CORONA_TRAP4,
+  CORONA_TRAP5,
+  INFO_CORONA_TRAP5
   // Note: This enum likely has more entries in the full Java file
 }
 
 export class GameData {
-  // Options - direct port from Java
+  // Options
   public musicVolume: number = 30; // 0-100
   public soundVolume: number = 50; // 0-100
   public dungeonDelay: number = 4; // varies between 1-4

@@ -1,6 +1,6 @@
 /**
  * PartyMember - Party Character System
- * Direct port of PartyMember.java - Defines playable characters with equipment, spells, and progression
+ * Defines playable characters with equipment, spells, and progression
  */
 
 import { Battler } from './Battler';
@@ -19,8 +19,8 @@ export interface MenuLabelBox {
 }
 
 export enum Gender {
-  MALE = 'MALE',
-  FEMALE = 'FEMALE'
+  MALE,
+  FEMALE
 }
 
 export class GenderHelper {

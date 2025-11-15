@@ -1,57 +1,57 @@
 /**
  * PSLibSpell - Phantasy Star Spell Library
- * Direct port of PSLibSpell.java - Defines all spells, their costs, and effects
+ * Defines all spells, their costs, and effects
  */
 
 import { Effect, EffectOutcome, EffectPlace, EffectTarget, PSEffect } from './PSEffect';
 import { PartyMember } from './PartyMember';
 import { PSGame } from '../PSGame';
 
-// Spell interface - direct port from Java
+// Spell interface
 export interface Spell {
   getMpCost(): number;
   getEffect(): Effect;
 }
 
-// PS1 Spell enum - direct port from Java
+// PS1 Spell enum
 export enum PS1Spell {
   // Healing spells
-  REST = 'REST',
-  CURE = 'CURE',
-  W_REST = 'W_REST',
-  W_CURE = 'W_CURE',
-  REVIVE = 'REVIVE',
-  F_REVIVE = 'F_REVIVE',
+  REST,
+  CURE,
+  W_REST,
+  W_CURE,
+  REVIVE,
+  F_REVIVE,
 
   // Utility spells
-  FLY = 'FLY',
-  EXIT = 'EXIT',
-  TRAP = 'TRAP',
-  OPEN = 'OPEN',
+  FLY,
+  EXIT,
+  TRAP,
+  OPEN,
 
   // Communication spells
-  ESCAPE = 'ESCAPE',
-  CHAT = 'CHAT',
-  TELE = 'TELE',
+  ESCAPE,
+  CHAT,
+  TELE,
 
   // Control spells
-  ROPE = 'ROPE',
-  ROPE_ALL = 'ROPE_ALL',
-  FEAR = 'FEAR',
-  FEAR_ALL = 'FEAR_ALL',
-  WALL = 'WALL',
-  FORCE = 'FORCE',
-  PROT = 'PROT',
+  ROPE,
+  ROPE_ALL,
+  FEAR,
+  FEAR_ALL,
+  WALL,
+  FORCE,
+  PROT,
 
   // Attack spells
-  FIRE = 'FIRE',
-  GI_FIRE = 'GI_FIRE',
-  WIND = 'WIND',
-  THUNDER = 'THUNDER',
+  FIRE,
+  GI_FIRE,
+  WIND,
+  THUNDER,
 
   // Light spell
-  LIGHT = 'LIGHT',
-  POWER_CURE = 'POWER_CURE'
+  LIGHT,
+  POWER_CURE
 }
 
 export class PS1SpellHelper {
