@@ -5,6 +5,7 @@
  */
 
 import { VGMPlayerAPI } from './vgm/VGMPlayerAPI';
+import { MainEngine } from './MainEngine';
 
 export class ScriptEngine {
   // Graphics objects for UI drawing
@@ -269,6 +270,19 @@ export class ScriptEngine {
     if (length <= 0) return '';
     if (length >= str.length) return str;
     return str.substring(0, length);
+  }
+
+  // ============================================================================
+  // ENTITY SYSTEM
+  // ============================================================================
+
+  /**
+   * Set entities paused state (port of Java setentitiespaused)
+   * When resuming from pause, resets entity think timing to prevent time jumps
+   * @param paused Whether to pause entities
+   */
+  public static setEntitiesPaused(paused: boolean): void {
+    MainEngine.setEntitiesPausedWithTiming(paused);
   }
 
   /**

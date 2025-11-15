@@ -4,14 +4,14 @@
  */
 
 export enum MenuState {
-  OPEN = 'OPEN',
-  TEXT = 'TEXT',
-  READY = 'READY',
-  CLOSE = 'CLOSE',
-  END = 'END',
-  ANIM1 = 'ANIM1',
-  ANIM2 = 'ANIM2',
-  ANIM3 = 'ANIM3'
+  OPEN,
+  TEXT,
+  READY,
+  CLOSE,
+  END,
+  ANIM1,
+  ANIM2,
+  ANIM3
 }
 
 export class MenuStateHelper {

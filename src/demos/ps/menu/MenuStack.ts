@@ -11,6 +11,7 @@ import { MenuImageBox } from './MenuImageBox';
 import { InputManager } from '../../../config/Controls';
 import { PSGame } from '../PSGame';
 import { PS1Sound } from '../game/PSLibSound';
+import { ScriptEngine } from '../../../core/ScriptEngine';
 
 export enum PSOutcome {
   NO_FADE = 'NO_FADE',
@@ -431,7 +432,7 @@ export class MenuStack {
   /**
    * Wait for specific time delay - direct port of Java waitDelay()
    */
-  public async waitDelayFrames(delay: number): Promise<void> {
+  public async waitDelay(delay: number): Promise<void> {
     return new Promise<void>((resolve) => {
       this.checkPreMenu();
 
@@ -451,13 +452,6 @@ export class MenuStack {
     }).then(() => {
       this.checkPosMenu();
     });
-  }
-
-  /**
-   * Wait for specific time delay - Java compatibility alias
-   */
-  public async waitDelay(delay: number): Promise<void> {
-    return this.waitDelayFrames(delay);
   }
 
   /**
@@ -489,8 +483,7 @@ export class MenuStack {
    */
   public checkPreMenu(): void {
     // Pause entity processing during menu display
-    // In original Java this would call setentitiespaused(true)
-    // For now, this is a placeholder for menu state setup
+    ScriptEngine.setEntitiesPaused(true);
   }
 
   /**
@@ -498,8 +491,7 @@ export class MenuStack {
    */
   public checkPosMenu(): void {
     // Resume entity processing after menu
-    // In original Java this would call setentitiespaused(false)
-    // For now, this is a placeholder for menu state cleanup
+    ScriptEngine.setEntitiesPaused(false);
   }
 
   /**
@@ -534,10 +526,8 @@ export class MenuStack {
       // This would need CHR rendering integration
     }
 
-    // Draw player party if enabled
-    if (this.showPlayers) {
-      this.drawPlayerParty();
-    }
+    // Player party rendering would be handled by game-specific code
+    // if needed, not in generic menu stack
 
     // Draw all menus in stack order
     for (let i = 0; i < this.menus.length; i++) {
@@ -547,29 +537,4 @@ export class MenuStack {
     }
   }
 
-  /**
-   * Draw player party - port of Java player rendering logic
-   */
-  private drawPlayerParty(): void {
-    // This would need integration with Party system
-    // Original Java code renders party members based on playerOrder matrix
-    // Placeholder for now - would need Party class integration
-
-    const downPos = this.MAX_SCREEN_Y - 64; // Position players at bottom of screen
-
-    // Example of how this would work with party system:
-    // const party = PSGame.getParty();
-    // const partyCount = party.getMemberCount();
-    // if (partyCount > 0 && partyCount <= 5) {
-    //   const order = MenuStack.playerOrder[partyCount - 1];
-    //   for (let i = 0; i < order.length; i++) {
-    //     const member = party.getMember(order[i]);
-    //     if (member) {
-    //       const x = 308 - (partyCount - 1) * 20 + (order[i] * 40);
-    //       const y = downPos + 64;
-    //       // Render member sprite: member.getChr().render(x, y, frame)
-    //     }
-    //   }
-    // }
-  }
 }

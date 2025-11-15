@@ -196,6 +196,18 @@ export class MainEngine {
     MainEngine.entitiespaused = paused;
   }
 
+  /**
+   * Set entities paused state with timing reset (port of Java setentitiespaused)
+   * When resuming from pause, resets entity think timing to prevent time jumps
+   * @param paused Whether to pause entities
+   */
+  public static setEntitiesPausedWithTiming(paused: boolean): void {
+    MainEngine.entitiespaused = paused;
+    if (!MainEngine.entitiespaused) {
+      MainEngine.lastentitythink = MainEngine.systemtime;
+    }
+  }
+
   public static ProcessControls(inputManager: any): void {
     // Update input state from input manager
     MainEngine.up = inputManager.up;

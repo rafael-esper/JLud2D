@@ -5,6 +5,7 @@
 
 import { MenuType, MenuState } from './MenuType';
 import { MenuStack } from './MenuStack';
+import { ScriptEngine } from '../../../core/ScriptEngine';
 
 export class MenuTextBox extends MenuType {
   private menuStack: MenuStack;
@@ -78,7 +79,7 @@ export class MenuTextBox extends MenuType {
         this.menuStack.drawBox(this.x, this.y, this.wx, this.wy);
 
         // Draw first line of text
-        const firstLineText = this.left(this.text[0], this.textDelay);
+        const firstLineText = ScriptEngine.left(this.text[0], this.textDelay);
         if (firstLineText) {
           const textObj1 = (this.menuStack as any).scene.add.text(
             this.x + 1 + MenuStack.fontXSize,
@@ -97,7 +98,7 @@ export class MenuTextBox extends MenuType {
 
         // Draw second line of text
         const secondLineText = this.textDelay > this.text[0].length
-          ? this.left(this.text[1], this.textDelay - this.text[0].length)
+          ? ScriptEngine.left(this.text[1], this.textDelay - this.text[0].length)
           : '';
         if (secondLineText) {
           const textObj2 = (this.menuStack as any).scene.add.text(
@@ -147,14 +148,6 @@ export class MenuTextBox extends MenuType {
     }
   }
 
-  /**
-   * Get left substring - equivalent to Java left() function
-   */
-  private left(str: string, length: number): string {
-    if (length <= 0) return '';
-    if (length >= str.length) return str;
-    return str.substring(0, length);
-  }
 
   public destroy(): void {
     // Clean up text objects
