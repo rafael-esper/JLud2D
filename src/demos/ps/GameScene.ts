@@ -15,13 +15,15 @@ export class GameScene extends Phaser.Scene {
   private config: GameConfig;
   private inputManager: InputManager;
   private tiledMap: any = null;
+  private mapNameOverride: string | null = null;
 
   constructor() {
     super({ key: 'PSGameScene' });
   }
 
-  async init(data: { config: GameConfig }) {
+  async init(data: { config: GameConfig; mapName?: string }) {
     this.config = data.config;
+    this.mapNameOverride = data.mapName || null;
   }
 
   preload() {
@@ -52,9 +54,8 @@ export class GameScene extends Phaser.Scene {
     PSGame.setCurrentScene(this);
     MainEngine.setCurrentScene(this, this.config);
 
-    // Load the map for the current location (Camineet)
-    // TODO: This should be dynamic based on PSGame.gameData.current_planet and goto coordinates
-    const mapName = 'Camineet.map.json'; // For now, hardcode to Camineet
+    // Load the map for the current location (use override if provided)
+    const mapName = this.mapNameOverride || 'Camineet.map.json';
     const mapBasePath = 'src/demos/ps/maps';
 
     console.log(`GameScene: Loading map ${mapName} from ${mapBasePath}`);

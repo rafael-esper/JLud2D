@@ -11,24 +11,16 @@ export class ScriptEngine {
   // Graphics objects for UI drawing
   private static uiGraphics: Phaser.GameObjects.Graphics | null = null;
   private static uiTexts: Phaser.GameObjects.Text[] = [];
-  private static currentScene: Phaser.Scene | null = null;
 
   // ============================================================================
   // SCENE MANAGEMENT
   // ============================================================================
 
   /**
-   * Set current scene for script operations
-   */
-  public static setCurrentScene(scene: Phaser.Scene): void {
-    ScriptEngine.currentScene = scene;
-  }
-
-  /**
-   * Get current scene
+   * Get current scene from MainEngine
    */
   public static getCurrentScene(): Phaser.Scene | null {
-    return ScriptEngine.currentScene;
+    return MainEngine.getCurrentScene();
   }
 
   // ============================================================================
@@ -78,18 +70,19 @@ export class ScriptEngine {
    * Initialize UI graphics object for drawing rectangles
    */
   private static ensureUIGraphics(): Phaser.GameObjects.Graphics | null {
-    if (!ScriptEngine.currentScene) {
+    const currentScene = MainEngine.getCurrentScene();
+    if (!currentScene) {
       console.error('ScriptEngine: No current scene for UI graphics');
       return null;
     }
 
     // Check if existing graphics belongs to a different scene or is destroyed
-    if (ScriptEngine.uiGraphics && (!ScriptEngine.uiGraphics.scene || ScriptEngine.uiGraphics.scene !== ScriptEngine.currentScene)) {
+    if (ScriptEngine.uiGraphics && (!ScriptEngine.uiGraphics.scene || ScriptEngine.uiGraphics.scene !== currentScene)) {
       ScriptEngine.uiGraphics = null;
     }
 
     if (!ScriptEngine.uiGraphics) {
-      ScriptEngine.uiGraphics = ScriptEngine.currentScene.add.graphics();
+      ScriptEngine.uiGraphics = currentScene.add.graphics();
       ScriptEngine.uiGraphics.setScrollFactor(0); // UI elements don't scroll with camera
       ScriptEngine.uiGraphics.setDepth(1000); // High depth to render on top
     }
@@ -173,11 +166,12 @@ export class ScriptEngine {
    * @param color Optional color (default: white)
    */
   public static printString(x: number, y: number, fontStyle: any, text: string, color?: {r: number, g: number, b: number}): void {
-    if (!ScriptEngine.currentScene) return;
+    const currentScene = MainEngine.getCurrentScene();
+    if (!currentScene) return;
 
     const hexColor = color ? ((color.r << 16) | (color.g << 8) | color.b) : 0xffffff;
 
-    const textObj = ScriptEngine.currentScene.add.text(x, y, text, {
+    const textObj = currentScene.add.text(x, y, text, {
       fontFamily: 'monospace',
       fontSize: '16px',
       color: `#${hexColor.toString(16).padStart(6, '0')}`
@@ -198,11 +192,12 @@ export class ScriptEngine {
    * Render CHR frame at specified position (port of screen.blitentityframe)
    */
   public static blitEntityFrame(x: number, y: number, chr: any, frameIndex: number): void {
-    if (!ScriptEngine.currentScene) return;
+    const currentScene = MainEngine.getCurrentScene();
+    if (!currentScene) return;
 
     // Create a temporary sprite if needed for CHR rendering
     if (!chr._tempSprite) {
-      chr._tempSprite = ScriptEngine.currentScene.add.sprite(0, 0, '');
+      chr._tempSprite = currentScene.add.sprite(0, 0, '');
       chr._tempSprite.setDepth(1002); // Above UI elements
     }
 
@@ -213,11 +208,12 @@ export class ScriptEngine {
    * Blit image to screen (port of screen.blit)
    */
   public static blit(x: number, y: number, image: any): void {
-    if (!ScriptEngine.currentScene) return;
+    const currentScene = MainEngine.getCurrentScene();
+    if (!currentScene) return;
 
     if (image.key) {
       // If the image has a Phaser texture key, use that
-      const imageObj = ScriptEngine.currentScene.add.image(x, y, image.key);
+      const imageObj = currentScene.add.image(x, y, image.key);
       imageObj.setOrigin(0, 0);
       imageObj.setDepth(1001); // Above menu graphics
     } else if (image.texture) {
@@ -239,13 +235,14 @@ export class ScriptEngine {
    * @param color Optional color (default: white)
    */
   public static drawText(x: number, y: number, text: string, fontSize: number, color?: {r: number, g: number, b: number}): Phaser.GameObjects.Text | null {
-    if (!ScriptEngine.currentScene) return null;
+    const currentScene = MainEngine.getCurrentScene();
+    if (!currentScene) return null;
     if (!text || text.length === 0) return null;
 
     const hexColor = color ? ((color.r << 16) | (color.g << 8) | color.b) : 0xffffff;
 
     try {
-      const textObj = ScriptEngine.currentScene.add.text(x, y, text, {
+      const textObj = currentScene.add.text(x, y, text, {
         fontFamily: 'monospace',
         fontSize: `${fontSize}px`,
         color: `#${hexColor.toString(16).padStart(6, '0')}`,
@@ -286,6 +283,14 @@ export class ScriptEngine {
   }
 
   /**
+   * Map switching - use MainEngine's startEngine method
+   * Direct port of Java map() method
+   */
+  public static async map(mapname: string): Promise<void> {
+    await MainEngine.startEngine(mapname);
+  }
+
+  /**
    * Clean up all script engine resources
    */
   public static cleanup(): void {
@@ -295,6 +300,5 @@ export class ScriptEngine {
     }
 
     ScriptEngine.clearUITexts();
-    ScriptEngine.currentScene = null;
   }
 }

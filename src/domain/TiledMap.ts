@@ -120,6 +120,9 @@ export class TiledMap {
           throw new Error(`Failed to load map: ${mapFilename}`);
         }
         mapData = await response.json();
+
+        // Add to cache so createTilemap can find it
+        scene.cache.json.add(cacheKey, mapData);
       }
 
       await tiledMap.loadFromData(mapData);

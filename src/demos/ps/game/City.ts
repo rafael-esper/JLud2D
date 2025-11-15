@@ -12,9 +12,9 @@ export enum Planet {
 
 export class PlanetHelper {
   private static readonly planetConfigs = new Map<Planet, { mapPath: string, music: PS1Music }>([
-    [Planet.PALMA, { mapPath: "maps/Palma.map", music: PS1Music.PALMA }],
-    [Planet.MOTAVIA, { mapPath: "maps/Motavia.map", music: PS1Music.MOTAVIA }],
-    [Planet.DEZORIS, { mapPath: "maps/Dezoris.map", music: PS1Music.DEZORIS }]
+    [Planet.PALMA, { mapPath: "Palma.map", music: PS1Music.PALMA }],
+    [Planet.MOTAVIA, { mapPath: "Motavia.map", music: PS1Music.MOTAVIA }],
+    [Planet.DEZORIS, { mapPath: "Dezoris.map", music: PS1Music.DEZORIS }]
   ]);
 
   public static getMapPath(planet: Planet): string {

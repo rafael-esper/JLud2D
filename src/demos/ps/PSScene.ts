@@ -133,46 +133,6 @@ export abstract class PSScene extends Phaser.Scene {
     await this.menuStack.waitAnyButton();
   }
 
-  /**
-   * Screen fade effect (placeholder)
-   */
-  protected screenFade(duration: number, fadeIn: boolean): Promise<void> {
-    console.log(`PSScene: Screen fade ${fadeIn ? 'in' : 'out'} over ${duration} frames`);
-
-    return new Promise((resolve) => {
-      const graphics = this.add.graphics();
-      graphics.setDepth(10000);
-
-      if (fadeIn) {
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(0, 0, this.menuStack.MAX_SCREEN_X, this.menuStack.MAX_SCREEN_Y);
-        graphics.setAlpha(1);
-
-        this.tweens.add({
-          targets: graphics,
-          alpha: 0,
-          duration: duration * 16, // Convert frames to ms (assuming 60fps)
-          onComplete: () => {
-            graphics.destroy();
-            resolve();
-          }
-        });
-      } else {
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(0, 0, this.menuStack.MAX_SCREEN_X, this.menuStack.MAX_SCREEN_Y);
-        graphics.setAlpha(0);
-
-        this.tweens.add({
-          targets: graphics,
-          alpha: 1,
-          duration: duration * 16,
-          onComplete: () => {
-            resolve();
-          }
-        });
-      }
-    });
-  }
 
   private backToMainMenu(): void {
     console.log('PSScene: Returning to main menu...');

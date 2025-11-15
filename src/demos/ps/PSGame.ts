@@ -9,13 +9,17 @@ import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
 import { PS1Sound } from './game/PSLibSound';
 import { Party } from './game/Party';
-import { Planet, City } from './game/City';
+import { Planet, City, CityHelper } from './game/City';
 import { ScreenSize, GameType } from './game/GameData';
 
 export class PSGameData {
   public enableCheats: boolean = false;
   private screenSize: ScreenSize = ScreenSize.SCREEN_320_240;
   public current_planet: any = null; // Planet enum reference
+  public current_dungeon: any = 'NONE'; // Dungeon enum reference
+  public current_city: any = null; // City enum reference
+  public onGroundVehicle: boolean = false;
+  public visitedCities: any[] = [];
 
   public getScreenSize(): ScreenSize {
     return this.screenSize;
@@ -170,14 +174,80 @@ export class PSGame {
   }
 
   /**
-   * Map switch - direct port from Java mapswitch()
+   * Map switch with fade - direct port from Java mapswitch(String, int, int, boolean)
    */
-  public static mapswitch(city: any, x: number, y: number): void {
-    console.log(`PSGame: Map switch to ${city} at position (${x}, ${y})`);
-    this.currentCity = city;
+  public static async mapswitch(mapname: string, x: number, y: number, fade: boolean): Promise<void>;
+
+  /**
+   * Map switch to City - direct port from Java mapswitch(City, int, int)
+   */
+  public static async mapswitch(city: any, x: number, y: number): Promise<void>;
+
+  public static async mapswitch(mapnameOrCity: string | any, x: number, y: number, fade?: boolean): Promise<void> {
+    // Import Planet enum to check for planet mapswitch
+    const { Planet, PlanetHelper } = await import('./game/City');
+
+    if (typeof mapnameOrCity === 'string') {
+      // Base mapswitch(mapname, x, y, fade)
+      const mapname = mapnameOrCity;
+      const shouldFade = fade !== undefined ? fade : true;
+
+      MainEngine.setEntitiesPaused(true);
+      this.setgotoxy(x, y);
+      // unpress(9); // TODO: Implement unpress when input system is ready
+      this.transportOff();
+
+      if (shouldFade) {
+        await this.screenFadeOut(30, true);
+      }
+
+      MainEngine.setEntitiesPaused(false);
+      await ScriptEngine.map(mapname);
+
+    } else if (typeof mapnameOrCity === 'number' && mapnameOrCity in Planet) {
+      // Planet mapswitch(planet, x, y)
+      const planet = mapnameOrCity as Planet;
+
+      this.gameData.onGroundVehicle = false;
+      this.gameData.current_dungeon = 'NONE';
+      this.gameData.current_planet = planet;
+      this.gameData.current_city = null;
+
+      // Get planet map path and call base mapswitch
+      const mapPath = PlanetHelper.getMapPath(planet);
+      await this.mapswitch(mapPath, x, y, true);
+      this.playMusic(PlanetHelper.getMusic(planet));
+
+    } else {
+      // City mapswitch(city, x, y)
+      const city = mapnameOrCity;
+
+      if (this.gameData.current_dungeon && this.gameData.current_dungeon !== 'NONE') {
+        // PSMenu.setMapOff(); // TODO: Implement when PSMenu is ready
+      }
+
+      this.gameData.onGroundVehicle = false;
+      this.gameData.current_dungeon = 'NONE';
+      this.gameData.current_city = city;
+      this.gameData.current_planet = city.planet;
+
+      // Add to visited cities
+      if (!this.gameData.visitedCities.includes(city)) {
+        this.gameData.visitedCities.push(city);
+      }
+
+      // Call base mapswitch with city path
+      await this.mapswitch(CityHelper.getPath(city), x, y, true);
+      this.playMusic(CityHelper.getMusic(city));
+    }
+  }
+
+  /**
+   * Set goto coordinates
+   */
+  public static setgotoxy(x: number, y: number): void {
     this.gotox = x;
     this.gotoy = y;
-    // In full implementation, this would load the map and set up the scene
   }
 
   /**
@@ -218,6 +288,11 @@ export class PSGame {
           // Fade complete
           console.log("PSGame: Fade in complete");
           this.currentScene!.cameras.main.setAlpha(1);
+
+          // Unpause entities after fade in completes (critical for movement)
+          MainEngine.setEntitiesPaused(false);
+          console.log("PSGame: Entities unpaused after fade in");
+
           resolve();
           return;
         }
@@ -238,6 +313,36 @@ export class PSGame {
 
       // Start fade animation
       fadeStep();
+    });
+  }
+
+  /**
+   * Fade out screen - adapted from PSScene.screenFade()
+   */
+  public static async screenFadeOut(duration: number, renderMap: boolean): Promise<void> {
+    console.log(`PSGame: Screen fade out over ${duration} frames`);
+
+    if (!this.currentScene) {
+      console.error("PSGame: No current scene for fade out");
+      return;
+    }
+
+    return new Promise((resolve) => {
+      const graphics = this.currentScene!.add.graphics();
+      graphics.setDepth(10000);
+
+      graphics.fillStyle(0x000000);
+      graphics.fillRect(0, 0, this.currentScene!.cameras.main.width, this.currentScene!.cameras.main.height);
+      graphics.setAlpha(0);
+
+      this.currentScene!.tweens.add({
+        targets: graphics,
+        alpha: 1,
+        duration: duration * 16, // Convert frames to ms (assuming 60fps)
+        onComplete: () => {
+          resolve();
+        }
+      });
     });
   }
 
