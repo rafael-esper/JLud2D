@@ -1,0 +1,244 @@
+/**
+ * Script Engine
+ * Utility methods for scripts including drawing, music, sound, and other non-core functions
+ * Separated from MainEngine to keep core functionality focused
+ */
+
+import { VGMPlayerAPI } from './vgm/VGMPlayerAPI';
+
+export class ScriptEngine {
+  // Graphics objects for UI drawing
+  private static uiGraphics: Phaser.GameObjects.Graphics | null = null;
+  private static uiTexts: Phaser.GameObjects.Text[] = [];
+  private static currentScene: Phaser.Scene | null = null;
+
+  // ============================================================================
+  // SCENE MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Set current scene for script operations
+   */
+  public static setCurrentScene(scene: Phaser.Scene): void {
+    ScriptEngine.currentScene = scene;
+  }
+
+  /**
+   * Get current scene
+   */
+  public static getCurrentScene(): Phaser.Scene | null {
+    return ScriptEngine.currentScene;
+  }
+
+  // ============================================================================
+  // VGM AUDIO SYSTEM
+  // ============================================================================
+
+  /**
+   * Load VGM music file
+   */
+  public static async loadVGM(key: string, filePath: string): Promise<any> {
+    return await VGMPlayerAPI.loadVGM(key, filePath);
+  }
+
+  /**
+   * Play VGM music
+   */
+  public static playmusic(key: string): boolean {
+    return VGMPlayerAPI.playMusic(key);
+  }
+
+  /**
+   * Stop VGM music
+   */
+  public static stopmusic(): void {
+    VGMPlayerAPI.stopMusic();
+  }
+
+  /**
+   * Check if VGM music is currently playing
+   */
+  public static isVGMPlaying(): boolean {
+    return VGMPlayerAPI.isPlaying();
+  }
+
+  /**
+   * Resume VGM audio context (call on user interaction)
+   */
+  public static resumeVGMAudio(): void {
+    VGMPlayerAPI.resumeAudio();
+  }
+
+  // ============================================================================
+  // UI GRAPHICS SYSTEM
+  // ============================================================================
+
+  /**
+   * Initialize UI graphics object for drawing rectangles
+   */
+  private static ensureUIGraphics(): Phaser.GameObjects.Graphics | null {
+    if (!ScriptEngine.currentScene) {
+      console.error('ScriptEngine: No current scene for UI graphics');
+      return null;
+    }
+
+    // Check if existing graphics belongs to a different scene or is destroyed
+    if (ScriptEngine.uiGraphics && (!ScriptEngine.uiGraphics.scene || ScriptEngine.uiGraphics.scene !== ScriptEngine.currentScene)) {
+      ScriptEngine.uiGraphics = null;
+    }
+
+    if (!ScriptEngine.uiGraphics) {
+      ScriptEngine.uiGraphics = ScriptEngine.currentScene.add.graphics();
+      ScriptEngine.uiGraphics.setScrollFactor(0); // UI elements don't scroll with camera
+      ScriptEngine.uiGraphics.setDepth(1000); // High depth to render on top
+    }
+    return ScriptEngine.uiGraphics;
+  }
+
+  /**
+   * Clear all UI graphics (but keep text)
+   */
+  public static clearUIGraphics(): void {
+    const graphics = ScriptEngine.ensureUIGraphics();
+    if (graphics) {
+      graphics.clear();
+    }
+  }
+
+  /**
+   * Clear all UI text objects
+   */
+  public static clearUITexts(): void {
+    ScriptEngine.uiTexts.forEach(text => {
+      if (text && text.scene) {
+        text.destroy();
+      }
+    });
+    ScriptEngine.uiTexts = [];
+  }
+
+  /**
+   * Draw filled rectangle (Java screen.rectfill equivalent)
+   * @param x1 Left coordinate
+   * @param y1 Top coordinate
+   * @param x2 Right coordinate
+   * @param y2 Bottom coordinate
+   * @param color RGB color object {r, g, b}
+   */
+  public static rectfill(x1: number, y1: number, x2: number, y2: number, color: {r: number, g: number, b: number}): void {
+    const graphics = ScriptEngine.ensureUIGraphics();
+    if (!graphics) return;
+
+    const hexColor = (color.r << 16) | (color.g << 8) | color.b;
+    graphics.fillStyle(hexColor, 1);
+
+    const left = Math.min(x1, x2);
+    const top = Math.min(y1, y2);
+    const width = Math.abs(x2 - x1) + 1;
+    const height = Math.abs(y2 - y1) + 1;
+
+    graphics.fillRect(left, top, width, height);
+  }
+
+  /**
+   * Draw rectangle outline (Java screen.rect equivalent)
+   * @param x1 Left coordinate
+   * @param y1 Top coordinate
+   * @param x2 Right coordinate
+   * @param y2 Bottom coordinate
+   * @param color RGB color object {r, g, b}
+   */
+  public static rect(x1: number, y1: number, x2: number, y2: number, color: {r: number, g: number, b: number}): void {
+    const graphics = ScriptEngine.ensureUIGraphics();
+    if (!graphics) return;
+
+    const hexColor = (color.r << 16) | (color.g << 8) | color.b;
+    graphics.lineStyle(1, hexColor, 1);
+
+    const left = Math.min(x1, x2);
+    const top = Math.min(y1, y2);
+    const width = Math.abs(x2 - x1) + 1;
+    const height = Math.abs(y2 - y1) + 1;
+
+    graphics.strokeRect(left, top, width, height);
+  }
+
+  /**
+   * Print text string (Java screen.printString equivalent)
+   * @param x X coordinate
+   * @param y Y coordinate
+   * @param fontStyle Font style (ignored for now, uses default)
+   * @param text Text to display
+   * @param color Optional color (default: white)
+   */
+  public static printString(x: number, y: number, fontStyle: any, text: string, color?: {r: number, g: number, b: number}): void {
+    if (!ScriptEngine.currentScene) return;
+
+    const hexColor = color ? ((color.r << 16) | (color.g << 8) | color.b) : 0xffffff;
+
+    const textObj = ScriptEngine.currentScene.add.text(x, y, text, {
+      fontFamily: 'monospace',
+      fontSize: '16px',
+      color: `#${hexColor.toString(16).padStart(6, '0')}`
+    });
+
+    textObj.setScrollFactor(0); // UI text doesn't scroll with camera
+    textObj.setDepth(1001); // Higher than UI graphics
+
+    // Track text objects for cleanup
+    ScriptEngine.uiTexts.push(textObj);
+  }
+
+  // ============================================================================
+  // CLEANUP
+  // ============================================================================
+
+  /**
+   * Render CHR frame at specified position (port of screen.blitentityframe)
+   */
+  public static blitEntityFrame(x: number, y: number, chr: any, frameIndex: number): void {
+    if (!ScriptEngine.currentScene) return;
+
+    // Create a temporary sprite if needed for CHR rendering
+    if (!chr._tempSprite) {
+      chr._tempSprite = ScriptEngine.currentScene.add.sprite(0, 0, '');
+      chr._tempSprite.setDepth(1002); // Above UI elements
+    }
+
+    chr.render(chr._tempSprite, x, y, frameIndex);
+  }
+
+  /**
+   * Blit image to screen (port of screen.blit)
+   */
+  public static blit(x: number, y: number, image: any): void {
+    if (!ScriptEngine.currentScene) return;
+
+    if (image.key) {
+      // If the image has a Phaser texture key, use that
+      const imageObj = ScriptEngine.currentScene.add.image(x, y, image.key);
+      imageObj.setOrigin(0, 0);
+      imageObj.setDepth(1001); // Above menu graphics
+    } else if (image.texture) {
+      // If we have a texture reference, create an image from it
+      console.log(`Rendering VImage at position (${x}, ${y})`);
+      // This would need proper integration with the rendering system
+    } else {
+      // Placeholder for actual rendering
+      console.log(`Rendering VImage at position (${x}, ${y}) - size: ${image.width}x${image.height}`);
+    }
+  }
+
+  /**
+   * Clean up all script engine resources
+   */
+  public static cleanup(): void {
+    if (ScriptEngine.uiGraphics) {
+      ScriptEngine.uiGraphics.destroy();
+      ScriptEngine.uiGraphics = null;
+    }
+
+    ScriptEngine.clearUITexts();
+    ScriptEngine.currentScene = null;
+  }
+}

@@ -7,6 +7,7 @@ import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { DemoUI } from '../../utils/DemoUI';
 import { MainEngine } from '../../core/MainEngine';
+import { ScriptEngine } from '../../core/ScriptEngine';
 
 interface VGMFile {
   name: string;
@@ -75,8 +76,8 @@ export class Demo3Scene extends Phaser.Scene {
     this.setupControls();
 
     // Set up audio context resume on user interaction
-    this.input.on('pointerdown', () => MainEngine.resumeVGMAudio());
-    this.input.keyboard?.on('keydown', () => MainEngine.resumeVGMAudio());
+    this.input.on('pointerdown', () => ScriptEngine.resumeVGMAudio());
+    this.input.keyboard?.on('keydown', () => ScriptEngine.resumeVGMAudio());
 
     console.log('Demo 3 Scene - VGM Player initialized');
   }
@@ -91,7 +92,7 @@ export class Demo3Scene extends Phaser.Scene {
 
       try {
         // Try to load VGM file using MainEngine
-        const info = await MainEngine.loadVGM(file.key, `src/demos/demo3/${file.name}`);
+        const info = await ScriptEngine.loadVGM(file.key, `src/demos/demo3/${file.name}`);
 
         if (info) {
           file.supported = true;
@@ -240,7 +241,7 @@ export class Demo3Scene extends Phaser.Scene {
       this.statusText.setText(`Loading ${file.name}...`);
 
       // Play using MainEngine
-      const success = await MainEngine.playmusic(file.key);
+      const success = await ScriptEngine.playmusic(file.key);
 
       if (success) {
         this.isPlaying = true;
@@ -263,7 +264,7 @@ export class Demo3Scene extends Phaser.Scene {
    * Public API: Stop music
    */
   stopMusic(): void {
-    MainEngine.stopmusic();
+    ScriptEngine.stopmusic();
 
     this.isPlaying = false;
     this.statusText.setText('Stopped');
@@ -311,7 +312,7 @@ export class Demo3Scene extends Phaser.Scene {
     }
 
     // Update playing status
-    if (this.isPlaying && !MainEngine.isVGMPlaying()) {
+    if (this.isPlaying && !ScriptEngine.isVGMPlaying()) {
       // Music finished naturally
       this.isPlaying = false;
       this.statusText.setText('Finished');

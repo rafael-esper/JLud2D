@@ -6,6 +6,7 @@
 
 import { GameConfig } from '../../config/GameConfig';
 import { MainEngine } from '../../core/MainEngine';
+import { ScriptEngine } from '../../core/ScriptEngine';
 import { AkBaseScene } from './AkBaseScene';
 
 export class TitleScene extends AkBaseScene {
@@ -49,8 +50,8 @@ export class TitleScene extends AkBaseScene {
     this.graphics.setDepth(1000); // High depth to render on top
 
     // Load and play intro music
-    await MainEngine.loadVGM('intro', 'src/demos/ak/res/music/intro.vgz');
-    MainEngine.playmusic('intro');
+    await ScriptEngine.loadVGM('intro', 'src/demos/ak/res/music/intro.vgz');
+    ScriptEngine.playmusic('intro');
 
     console.log('TitleScene: Title screen initialized');
   }
@@ -104,7 +105,7 @@ export class TitleScene extends AkBaseScene {
     console.log('TitleScene: Starting game...');
 
     // Stop intro music
-    MainEngine.stopmusic();
+    ScriptEngine.stopmusic();
 
     // Start with MapScene to show the first level
     this.scene.start('MapScene', {

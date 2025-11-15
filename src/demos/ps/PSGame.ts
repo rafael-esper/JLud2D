@@ -4,6 +4,7 @@
  */
 
 import { MainEngine } from '../../core/MainEngine';
+import { ScriptEngine } from '../../core/ScriptEngine';
 import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
 import { PS1Sound } from './game/PSLibSound';
@@ -67,15 +68,15 @@ export class PSGame {
   public static async playMusic(music: PS1Music): Promise<void> {
     const musicPath = music as string;
     console.log(`PSGame: Playing music ${musicPath}`);
-    await MainEngine.loadVGM('ps_current', musicPath);
-    MainEngine.playmusic('ps_current');
+    await ScriptEngine.loadVGM('ps_current', musicPath);
+    ScriptEngine.playmusic('ps_current');
   }
 
   /**
    * Stop currently playing music
    */
   public static stopMusic(): void {
-    MainEngine.stopmusic();
+    ScriptEngine.stopmusic();
   }
 
   /**

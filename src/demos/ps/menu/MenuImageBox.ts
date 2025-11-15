@@ -5,6 +5,7 @@
 
 import { MenuType } from './MenuType';
 import { MenuStack } from './MenuStack';
+import { ScriptEngine } from '../../../core/ScriptEngine';
 
 export interface VImage {
   width: number;
@@ -60,42 +61,13 @@ export class MenuImageBox extends MenuType {
     } else {
       if (this.hasBox) {
         this.menuStack.drawBox(this.x, this.y, this.wx, this.wy);
-        this.blit(this.x + 4, this.y + 4, this.image);
+        ScriptEngine.blit(this.x + 4, this.y + 4, this.image);
       } else {
-        this.blit(this.x, this.y, this.image);
+        ScriptEngine.blit(this.x, this.y, this.image);
       }
     }
   }
 
-  /**
-   * Blit image to screen - port of screen.blit() functionality
-   * In the original Java version, this would call screen.blit()
-   * In TypeScript/Phaser, we render using the scene's display system
-   */
-  private blit(x: number, y: number, image: VImage): void {
-    try {
-      if (this.scene && image) {
-        // In the original Java version, this would directly blit to the screen buffer
-        // In Phaser, we need to create a temporary game object or use the graphics API
-
-        if (image.key) {
-          // If the image has a Phaser texture key, use that
-          const imageObj = this.scene.add.image(x, y, image.key);
-          imageObj.setOrigin(0, 0);
-          imageObj.setDepth(1001); // Above menu graphics
-        } else if (image.texture) {
-          // If we have a texture reference, create an image from it
-          console.log(`Rendering VImage at position (${x}, ${y})`);
-          // This would need proper integration with the rendering system
-        } else {
-          // Placeholder for actual rendering
-          console.log(`Rendering VImage at position (${x}, ${y}) - size: ${image.width}x${image.height}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error blitting VImage:', error);
-    }
-  }
 
   /**
    * Get the image reference

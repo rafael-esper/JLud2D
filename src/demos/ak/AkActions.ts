@@ -5,6 +5,7 @@
  */
 
 import { MainEngine } from '../../core/MainEngine';
+import { ScriptEngine } from '../../core/ScriptEngine';
 import { Condition, Status, Action, AkMovement } from './AkMovement';
 import { AkCore } from './AkCore';
 import { AkSprites } from './AkSprites';
@@ -222,7 +223,7 @@ export class AkActions {
           movement.setState(Status.STOPPED);
 
           // Change music to swim music
-          MainEngine.playmusic('swim');
+          ScriptEngine.playmusic('swim');
 
           // Play water sound and animate player going into water
           scene.sound.play('snd_water');
@@ -541,7 +542,7 @@ export class AkActions {
     // Stop camera tracking and music immediately
     this.originalCameraTracking = MainEngine.getCameraTracking();
     MainEngine.setCameraTracking(0);
-    MainEngine.stopmusic();
+    ScriptEngine.stopmusic();
 
     // Play death sound immediately
     Sound.playSound('snd_death');
@@ -608,12 +609,12 @@ export class AkActions {
     // Restart appropriate music based on condition
     const restoredCondition = AkCore.getCondition();
     if (restoredCondition === Condition.SWIM) {
-      MainEngine.playmusic('swim');
+      ScriptEngine.playmusic('swim');
     } else if (restoredCondition === Condition.MOTO) {
-      MainEngine.playmusic('moto');
+      ScriptEngine.playmusic('moto');
     } else {
       // Default field music for WALK, FLY, HELI, SURF, etc.
-      MainEngine.playmusic('field');
+      ScriptEngine.playmusic('field');
     }
 
     console.log(`AkActions: Music restarted for condition ${restoredCondition}`);
@@ -641,13 +642,13 @@ export class AkActions {
    */
   private static showGameOverScreen(): void {
     // Clear all UI elements and fill screen with black
-    MainEngine.clearUIGraphics();
-    MainEngine.clearUITexts();
-    MainEngine.rectfill(0, 0, 320, 240, {r: 0, g: 0, b: 0});
+    ScriptEngine.clearUIGraphics();
+    ScriptEngine.clearUITexts();
+    ScriptEngine.rectfill(0, 0, 320, 240, {r: 0, g: 0, b: 0});
 
     // Display game over text
-    MainEngine.printString(120, 100, null, "GAME OVER");
-    MainEngine.printString(10, 120, null, "Not enough money to buy a new life (< $500)");
+    ScriptEngine.printString(120, 100, null, "GAME OVER");
+    ScriptEngine.printString(10, 120, null, "Not enough money to buy a new life (< $500)");
   }
 
   /**

@@ -5,6 +5,7 @@
 
 import { InputManager } from '../../config/Controls';
 import { MainEngine } from '../../core/MainEngine';
+import { ScriptEngine } from '../../core/ScriptEngine';
 import { AkActions } from './AkActions';
 import { AkCore } from './AkCore';
 
@@ -530,7 +531,7 @@ export class AkMovement {
     if (this.inputManager.justPressed('H')) {
       this.setCondition(Condition.HELI);
       console.log("Helicopter condition activated");
-      MainEngine.playmusic('swim');
+      ScriptEngine.playmusic('swim');
     }
 
     // Invincibility (I key)
@@ -543,7 +544,7 @@ export class AkMovement {
     //if (this.inputManager.justPressed('J')) {
       //this.setCondition(Condition.SWIM);
      // console.log("Swim condition activated");
-       //MainEngine.playmusic('swim');
+       //ScriptEngine.playmusic('swim');
     //}
 
     // Kill player (K key)
@@ -562,7 +563,7 @@ export class AkMovement {
     if (this.inputManager.justPressed('M')) {
       this.setCondition(Condition.MOTO);
       console.log("Motorcycle condition activated");
-      MainEngine.playmusic('moto');
+      ScriptEngine.playmusic('moto');
     }
 
     // Normal condition with gold (N key)
@@ -588,7 +589,7 @@ export class AkMovement {
 
   // Helper method to set normal condition
   public setNormalCondition(newCondition: Condition): void {
-    MainEngine.stopmusic();
+    ScriptEngine.stopmusic();
     // TODO: unpress(0);
     AkCore.setNormalCondition(newCondition);
     this.setState(Status.STOPPED);
@@ -607,7 +608,7 @@ export class AkMovement {
     AkActions.setTdelay(0); // tdelay = 0
 
     // Play default field music when returning to normal condition
-    MainEngine.playmusic('field');
+    ScriptEngine.playmusic('field');
   }
 
   // Trembling action (ported from Java)

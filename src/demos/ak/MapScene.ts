@@ -7,6 +7,7 @@
 
 import { GameConfig } from '../../config/GameConfig';
 import { MainEngine } from '../../core/MainEngine';
+import { ScriptEngine } from '../../core/ScriptEngine';
 import { Sound } from '../../domain/Sound';
 import { Condition } from './AkMovement';
 import { AkCore } from './AkCore';
@@ -99,7 +100,7 @@ export class MapScene extends AkBaseScene {
     this.redCircle.setDepth(10); // Make sure it renders on top
 
     // Stop current VGM music and play map music
-    MainEngine.stopmusic();
+    ScriptEngine.stopmusic();
     Sound.stopMusic();
     Sound.playSound('snd_mapa');
 
@@ -383,7 +384,7 @@ export class MapScene extends AkBaseScene {
 
   destroy() {
     // Stop music when scene is destroyed
-    MainEngine.stopmusic();
+    ScriptEngine.stopmusic();
     super.destroy();
   }
 }

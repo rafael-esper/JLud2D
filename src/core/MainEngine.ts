@@ -61,17 +61,10 @@ export class MainEngine {
     console.log(`System path set to: ${path}`);
   }
 
-  /**
-   * Get current system path
-   */
   public static getSystemPath(): string {
     return MainEngine.systemPath;
   }
 
-
-  /**
-   * Update ResponsiveScaler to use demo's resolution for proper scaling
-   */
   public static updateResponsiveScaler(config: any): void {
     try {
       // Get global game instance
@@ -87,9 +80,6 @@ export class MainEngine {
     }
   }
 
-  /**
-   * Initialize main engine with demo-specific config (like Java initMainEngine)
-   */
   public static async initMainEngine(mapname?: string): Promise<any> {
     try {
       // Load config from system path (like Java Config.loadConfig)
@@ -131,10 +121,6 @@ export class MainEngine {
     }
   }
 
-  /**
-   * Allocate and create a new entity
-   * Equivalent to Java AllocateEntity()
-   */
   public static async AllocateEntity(scene: Phaser.Scene, x: number, y: number, chr: string, basePath: string): Promise<number> {
     const entity = new Entity(x, y, chr);
     entity.setIndex(MainEngine.numentities);
@@ -155,18 +141,10 @@ export class MainEngine {
     return entityIndex;
   }
 
-  /**
-   * Spawn entity at tile coordinates
-   * Equivalent to Java Script.entityspawn()
-   */
   public static async entityspawn(scene: Phaser.Scene, x: number, y: number, chrname: string, basePath: string): Promise<number> {
     return await MainEngine.AllocateEntity(scene, x, y, chrname, basePath);
   }
 
-  /**
-   * Set player entity
-   * Equivalent to Java Script.setplayer()
-   */
   public static setplayer(entityIndex: number): Entity | null {
     if (entityIndex < 0 || entityIndex >= MainEngine.numentities) {
       MainEngine.player = -1;
@@ -181,10 +159,6 @@ export class MainEngine {
     return MainEngine.myself;
   }
 
-  /**
-   * Make one entity stalk another
-   * Equivalent to Java Script.entitystalk()
-   */
   public static entitystalk(stalkerIndex: number, stalkeeIndex: number): void {
     if (stalkerIndex < 0 || stalkerIndex >= MainEngine.numentities) {
       return;
@@ -205,9 +179,6 @@ export class MainEngine {
     stalker.stalk(stalkee);
   }
 
-  /**
-   * Update all entities - called every frame
-   */
   public static updateEntities(): void {
     // Skip entity updates when entities are paused (during screen transitions)
     if (MainEngine.entitiespaused) {
@@ -221,16 +192,10 @@ export class MainEngine {
     }
   }
 
-  /**
-   * Pause/unpause entities (for screen transitions)
-   */
   public static setEntitiesPaused(paused: boolean): void {
     MainEngine.entitiespaused = paused;
   }
 
-  /**
-   * Process player controls - equivalent to Java ProcessControls()
-   */
   public static ProcessControls(inputManager: any): void {
     // Update input state from input manager
     MainEngine.up = inputManager.up;
@@ -335,9 +300,6 @@ export class MainEngine {
     }
   }
 
-  /**
-   * Render all entities - called during render phase
-   */
   public static RenderEntities(): void {
     // Sort entities by Y position for proper depth ordering
     const sortedEntities = [...MainEngine.entities].sort((a, b) => a.gety() - b.gety());
@@ -349,30 +311,18 @@ export class MainEngine {
     }
   }
 
-  /**
-   * Get player entity
-   */
   public static getPlayer(): Entity | null {
     return MainEngine.myself;
   }
 
-  /**
-   * Get current map
-   */
   public static getCurrentMap(): any {
     return MainEngine.current_map;
   }
 
-  /**
-   * Get player entity index
-   */
   public static getPlayerIndex(): number {
     return MainEngine.player;
   }
 
-  /**
-   * Get entity by index
-   */
   public static getEntity(index: number): Entity | null {
     if (index < 0 || index >= MainEngine.numentities) {
       return null;
@@ -380,16 +330,10 @@ export class MainEngine {
     return MainEngine.entities[index];
   }
 
-  /**
-   * Get all entities
-   */
   public static getEntities(): Entity[] {
     return MainEngine.entities;
   }
 
-  /**
-   * Get entity by index
-   */
   public static getEntityByIndex(index: number): Entity | null {
     if (index < 0 || index >= MainEngine.entities.length) {
       return null;
@@ -397,23 +341,10 @@ export class MainEngine {
     return MainEngine.entities[index];
   }
 
-  /**
-   * Get number of entities
-   */
   public static getNumEntities(): number {
     return MainEngine.numentities;
   }
 
-  /**
-   * Set camera tracking mode
-   */
-  public static setCameraTracking(mode: number): void {
-    MainEngine.cameratracking = mode;
-  }
-
-  /**
-   * Get camera tracking mode
-   */
   public static getCameraTracking(): number {
     return MainEngine.cameratracking;
   }
@@ -422,16 +353,10 @@ export class MainEngine {
     MainEngine.cameratracking = mode;
   }
 
-  /**
-   * Set current map reference
-   */
   public static setCurrentMap(map: any): void {
     MainEngine.current_map = map;
   }
 
-  /**
-   * Clear all entities (for scene changes)
-   */
   public static clearEntities(): void {
     // Destroy all entity sprites
     for (const entity of MainEngine.entities) {
@@ -444,9 +369,6 @@ export class MainEngine {
     MainEngine.myself = null;
   }
 
-  /**
-   * Complete cleanup - clears entities and map
-   */
   public static cleanup(): void {
     // Clear entities
     MainEngine.clearEntities();
@@ -457,6 +379,12 @@ export class MainEngine {
     }
     MainEngine.current_map = null;
 
+    // Reset other state
+    MainEngine.current_scene = null;
+    MainEngine.current_config = null;
+    MainEngine.cameratracking = 0;
+    MainEngine.entitiespaused = false;
+    MainEngine.screenTransitioning = false;
   }
 
   /**
@@ -554,25 +482,15 @@ export class MainEngine {
     }
   }
 
-  /**
-   * Set current scene and config references for camera system
-   */
   public static setCurrentScene(scene: Phaser.Scene, config: any): void {
     MainEngine.current_scene = scene;
     MainEngine.current_config = config;
   }
 
-  /**
-   * Get current scene reference
-   */
   public static getCurrentScene(): Phaser.Scene | null {
     return MainEngine.current_scene;
   }
 
-  /**
-   * Setup camera for current map
-   * Equivalent to Demo1Scene.setupCamera()
-   */
   public static setupCamera(): void {
     if (!MainEngine.current_map || !MainEngine.current_scene || !MainEngine.current_config) return;
 
@@ -907,209 +825,16 @@ export class MainEngine {
     }
   }
 
-  /**
-   * Set camera speed
-   */
   public static setCameraSpeed(speed: number): void {
     MainEngine.cameraSpeed = speed;
   }
 
-  /**
-   * Get camera speed
-   */
   public static getCameraSpeed(): number {
     return MainEngine.cameraSpeed;
   }
 
-  // ============================================================================
-  // VGM AUDIO SYSTEM (delegated to VGMPlayerAPI)
-  // ============================================================================
 
-  /**
-   * Load VGM asset (similar to this.load.audio pattern)
-   * @param key Asset key for later playback
-   * @param filePath Path to VGM file
-   */
-  public static async loadVGM(key: string, filePath: string): Promise<any> {
-    return await VGMPlayerAPI.loadVGM(key, filePath);
-  }
 
-  /**
-   * Play VGM music by key (MainEngine.playmusic pattern)
-   * @param key Asset key of the VGM to play
-   */
-  public static playmusic(key: string): boolean {
-    return VGMPlayerAPI.playMusic(key);
-  }
-
-  /**
-   * Stop VGM music playback
-   */
-  public static stopmusic(): void {
-    VGMPlayerAPI.stopMusic();
-  }
-
-  /**
-   * Check if VGM music is currently playing
-   */
-  public static isVGMPlaying(): boolean {
-    return VGMPlayerAPI.isPlaying();
-  }
-
-  /**
-   * Resume VGM audio context (call on user interaction)
-   */
-  public static resumeVGMAudio(): void {
-    VGMPlayerAPI.resumeAudio();
-  }
-
-  // Graphics methods for UI drawing (like Java screen.rect/rectfill)
-  private static uiGraphics: Phaser.GameObjects.Graphics | null = null;
-  private static uiTexts: Phaser.GameObjects.Text[] = [];
-
-  /**
-   * Initialize UI graphics object for drawing rectangles
-   */
-  private static ensureUIGraphics(): Phaser.GameObjects.Graphics | null {
-    if (!MainEngine.current_scene) {
-      console.error('MainEngine: No current scene for UI graphics');
-      return null;
-    }
-
-    // Check if existing graphics belongs to a different scene or is destroyed
-    if (MainEngine.uiGraphics && (!MainEngine.uiGraphics.scene || MainEngine.uiGraphics.scene !== MainEngine.current_scene)) {
-      MainEngine.uiGraphics = null;
-    }
-
-    if (!MainEngine.uiGraphics) {
-      MainEngine.uiGraphics = MainEngine.current_scene.add.graphics();
-      MainEngine.uiGraphics.setScrollFactor(0); // UI elements don't scroll with camera
-      MainEngine.uiGraphics.setDepth(1000); // High depth to render on top
-    }
-    return MainEngine.uiGraphics;
-  }
-
-  /**
-   * Clear all UI graphics (but keep text)
-   */
-  public static clearUIGraphics(): void {
-    const graphics = MainEngine.ensureUIGraphics();
-    if (graphics) {
-      graphics.clear();
-    }
-  }
-
-  /**
-   * Clear all UI text objects
-   */
-  public static clearUITexts(): void {
-    MainEngine.uiTexts.forEach(text => {
-      if (text && text.scene) {
-        text.destroy();
-      }
-    });
-    MainEngine.uiTexts = [];
-  }
-
-  /**
-   * Draw filled rectangle (Java screen.rectfill equivalent)
-   * @param x1 Left coordinate
-   * @param y1 Top coordinate
-   * @param x2 Right coordinate
-   * @param y2 Bottom coordinate
-   * @param color RGB color object {r, g, b}
-   */
-  public static rectfill(x1: number, y1: number, x2: number, y2: number, color: {r: number, g: number, b: number}): void {
-    const graphics = MainEngine.ensureUIGraphics();
-    if (!graphics) return;
-
-    const hexColor = (color.r << 16) | (color.g << 8) | color.b;
-    graphics.fillStyle(hexColor, 1);
-
-    const left = Math.min(x1, x2);
-    const top = Math.min(y1, y2);
-    const width = Math.abs(x2 - x1) + 1;
-    const height = Math.abs(y2 - y1) + 1;
-
-    graphics.fillRect(left, top, width, height);
-  }
-
-  /**
-   * Draw rectangle outline (Java screen.rect equivalent)
-   * @param x1 Left coordinate
-   * @param y1 Top coordinate
-   * @param x2 Right coordinate
-   * @param y2 Bottom coordinate
-   * @param color RGB color object {r, g, b}
-   */
-  public static rect(x1: number, y1: number, x2: number, y2: number, color: {r: number, g: number, b: number}): void {
-    const graphics = MainEngine.ensureUIGraphics();
-    if (!graphics) return;
-
-    const hexColor = (color.r << 16) | (color.g << 8) | color.b;
-    graphics.lineStyle(1, hexColor, 1);
-
-    const left = Math.min(x1, x2);
-    const top = Math.min(y1, y2);
-    const width = Math.abs(x2 - x1) + 1;
-    const height = Math.abs(y2 - y1) + 1;
-
-    graphics.strokeRect(left, top, width, height);
-  }
-
-  /**
-   * Print text string (Java screen.printString equivalent)
-   * @param x X coordinate
-   * @param y Y coordinate
-   * @param fontStyle Font style (ignored for now, uses default)
-   * @param text Text to display
-   * @param color Optional color (default: white)
-   */
-  public static printString(x: number, y: number, fontStyle: any, text: string, color?: {r: number, g: number, b: number}): void {
-    if (!MainEngine.current_scene) return;
-
-    const hexColor = color ? ((color.r << 16) | (color.g << 8) | color.b) : 0xffffff;
-
-    const textObj = MainEngine.current_scene.add.text(x, y, text, {
-      fontFamily: 'monospace',
-      fontSize: '16px',
-      color: `#${hexColor.toString(16).padStart(6, '0')}`
-    });
-
-    textObj.setScrollFactor(0); // UI text doesn't scroll with camera
-    textObj.setDepth(1001); // Higher than UI graphics
-
-    // Track text objects for cleanup
-    MainEngine.uiTexts.push(textObj);
-  }
-
-  /**
-   * Clean up UI graphics when scene changes
-   */
-  public static cleanup(): void {
-    if (MainEngine.uiGraphics) {
-      MainEngine.uiGraphics.destroy();
-      MainEngine.uiGraphics = null;
-    }
-
-    MainEngine.clearUITexts();
-
-    MainEngine.entities = [];
-    MainEngine.numentities = 0;
-    MainEngine.player = -1;
-    MainEngine.myself = null;
-    MainEngine.current_map = null;
-    MainEngine.current_scene = null;
-    MainEngine.current_config = null;
-    MainEngine.cameratracking = 0;
-    MainEngine.entitiespaused = false;
-    MainEngine.screenTransitioning = false;
-  }
-
-  /**
-   * Check zone events - direct port of Java CheckZone()
-   * Called when player moves to new tile
-   */
   public static CheckZone(): void {
     if (!MainEngine.current_map) return;
 
@@ -1194,37 +919,22 @@ export class MainEngine {
     }
   }
 
-  /**
-   * Called when player steps on new tile - override in city scripts
-   */
   public static onStep(): void {
     // Default implementation - override in city-specific scripts
   }
 
-  /**
-   * Called after step processing - override in city scripts
-   */
   public static afterStep(): void {
     // Default implementation - override in city-specific scripts
   }
 
-  /**
-   * Get current player tile X position
-   */
   public static getPx(): number {
     return MainEngine.px;
   }
 
-  /**
-   * Get current player tile Y position
-   */
   public static getPy(): number {
     return MainEngine.py;
   }
 
-  /**
-   * Get current event zone
-   */
   public static getEventZone(): number {
     return MainEngine.event_zone;
   }
@@ -1232,16 +942,10 @@ export class MainEngine {
   // Current script context (set by the current map/scene)
   protected static currentScriptContext: any = null;
 
-  /**
-   * Set the current script context for function calls
-   */
   public static setScriptContext(context: any): void {
     MainEngine.currentScriptContext = context;
   }
 
-  /**
-   * Load script context based on map name - generic script loading system
-   */
   public static async loadScriptContextForMap(mapName: string, basePath: string): Promise<void> {
     try {
       // Extract map name without extension (e.g., "Camineet.map.json" -> "Camineet")

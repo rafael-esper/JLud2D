@@ -7,6 +7,7 @@
 import { GameConfig } from '../../config/GameConfig';
 import { FPSDisplay } from '../../utils/FPSDisplay';
 import { MainEngine } from '../../core/MainEngine';
+import { ScriptEngine } from '../../core/ScriptEngine';
 import { DemoUI } from '../../utils/DemoUI';
 import { AkActions } from './AkActions';
 import { AkMovement, Condition, Status, Action } from './AkMovement';
@@ -137,9 +138,9 @@ export class AkScene extends AkBaseScene {
     AkSprites.init(this);
 
     // Load VGM music files
-    await MainEngine.loadVGM('field', 'src/demos/ak/res/music/field.vgz');
-    await MainEngine.loadVGM('swim', 'src/demos/ak/res/music/swim.vgz');
-    await MainEngine.loadVGM('moto', 'src/demos/ak/res/music/moto.vgz');
+    await ScriptEngine.loadVGM('field', 'src/demos/ak/res/music/field.vgz');
+    await ScriptEngine.loadVGM('swim', 'src/demos/ak/res/music/swim.vgz');
+    await ScriptEngine.loadVGM('moto', 'src/demos/ak/res/music/moto.vgz');
 
     // Initialize movement system
     this.movement = new AkMovement(this.tiledMap, this.inputManager);
@@ -296,8 +297,8 @@ export class AkScene extends AkBaseScene {
    */
   private drawEnergyDisplay(): void {
     // Clear previous UI elements
-    MainEngine.clearUIGraphics();
-    MainEngine.clearUITexts();
+    ScriptEngine.clearUIGraphics();
+    ScriptEngine.clearUITexts();
 
     const energy = AkCore.getEnergy();
     const gold = AkCore.getGold();
@@ -310,22 +311,22 @@ export class AkScene extends AkBaseScene {
       const y2 = 9;
 
       // Black background
-      MainEngine.rectfill(x1, y1, x2, y2, {r: 0, g: 0, b: 0});
+      ScriptEngine.rectfill(x1, y1, x2, y2, {r: 0, g: 0, b: 0});
 
       // Green fill (bright green)
-      MainEngine.rectfill(x1 - 1, y1 + 1, x2 + 1, y2 - 1, {r: 30, g: 250, b: 50});
+      ScriptEngine.rectfill(x1 - 1, y1 + 1, x2 + 1, y2 - 1, {r: 30, g: 250, b: 50});
 
       // Green border (lighter green)
-      MainEngine.rect(x1, y1, x2, y2, {r: 50, g: 250, b: 50});
+      ScriptEngine.rect(x1, y1, x2, y2, {r: 50, g: 250, b: 50});
     }
 
     // Display gold amount
-    MainEngine.printString(10, 4, null, `Gold: $${gold}`, {r: 255, g: 255, b: 0});
+    ScriptEngine.printString(10, 4, null, `Gold: $${gold}`, {r: 255, g: 255, b: 0});
   }
 
   destroy() {
     // Stop music when scene is destroyed
-    MainEngine.stopmusic();
+    ScriptEngine.stopmusic();
     super.destroy();
   }
 }

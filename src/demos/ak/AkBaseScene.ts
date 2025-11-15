@@ -6,6 +6,7 @@
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { MainEngine } from '../../core/MainEngine';
+import { ScriptEngine } from '../../core/ScriptEngine';
 import { MapScene } from './MapScene';
 import { AkCore } from './AkCore';
 
@@ -51,7 +52,7 @@ export abstract class AkBaseScene extends Phaser.Scene {
     console.log(`${this.scene.key}: Returning to main menu...`);
 
     // Stop any playing music
-    MainEngine.stopmusic();
+    ScriptEngine.stopmusic();
 
     // Reset MapScene level to 1 when returning to menu
     MapScene.reset();
@@ -66,7 +67,7 @@ export abstract class AkBaseScene extends Phaser.Scene {
    */
   destroy(): void {
     // Stop music when scene is destroyed
-    MainEngine.stopmusic();
+    ScriptEngine.stopmusic();
     super.destroy();
   }
 }
