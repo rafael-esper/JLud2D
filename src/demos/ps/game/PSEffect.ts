@@ -11,6 +11,8 @@ import { City } from './City';
 import { Dungeon } from './Dungeon';
 import { PS1Sound } from './PSLibSound';
 import { PSGame } from '../PSGame';
+import { Action } from '../PSBattle';
+import { PSMenu } from '../PSMenu';
 
 // Forward declarations for types that will be implemented later
 export interface PSBattle {
@@ -21,13 +23,6 @@ export interface PSMenu {
   // Will be defined when we port PSMenu
 }
 
-export enum Action {
-  NONE,
-  ATTACK,
-  SPELL,
-  ITEM,
-  RUN
-}
 
 // Effect enums
 export enum EffectTarget {
@@ -191,13 +186,11 @@ export class PSEffect {
     this.value = value;
   }
 
-  public callEffect(): EffectOutcome {
+  public async callEffect(): Promise<EffectOutcome> {
     const effectTarget = EffectHelper.getTarget(this.effect);
 
     if (effectTarget === EffectTarget.ALIVE_MEMBER && this.target && this.target.getHp() <= 0) {
-      // Note: Would need PSMenu implementation
-      // PSMenu.StextTimeout(PSGame.getString("Battle_Player_Dead", "<player>", this.target.getName()));
-      console.warn(`${this.target.getName()} is dead - effect failed`);
+      await PSMenu.StextTimeout(PSGame.getString("Battle_Player_Dead", "<player>", this.target.getName()));
       return EffectOutcome.FAIL;
     }
 
@@ -230,7 +223,7 @@ export class PSEffect {
       case Effect.TALK:
       case Effect.CHAT:
       case Effect.TELE:
-        if (this.targets.length > 0 && this.talk(this.targets, this.user!, this.effect)) {
+        if (this.targets.length > 0 && await this.talk(this.targets, this.user!, this.effect)) {
           return EffectOutcome.SUCCESS;
         } else {
           return EffectOutcome.NONE;
@@ -240,18 +233,16 @@ export class PSEffect {
       case Effect.WCURE:
         if (!this.target) return EffectOutcome.FAIL;
 
-        // Note: Would need PSMenu.waitDelay implementation
-        // PSMenu.instance.waitDelay(15);
+        await PSMenu.instance.waitDelay(15);
         this.target.setHp(Math.min(this.target.getHp() + this.value, this.target.getMaxHp()));
 
         if ((this.target as PartyMember).textBox) { // in battle
           (this.target as PartyMember).textBox!.updateText(1, PSGame.getString("Stats_HP") + ":" + PSGame.format(this.target.getHp(), 4));
-          // PSMenu.instance.waitDelay(15);
+          await PSMenu.instance.waitDelay(15);
         }
 
         PSGame.playSound(PS1Sound.CURE);
-        // PSMenu.StextTimeout(PSGame.getString("Magic_Heal", "<player>", this.target.getName()));
-        console.log(`${this.target.getName()} healed for ${this.value} HP`);
+        await PSMenu.StextTimeout(PSGame.getString("Magic_Heal", "<player>", this.target.getName()));
 
         return EffectOutcome.SUCCESS;
 
@@ -261,10 +252,10 @@ export class PSEffect {
         return EffectOutcome.SUCCESS;
 
       case Effect.REVIVE:
-        return this.revive(this.target as PartyMember, false);
+        return await this.revive(this.target as PartyMember, false);
 
       case Effect.F_REVIVE:
-        return this.revive(this.target as PartyMember, true);
+        return await this.revive(this.target as PartyMember, true);
 
       case Effect.FORCE:
         if (!this.target) return EffectOutcome.FAIL;
@@ -272,8 +263,7 @@ export class PSEffect {
         this.target.boost = 2 + Math.floor(Math.random() * 4);
         // Note: Would need textBox color implementation
         // ((PartyMember)target).textBox.updateColor(Color.CYAN);
-        // PSMenu.StextTimeout(PSGame.getString("Battle_Player_Up", "<player>", this.target.getName()));
-        console.log(`${this.target.getName()} boosted!`);
+        await PSMenu.StextTimeout(PSGame.getString("Battle_Player_Up", "<player>", this.target.getName()));
 
         return EffectOutcome.SUCCESS;
 
@@ -284,10 +274,9 @@ export class PSEffect {
 
         const enemyBattler = this.target as EnemyBattler;
         if (enemyBattler.getEnemy().rope === CanRope.YES) {
-          this.target.paralyzed = 2 + Math.floor(Math.random() * 3); // Script.random(2, 4)
-          // PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Bind", "<monster>", this.target.getName()));
+          this.target.paralyzed = 2 + Math.floor(Math.random() * 3);
+          await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Bind", "<monster>", this.target.getName()));
           // this.target.enemyBox.updateColor(this.target.position, Color.YELLOW);
-          console.log(`${this.target.getName()} bound by rope!`);
           return EffectOutcome.SUCCESS;
         } else {
           return EffectOutcome.FAIL;
@@ -300,8 +289,7 @@ export class PSEffect {
             if (target.getEnemy().rope === CanRope.YES) {
               target.paralyzed = 2 + Math.floor(Math.random() * 3);
               if (!ropeSuccess) {
-                // PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Bind", "<monster>", target.getName()));
-                console.log(`Enemies bound by rope!`);
+                await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Bind", "<monster>", target.getName()));
                 ropeSuccess = true;
               }
               // target.enemyBox.updateColor(target.position, Color.YELLOW);
@@ -316,9 +304,8 @@ export class PSEffect {
 
         const fearTarget = this.target as EnemyBattler;
         if (this.target.getMaxHp() <= 100 && fearTarget.getEnemy().type !== EnemyType.UNDEAD) {
-          this.target.weak = 3 + Math.floor(Math.random() * 3); // Script.random(3, 5)
-          // PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Down", "<monster>", this.target.getName()));
-          console.log(`${this.target.getName()} feared!`);
+          this.target.weak = 3 + Math.floor(Math.random() * 3);
+          await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Down", "<monster>", this.target.getName()));
           return EffectOutcome.SUCCESS;
         } else {
           return EffectOutcome.FAIL;
@@ -331,8 +318,7 @@ export class PSEffect {
             if (target.getMaxHp() <= 133 && target.getEnemy().type !== EnemyType.UNDEAD) {
               target.weak = 3 + Math.floor(Math.random() * 3);
               if (!fearSuccess) {
-                // PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Down", "<monster>", target.getName()));
-                console.log(`Enemies feared!`);
+                await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Down", "<monster>", target.getName()));
                 fearSuccess = true;
               }
             }
@@ -351,7 +337,7 @@ export class PSEffect {
 
       case Effect.MUSIC:
         PSGame.playSound(PS1Sound.FLUTESONG);
-        // PSMenu.instance.waitDelay(90);
+        await PSMenu.instance.waitDelay(90);
         // Fall through to EXIT
 
       case Effect.EXIT:
@@ -376,8 +362,8 @@ export class PSEffect {
     return EffectOutcome.FAIL;
   }
 
-  private revive(target: PartyMember, fullRevive: boolean): EffectOutcome {
-    // PSMenu.instance.waitDelay(15);
+  private async revive(target: PartyMember, fullRevive: boolean): Promise<EffectOutcome> {
+    await PSMenu.instance.waitDelay(15);
     if (this.target!.getHp() <= 0) {
       if (fullRevive) {
         target.setHp(target.getMaxHp());
@@ -386,9 +372,8 @@ export class PSEffect {
         target.setHp(1);
       }
       PSGame.playSound(PS1Sound.REVIVE);
-      // PSGame.getParty().reallocate();
-      // PSMenu.Stext(PSGame.getString("Magic_Ressurrect", "<player>", target.getName()));
-      console.log(`${target.getName()} revived!`);
+      PSGame.getParty().reallocate();
+      await PSMenu.Stext(PSGame.getString("Magic_Ressurrect", "<player>", target.getName()));
       return EffectOutcome.SUCCESS;
     } else {
       return EffectOutcome.FAIL;
@@ -437,7 +422,7 @@ export class PSEffect {
     }
   }
 
-  private talk(battlers: Battler[], talker: PartyMember, effect: Effect): boolean {
+  private async talk(battlers: Battler[], talker: PartyMember, effect: Effect): Promise<boolean> {
     let chanceToTalk = false;
     let talkee: Battler | null = null;
 
@@ -469,29 +454,23 @@ export class PSEffect {
       }
     }
 
-    // PSMenu.StextNext(PSGame.getString("Battle_Player_Speak", "<player>", talker.getName(), "<monster>", talkee.getName()));
-    console.log(`${talker.getName()} speaks to ${talkee?.getName() || 'enemy'}`);
+    await PSMenu.StextNext(PSGame.getString("Battle_Player_Speak", "<player>", talker.getName(), "<monster>", talkee?.getName() || 'enemy'));
 
     if (chanceToTalk) {
       if (effect === Effect.CHAT || effect === Effect.TELE) {
         PSGame.playSound(PS1Sound.TELE);
       }
 
-      // Note: Would need full dialogue system implementation
-      console.log(`${talkee?.getName() || 'Enemy'} responds to communication!`);
-      /*
-      PSMenu.StextNext(PSGame.getString("Battle_Enemy_Reply", "<monster>", talkee.getName()));
+      await PSMenu.StextNext(PSGame.getString("Battle_Enemy_Reply", "<monster>", talkee?.getName() || 'enemy'));
       if (effect === Effect.TALK || effect === Effect.CHAT) {
-        const rand = Script.random(1, 9);
-        PSMenu.StextLast(PSGame.getString("Monster_Dialogue_" + rand));
+        const rand = 1 + Math.floor(Math.random() * 9);
+        await PSMenu.StextLast(PSGame.getString("Monster_Dialogue_" + rand));
       } else {
-        const rand = Script.random(1, 10);
-        PSMenu.StextLast(PSGame.getString("Monster_Tele_" + rand));
+        const rand = 1 + Math.floor(Math.random() * 10);
+        await PSMenu.StextLast(PSGame.getString("Monster_Tele_" + rand));
       }
-      */
     } else {
-      // PSMenu.StextLast(PSGame.getString("Battle_Enemy_No_Understand", "<player>", talker.getName(), "<monster>", talkee.getName()));
-      console.log(`${talkee?.getName() || 'Enemy'} doesn't understand ${talker.getName()}`);
+      await PSMenu.StextLast(PSGame.getString("Battle_Enemy_No_Understand", "<player>", talker.getName(), "<monster>", talkee?.getName() || 'enemy'));
     }
 
     return chanceToTalk;
