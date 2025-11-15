@@ -6,6 +6,7 @@
 
 import { Entity, EntityDirection } from '../domain/Entity';
 import { VGMPlayerAPI } from './vgm/VGMPlayerAPI';
+import { ScriptEngine } from './ScriptEngine';
 
 export class MainEngine {
   // Entity system
@@ -214,6 +215,17 @@ export class MainEngine {
     MainEngine.down = inputManager.down;
     MainEngine.left = inputManager.left;
     MainEngine.right = inputManager.right;
+
+    // Debug movement blocking
+    if (MainEngine.myself === null) {
+      return;
+    }
+    if (!MainEngine.myself.ready()) {
+      return;
+    }
+    if (MainEngine.invc !== 0) {
+      return;
+    }
 
     // No player movement can be done if there's no ready player, or if there's a script active
     if (MainEngine.myself === null || !MainEngine.myself.ready() || MainEngine.invc !== 0) {
@@ -878,7 +890,10 @@ export class MainEngine {
    * Called from update loop
    */
   public static TimedProcessEntities(): void {
-    if (MainEngine.entitiespaused) return;
+    if (MainEngine.entitiespaused) {
+      console.log('TimedProcessEntities: Entities are paused');
+      return;
+    }
 
     // Update system time (in real implementation, this would be actual time)
     MainEngine.systemtime++;
@@ -1003,6 +1018,78 @@ export class MainEngine {
       }
     } catch (error) {
       console.error(`Error calling script function ${functionName}:`, error);
+    }
+  }
+
+  /**
+   * Engine restart with new map - port of Java engine_start()
+   */
+  public static async startEngine(mapname: string): Promise<void> {
+    // Clear entities (equivalent to numentities = 0; entities.clear();)
+    MainEngine.clearEntities();
+
+    // Reset player references (equivalent to player = -1; myself = null;)
+    // Already handled by clearEntities()
+
+    // Reset window position (equivalent to xwin = ywin = 0;)
+    // TODO: Implement when window/camera system is ready
+
+    // Reset done flag (equivalent to done = false;)
+    MainEngine.done = false;
+
+    // Fix .map to .json (same logic as Java)
+    if (mapname.toLowerCase().endsWith('.map')) {
+      console.warn(`Warning: .map file instead of expected JSON: ${mapname}`);
+      mapname = mapname
+        .replace('.map', '.map.json')
+        .replace('.Map', '.map.json')
+        .replace('.MAP', '.map.json');
+    }
+
+    // Load and start the new map
+    try {
+      console.log(`MainEngine: Loading map ${mapname}`);
+
+      // Import TiledMap here to avoid circular dependencies
+      const { TiledMap } = await import('../domain/TiledMap');
+
+      // Load the map (equivalent to MapTiledJSON.loadMap(mapname))
+      const current_map = await TiledMap.loadMap(MainEngine.current_scene!, mapname, 'src/demos/ps/maps');
+
+      if (current_map) {
+        // Start the map (equivalent to current_map.startMap())
+        await current_map.startMap();
+
+        // Set current map reference
+        MainEngine.setCurrentMap(current_map);
+
+        // Load script context for this map
+        await MainEngine.loadScriptContextForMap(mapname, 'src/demos/ps/maps');
+
+        // Note: For PS demo, entities are unpaused after fadeIn completes in PSGame.fadeIn()
+      }
+
+    } catch (error) {
+      console.error(`MainEngine: Failed to load map ${mapname}:`, error);
+    }
+
+    // Reset timer (equivalent to timer = 0;)
+    MainEngine.timer = 0;
+
+    // Reset entity timing (equivalent to lastentitythink = systemtime;)
+    MainEngine.lastentitythink = MainEngine.systemtime;
+
+    // Note: setEntitiesPaused(false) is called after map loads and entities are spawned
+
+    // Debug: Log player state after map load
+    console.log('MainEngine: After map load - player index:', MainEngine.player);
+    console.log('MainEngine: After map load - myself:', MainEngine.myself);
+    console.log('MainEngine: After map load - entities count:', MainEngine.entities.length);
+    console.log('MainEngine: After map load - entitiespaused:', MainEngine.entitiespaused);
+    console.log('MainEngine: After map load - done flag:', MainEngine.done);
+    console.log('MainEngine: After map load - invc:', MainEngine.invc);
+    if (MainEngine.myself) {
+      console.log('MainEngine: After map load - player ready:', MainEngine.myself.ready());
     }
   }
 }
