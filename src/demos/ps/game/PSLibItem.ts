@@ -4,10 +4,12 @@
  */
 
 import { Item, ItemType } from './Item';
-import { Effect, EffectTarget, PSEffect } from './PSEffect';
+import { Effect, EffectTarget, PSEffect, EffectHelper } from './PSEffect';
 import { PS1Sound } from './PSLibSound';
 import { PartyMember } from './PartyMember';
 import { PSGame } from '../PSGame';
+import { PSMenu } from '../PSMenu';
+import { PSCancellable } from '../menu/MenuStack';
 
 // Original item enum - direct port from PSLibItem.java
 export enum OriginalItem {
@@ -225,40 +227,43 @@ export class PSLibItem {
   }
 
   /**
-   * Prepare item for use - direct port from Java prepareItem()
+   * Prepare item for use with proper target selection - direct port from Java prepareItem()
    */
-  public static prepareItem(item: Item, member: PartyMember): PSEffect | null {
+  public static async prepareItem(item: Item, member: PartyMember): Promise<PSEffect | null> {
     const effect = new PSEffect(item.getEffect());
     effect.setUser(member);
     effect.setValue(item.getStat());
 
-    const effectTarget = item.getEffect(); // Would need EffectHelper.getTarget(item.getEffect())
+    const effectTarget = EffectHelper.getTarget(item.getEffect());
 
-    // Note: This is simplified - would need full PSMenu and party target selection
-    /*
+    // Handle target selection for items that require specific targets
     if (effectTarget === EffectTarget.MEMBER || effectTarget === EffectTarget.ALIVE_MEMBER) {
       let partySel = 1;
+
       if (PSGame.getParty().partySize() > 1) {
-        PSMenu.instance.push(PSMenu.instance.createPromptBox(150, 70, PSGame.getParty().listMembers(), true));
-        partySel = PSMenu.instance.waitOpt(Cancellable.TRUE) + 1;
+        const promptBox = PSMenu.instance.createPromptBox(150, 70, PSGame.getParty().listMembers(), true);
+        PSMenu.instance.push(promptBox);
+        partySel = await PSMenu.instance.waitOpt(PSCancellable.TRUE) + 1;
         PSMenu.instance.pop();
       }
 
       if (partySel === 0) {
-        return null;
+        return null; // User cancelled
       }
+
       const target = PSGame.getParty().getMember(partySel - 1);
+
+      // Check if target is valid for alive-only effects
       if (effectTarget === EffectTarget.ALIVE_MEMBER && target.getHp() <= 0) {
-        PSMenu.Stext(PSGame.getString("Battle_Player_Dead", "<player>", target.getName()));
+        await PSMenu.Stext(PSGame.getString("Battle_Player_Dead", "<player>", target.getName()));
         return null;
       }
 
       effect.setTarget(target);
+    } else {
+      // For items that don't require specific target selection, use the user
+      effect.setTarget(member);
     }
-    */
-
-    // For now, set target to the user for self-targeting items
-    effect.setTarget(member);
 
     return effect;
   }

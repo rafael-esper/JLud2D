@@ -3,9 +3,11 @@
  * Defines all spells, their costs, and effects
  */
 
-import { Effect, EffectOutcome, EffectPlace, EffectTarget, PSEffect } from './PSEffect';
+import { Effect, EffectOutcome, EffectPlace, EffectTarget, PSEffect, EffectHelper } from './PSEffect';
 import { PartyMember } from './PartyMember';
 import { PSGame } from '../PSGame';
+import { PS1Sound } from './PSLibSound';
+import { PSMenu } from '../PSMenu';
 
 // Spell interface
 export interface Spell {
@@ -153,20 +155,82 @@ export class SpellFactory {
 
 export class PSLibSpell {
   /**
-   * Prepare spell for casting - simplified version of Java prepareSpell
+   * Prepare spell for casting - called when the spell is selected
    */
-  public static prepareSpell(spell: Spell, caster: PartyMember): PSEffect | null {
-    // Implementation would require full PSEffect, PSMenu, and PartyMember classes
-    console.warn('prepareSpell not yet fully implemented - requires PSEffect, PSMenu, and PartyMember');
-    return null;
+  public static async prepareSpell(spell: Spell, caster: PartyMember): Promise<PSEffect | null> {
+    if (caster.getMp() < spell.getMpCost()) {
+      await PSMenu.Stext(PSGame.getString("Magic_Not_Enough"));
+      return null;
+    }
+
+    const effect = new PSEffect(spell.getEffect());
+    effect.setUser(caster);
+
+    const effectTarget = EffectHelper.getTarget(spell.getEffect());
+    if (effectTarget === EffectTarget.MEMBER || effectTarget === EffectTarget.ALIVE_MEMBER) {
+      let partySel = 1;
+      if (PSGame.getParty().partySize() > 1) {
+        PSMenu.instance.push(PSMenu.instance.createPromptBox(130, 70, PSGame.getParty().listMembers(), true));
+        partySel = await PSMenu.instance.waitOpt(true) + 1;
+        PSMenu.instance.pop();
+      }
+
+      if (partySel === 0) {
+        return null;
+      }
+
+      const target = PSGame.getParty().getMember(partySel - 1);
+      if (effectTarget === EffectTarget.ALIVE_MEMBER && target.getHp() <= 0) {
+        await PSMenu.Stext(PSGame.getString("Battle_Player_Dead", "<player>", target.getName()));
+        return null;
+      }
+
+      effect.setTarget(target);
+    }
+
+    // Set spell-specific values
+    if (spell instanceof PS1SpellImpl) {
+      const ps1Spell = spell.getSpell();
+      if (ps1Spell === PS1Spell.REST || ps1Spell === PS1Spell.W_REST) {
+        effect.setValue(20);
+      } else if (ps1Spell === PS1Spell.CURE || ps1Spell === PS1Spell.W_CURE) {
+        effect.setValue(80);
+      } else if (ps1Spell === PS1Spell.POWER_CURE) {
+        effect.setValue(200);
+      }
+    }
+
+    return effect;
   }
 
   /**
-   * Cast prepared spell - simplified version of Java castSpell
+   * Cast prepared spell - called when spell is issued (after prepareSpell in World or at the proper turn in Battle)
    */
-  public static castSpell(spell: Spell, effect: PSEffect): EffectOutcome {
-    // Implementation would require full PSEffect, PSMenu, and PartyMember classes
-    console.warn('castSpell not yet fully implemented - requires PSEffect, PSMenu, and PartyMember');
-    return EffectOutcome.NONE;
+  public static async castSpell(spell: Spell, effect: PSEffect): Promise<EffectOutcome> {
+    const p = effect.getUser();
+    if (!p) {
+      return EffectOutcome.FAIL;
+    }
+
+    if (p.getMp() < spell.getMpCost()) { // Validate again for battle purposes
+      await PSMenu.Stext(PSGame.getString("Magic_Not_Enough"));
+      return EffectOutcome.NONE;
+    }
+
+    if (spell.getEffect() !== Effect.FIRE && spell.getEffect() !== Effect.WIND && spell.getEffect() !== Effect.THUNDER) {
+      PSGame.playSound(PS1Sound.SPELL);
+    }
+
+    p.setMp(p.getMp() - spell.getMpCost());
+
+    if (p.textBox !== null) { // in battle
+      p.textBox.updateText(2, PSGame.getString("Stats_MP") + ":" + PSGame.format(p.getMp(), 4));
+    }
+
+    const callEffect = await effect.callEffect();
+    if (callEffect === EffectOutcome.FAIL) {
+      await PSMenu.Stext(PSGame.getString("Magic_Player_Fail", "<player>", effect.getUser()!.getName()));
+    }
+    return callEffect;
   }
 }
