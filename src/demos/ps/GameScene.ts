@@ -9,6 +9,7 @@ import { City, CityHelper } from './game/City';
 import { MainEngine } from '../../core/MainEngine';
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
+import { Camineet } from './maps/Camineet';
 
 export class GameScene extends Phaser.Scene {
   private config: GameConfig;
@@ -58,6 +59,10 @@ export class GameScene extends Phaser.Scene {
 
     console.log(`GameScene: Loading map ${mapName} from ${mapBasePath}`);
     this.tiledMap = await MainEngine.loadAndInitMap(this, mapName, mapBasePath);
+
+    // Set Camineet script context manually
+    MainEngine.setScriptContext(Camineet);
+    console.log('GameScene: Camineet script context set');
 
     // Set screen to black IMMEDIATELY after map loads to prevent flash
     this.cameras.main.setAlpha(0);

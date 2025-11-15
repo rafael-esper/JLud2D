@@ -853,12 +853,9 @@ export class MainEngine {
     const cur_timer = MainEngine.timer;
     const cz = MainEngine.current_map.getzone(MainEngine.px, MainEngine.py);
 
-    console.log(`CheckZone: Player at (${MainEngine.px}, ${MainEngine.py}), zone=${cz}`);
-
     if (cz > 0) {
       const percent = MainEngine.current_map.getPercentZone(cz);
       const script = MainEngine.current_map.getScriptZone(cz);
-      console.log(`CheckZone: Zone ${cz} has ${percent}% chance, script="${script}"`);
 
       // In the original system, 0 means 100% chance (always trigger)
       let actualPercent = percent;
@@ -867,13 +864,9 @@ export class MainEngine {
       }
 
       const rnd = Math.floor(255 * Math.random());
-      console.log(`CheckZone: Random roll ${rnd} vs ${actualPercent} (original: ${percent})`);
 
       if (rnd < actualPercent) {
         MainEngine.event_zone = cz;
-        console.log(`Zone event triggered: zone=${cz}, event=${script}`);
-
-        // Call the script function
         MainEngine.callScriptFunction(script);
       }
     }
@@ -881,7 +874,7 @@ export class MainEngine {
   }
 
   /**
-   * Timed entity processing with zone checking - direct port of Java TimedProcessEntities()
+   * Timed entity processing with zone checking
    * Called from update loop
    */
   public static TimedProcessEntities(): void {

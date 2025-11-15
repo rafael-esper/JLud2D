@@ -822,7 +822,7 @@ export class TiledMap {
   }
 
   /**
-   * Convert zone number to tile ID 
+   * Convert zone number to tile ID
    */
   private zoneToTile(zone: number): number {
     if (zone === 0) {
@@ -925,15 +925,18 @@ export class TiledMap {
    * Get zone script name - direct port of Java getScriptZone()
    */
   public getScriptZone(zone: number): string {
-    const tileId = zone + TiledMap.ZONE_OFFSET;
-    return this.getTileProperty(tileId, "activationEvent") || "";
+    // Use corrected calculation for activation events (different from obstruction zones)
+    const firstGid = this.getMetaTileset().getFirstGid();
+    const tileId = zone + firstGid + TiledMap.ZONE_OFFSET;
+    const result = this.getTileProperty(tileId, "activationEvent") || "";
+    return result;
   }
 
   /**
    * Get zone encounter percentage - direct port of Java getPercentZone()
    */
   public getPercentZone(zone: number): number {
-    const tileId = zone + TiledMap.ZONE_OFFSET;
+    const tileId = this.zoneToTile(zone);
     return this.getTileProperty(tileId, "activationChance") || 0;
   }
 
@@ -941,7 +944,7 @@ export class TiledMap {
    * Get zone method - direct port of Java getMethodZone()
    */
   public getMethodZone(zone: number): number {
-    const tileId = zone + TiledMap.ZONE_OFFSET;
+    const tileId = this.zoneToTile(zone);
     return this.getTileProperty(tileId, "isObstruction") ? 1 : 0;
   }
 
