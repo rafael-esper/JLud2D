@@ -1029,6 +1029,24 @@ export class MainEngine {
     // Clear entities (equivalent to numentities = 0; entities.clear();)
     MainEngine.clearEntities();
 
+    // Destroy previous map completely before loading new one
+    if (MainEngine.current_map) {
+      console.log('MainEngine: Destroying previous map');
+      MainEngine.current_map.destroy();
+      MainEngine.current_map = null;
+    }
+
+    // Clear any remaining tilemap layers from scene
+    const scene = MainEngine.current_scene;
+    if (scene) {
+      scene.children.list.forEach((child: Phaser.GameObjects.GameObject) => {
+        if (child.type === 'TilemapLayer') {
+          console.log('MainEngine: Destroying orphaned tilemap layer');
+          child.destroy();
+        }
+      });
+    }
+
     // Reset player references (equivalent to player = -1; myself = null;)
     // Already handled by clearEntities()
 

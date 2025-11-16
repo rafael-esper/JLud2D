@@ -340,6 +340,8 @@ export class PSGame {
         alpha: 1,
         duration: duration * 16, // Convert frames to ms (assuming 60fps)
         onComplete: () => {
+          // Destroy the graphics object after fade completes
+          graphics.destroy();
           resolve();
         }
       });
