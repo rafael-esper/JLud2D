@@ -216,7 +216,7 @@ export class PSGame {
       // Get planet map path and call base mapswitch
       const mapPath = PlanetHelper.getMapPath(planet);
       await this.mapswitch(mapPath, x, y, true);
-      this.playMusic(PlanetHelper.getMusic(planet));
+      await this.playMusic(PlanetHelper.getMusic(planet));
 
     } else {
       // City mapswitch(city, x, y)

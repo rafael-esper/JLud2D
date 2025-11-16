@@ -16,6 +16,7 @@ export class GameScene extends Phaser.Scene {
   private inputManager: InputManager;
   private tiledMap: any = null;
   private mapNameOverride: string | null = null;
+  public mapBasePath: string = 'src/demos/ps/maps';
 
   constructor() {
     super({ key: 'PSGameScene' });
@@ -56,9 +57,23 @@ export class GameScene extends Phaser.Scene {
 
     // Load the map for the current location (use override if provided)
     const mapName = this.mapNameOverride || 'Camineet.map.json';
-    const mapBasePath = 'src/demos/ps/maps';
+    const mapBasePath = this.mapBasePath;
 
     console.log(`GameScene: Loading map ${mapName} from ${mapBasePath}`);
+
+    // Clear existing map layers before loading new map
+    if (this.tiledMap) {
+      this.tiledMap.destroy();
+      this.tiledMap = null;
+    }
+
+    // Destroy all existing tilemaps in the scene to prevent contamination
+    this.children.list.forEach((child: Phaser.GameObjects.GameObject) => {
+      if (child.type === 'TilemapLayer') {
+        child.destroy();
+      }
+    });
+
     this.tiledMap = await MainEngine.loadAndInitMap(this, mapName, mapBasePath);
 
     // Set Camineet script context manually
@@ -97,6 +112,9 @@ export class GameScene extends Phaser.Scene {
 
     // Allocate party at goto position
     await PSGame.getParty().allocate(PSGame.getgotox(), PSGame.getgotoy());
+
+    // Setup camera to center on player after spawning
+    MainEngine.setupCamera();
 
     // Fade in screen (equivalent to Java screen.fadeIn(30, true))
     await PSGame.fadeIn(30, true);

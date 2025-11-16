@@ -253,34 +253,17 @@ export class AkScene extends AkBaseScene {
         if (chrname.includes('monster') || chrname.endsWith('.chr')) {
           if (chrname.includes('monster')) {
             entity.setChr(monsterChr);
-            console.log(`AkScene: Assigned monster CHR to entity ${i} (${chrname})`);
           } else if (chrname.includes('Big') || chrname.includes('big')) {
             entity.setChr(bigChr);
-            console.log(`AkScene: Assigned big CHR to entity ${i} (${chrname})`);
           } else {
             // Default to monster CHR for other .chr files
             entity.setChr(monsterChr);
-            console.log(`AkScene: Assigned default monster CHR to entity ${i} (${chrname})`);
           }
         }
       }
 
       console.log('AkScene: Monster sprites loaded successfully');
 
-      // Debug: Log all entities and their properties
-      console.log('=== Entity Debug Info ===');
-      for (let i = 0; i < entities.length; i++) {
-        const entity = entities[i];
-        if (entity) {
-          console.log(`Entity ${i}:`, {
-            chrname: entity.getChrname(),
-            position: `(${entity.getx()}, ${entity.gety()})`,
-            speed: entity.getSpeed(),
-            face: entity.getFace(),
-            isPlayer: i === playerIndex
-          });
-        }
-      }
     } catch (error) {
       console.error('AkScene: Error loading monster sprites:', error);
     }

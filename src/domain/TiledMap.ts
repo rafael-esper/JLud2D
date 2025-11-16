@@ -114,14 +114,17 @@ export class TiledMap {
         // Already loaded via preload
         mapData = scene.cache.json.get(cacheKey);
       } else {
-        // Load manually as fallback
+        // Load manually as fallback - need to properly register with Phaser
         const response = await fetch(`${basePath}/${mapFilename}`);
         if (!response.ok) {
           throw new Error(`Failed to load map: ${mapFilename}`);
         }
         mapData = await response.json();
 
-        // Add to cache so createTilemap can find it
+        // Add to tilemap cache the way Phaser expects
+        scene.cache.tilemap.add(cacheKey, { format: Phaser.Tilemaps.Formats.TILED_JSON, data: mapData });
+
+        // Also add to JSON cache for our debug info
         scene.cache.json.add(cacheKey, mapData);
       }
 
@@ -151,20 +154,20 @@ export class TiledMap {
     this.tilewidth = mapData.tilewidth;
     this.tileheight = mapData.tileheight;
 
+    // Set start position and renderString from map properties FIRST
+    this.extractStartPosition();
+
     // Create Phaser tilemap from JSON
     this.createTilemap();
 
     // Load tilesets and create tileset images
     await this.loadTilesets();
 
-    // Create map layers
+    // Create map layers (now with correct renderString)
     this.createLayers();
 
     // Setup tile animations
     this.setupTileAnimations();
-
-    // Set start position from map properties if available
-    this.extractStartPosition();
   }
 
   /**
@@ -173,13 +176,36 @@ export class TiledMap {
   private createTilemap(): void {
     if (!this.mapData) return;
 
+    // Clear any existing tilemap to prevent layer contamination
+    if (this.tilemap) {
+      this.tilemap.destroy();
+      this.tilemap = null;
+    }
+
+    // Reset animation system for new map
+    this.animatedTiles = [];
+    this.animatedTileCount = 0;
+
     // Use the correct map key based on filename
     const mapKey = this.filename.replace('.json', '').replace('.map', '');
     const cacheKey = `${mapKey}-map`;
 
     console.log(`Creating tilemap with key: ${cacheKey} for filename: ${this.filename}`);
 
-    // Create the tilemap using the preloaded data
+    // Debug: Check what's in the cache
+    const cacheExists = this.scene.cache.json.exists(cacheKey);
+    console.log(`Cache exists for ${cacheKey}: ${cacheExists}`);
+
+    if (cacheExists) {
+      const cachedData = this.scene.cache.json.get(cacheKey);
+      console.log('Cached tilemap data:', {
+        hasLayers: !!cachedData?.layers,
+        layerCount: cachedData?.layers?.length || 0,
+        layerNames: cachedData?.layers?.map((l: any) => l.name) || []
+      });
+    }
+
+    // Create the tilemap - use key method for preloaded, data method for manually loaded
     this.tilemap = this.scene.make.tilemap({ key: cacheKey });
 
     if (!this.tilemap) {
@@ -375,7 +401,7 @@ export class TiledMap {
   private extractStartPosition(): void {
     if (!this.mapData) return;
 
-    // Look for start position in map properties (Tiled format)
+    // Look for start position and render order in map properties (Tiled format)
     if (this.mapData.properties) {
       // Tiled exports properties as an array of objects
       for (const prop of this.mapData.properties) {
@@ -384,6 +410,10 @@ export class TiledMap {
         }
         if (prop.name === 'startY') {
           this.startY = parseInt(prop.value) || this.startY;
+        }
+        if (prop.name === 'renderString') {
+          this.renderstring = prop.value || this.renderstring;
+          console.log(`Map renderString found: ${this.renderstring}`);
         }
       }
     }

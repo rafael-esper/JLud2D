@@ -1024,7 +1024,7 @@ export class MainEngine {
   /**
    * Engine restart with new map - port of Java engine_start()
    */
-  public static async startEngine(mapname: string): Promise<void> {
+  public static async startEngine(mapname: string, basePath?: string): Promise<void> {
     // Clear entities (equivalent to numentities = 0; entities.clear();)
     MainEngine.clearEntities();
 
@@ -1054,7 +1054,9 @@ export class MainEngine {
       const { TiledMap } = await import('../domain/TiledMap');
 
       // Load the map (equivalent to MapTiledJSON.loadMap(mapname))
-      const current_map = await TiledMap.loadMap(MainEngine.current_scene!, mapname, 'src/demos/ps/maps');
+      const scene = MainEngine.current_scene! as any;
+      const mapBasePath = basePath || scene.mapBasePath || 'src/demos/ps/maps'; // Use scene's basePath if available
+      const current_map = await TiledMap.loadMap(scene, mapname, mapBasePath);
 
       if (current_map) {
         // Start the map (equivalent to current_map.startMap())
@@ -1064,9 +1066,21 @@ export class MainEngine {
         MainEngine.setCurrentMap(current_map);
 
         // Load script context for this map
-        await MainEngine.loadScriptContextForMap(mapname, 'src/demos/ps/maps');
+        await MainEngine.loadScriptContextForMap(mapname, mapBasePath);
 
-        // Note: For PS demo, entities are unpaused after fadeIn completes in PSGame.fadeIn()
+        // Update scene's tiledMap reference for animations and other systems
+        const currentScene = MainEngine.getCurrentScene() as any;
+        if (currentScene) {
+          currentScene.tiledMap = current_map;
+        }
+
+        // Call scene's post-map-load initialization if available (for PS startmap flow)
+        if (currentScene && 'startmap' in currentScene && typeof currentScene.startmap === 'function') {
+          await currentScene.startmap();
+        } else {
+          // Fallback: For non-PS scenes, unpause entities
+          MainEngine.setEntitiesPaused(false);
+        }
       }
 
     } catch (error) {
