@@ -840,7 +840,7 @@ export class MainEngine {
       MainEngine.ProcessControls(inputManager);
 
       // Handle camera tracking if enabled
-      if (MainEngine.getCameraTracking() === 1) {
+      if (MainEngine.getCameraTracking() > 0) {
         MainEngine.handleCameraTracking();
       }
     } else {
@@ -1004,18 +1004,30 @@ export class MainEngine {
 
     console.log(`Calling script function: ${functionName}`);
 
-    if (!MainEngine.currentScriptContext) {
-      console.warn(`No script context set for function ${functionName}`);
-      return;
-    }
-
     try {
+      // First, try to find the function in the current scene
+      const currentScene = MainEngine.getCurrentScene();
+      if (currentScene) {
+        const sceneConstructor = (currentScene as any).constructor;
+        if (typeof sceneConstructor[functionName] === 'function') {
+          console.log(`Executing ${functionName}() from current scene`);
+          sceneConstructor[functionName]();
+          return;
+        }
+      }
+
+      // If not found in scene, try the current script context
+      if (!MainEngine.currentScriptContext) {
+        console.warn(`No script context set and function ${functionName} not found in scene`);
+        return;
+      }
+
       // Check if the function exists in the current script context
       if (typeof MainEngine.currentScriptContext[functionName] === 'function') {
-        console.log(`Executing ${functionName}()`);
+        console.log(`Executing ${functionName}() from script context`);
         MainEngine.currentScriptContext[functionName]();
       } else {
-        console.warn(`Function ${functionName} not found in current script context`);
+        console.warn(`Function ${functionName} not found in current script context or scene`);
       }
     } catch (error) {
       console.error(`Error calling script function ${functionName}:`, error);

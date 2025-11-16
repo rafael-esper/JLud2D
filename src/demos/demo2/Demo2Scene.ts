@@ -168,18 +168,60 @@ export class Demo2Scene extends Phaser.Scene {
       this.returnToMenu();
     }
 
-    if (!MainEngine.isScriptActive()) {
-      MainEngine.ProcessControls(this.inputManager);
-    }
-
-    MainEngine.updateEntities();
-    MainEngine.handleCameraTracking();
+    // Update engine - this handles player movement, zone detection and coordinate tracking
+    MainEngine.updateEngine(this.inputManager);
 
     if (this.tiledMap) {
       this.tiledMap.updateAnimations(delta);
     }
 
     this.fpsDisplay.update();
+  }
+
+  /**
+   * House1 teleportation event
+   * Teleports player to coordinates (55, 84)
+   */
+  public static house1(): void {
+    console.log("Demo2: house1 teleportation to (55, 84)");
+
+    const player = MainEngine.getPlayer();
+    if (player) {
+      // Convert tile coordinates to pixel coordinates (multiply by 16)
+      const pixelX = 55 * 16;
+      const pixelY = 84 * 16;
+
+      player.setxy(pixelX, pixelY);
+      console.log(`Demo2: Player teleported to pixel coordinates (${pixelX}, ${pixelY})`);
+
+      // Update camera to follow player to new position
+      MainEngine.setupCamera();
+    } else {
+      console.error("Demo2: No player found for house1 teleportation");
+    }
+  }
+
+  /**
+   * House2 teleportation event
+   * Teleports player to coordinates (72, 96)
+   */
+  public static house2(): void {
+    console.log("Demo2: house2 teleportation to (72, 96)");
+
+    const player = MainEngine.getPlayer();
+    if (player) {
+      // Convert tile coordinates to pixel coordinates (multiply by 16)
+      const pixelX = 72 * 16;
+      const pixelY = 96 * 16;
+
+      player.setxy(pixelX, pixelY);
+      console.log(`Demo2: Player teleported to pixel coordinates (${pixelX}, ${pixelY})`);
+
+      // Update camera to follow player to new position
+      MainEngine.setupCamera();
+    } else {
+      console.error("Demo2: No player found for house2 teleportation");
+    }
   }
 
   destroy(): void {
