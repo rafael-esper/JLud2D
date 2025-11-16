@@ -198,7 +198,7 @@ export class PSGame {
       this.transportOff();
 
       if (shouldFade) {
-        await this.screenFadeOut(30, true);
+        await ScriptEngine.fadeout(30, true);
       }
 
       MainEngine.setEntitiesPaused(false);
@@ -265,88 +265,6 @@ export class PSGame {
     // In full implementation, this would disable transport mode
   }
 
-  /**
-   * Fade in screen - direct port from Java screen.fadeIn()
-   */
-  public static async fadeIn(duration: number, renderMap: boolean): Promise<void> {
-    console.log(`PSGame: Fading in over ${duration} frames, renderMap: ${renderMap}`);
-
-    if (!this.currentScene) {
-      console.error("PSGame: No current scene for fade in");
-      return;
-    }
-
-    // START WITH BLACK SCREEN IMMEDIATELY
-    this.currentScene.cameras.main.setAlpha(0);
-
-    return new Promise<void>((resolve) => {
-      let timer = 0;
-      const maxFrames = duration;
-
-      const fadeStep = () => {
-        if (timer >= maxFrames) {
-          // Fade complete
-          console.log("PSGame: Fade in complete");
-          this.currentScene!.cameras.main.setAlpha(1);
-
-          // Unpause entities after fade in completes (critical for movement)
-          MainEngine.setEntitiesPaused(false);
-          console.log("PSGame: Entities unpaused after fade in");
-
-          resolve();
-          return;
-        }
-
-        // Calculate fade progress (0 to 1)
-        const progress = timer / maxFrames;
-
-        if (renderMap) {
-          // In full implementation, this would render the map background
-        }
-
-        // Apply fade effect to camera
-        this.currentScene!.cameras.main.setAlpha(progress);
-
-        timer++;
-        this.currentScene!.time.delayedCall(16, fadeStep);
-      };
-
-      // Start fade animation
-      fadeStep();
-    });
-  }
-
-  /**
-   * Fade out screen - adapted from PSScene.screenFade()
-   */
-  public static async screenFadeOut(duration: number, renderMap: boolean): Promise<void> {
-    console.log(`PSGame: Screen fade out over ${duration} frames`);
-
-    if (!this.currentScene) {
-      console.error("PSGame: No current scene for fade out");
-      return;
-    }
-
-    return new Promise((resolve) => {
-      const graphics = this.currentScene!.add.graphics();
-      graphics.setDepth(10000);
-
-      graphics.fillStyle(0x000000);
-      graphics.fillRect(0, 0, this.currentScene!.cameras.main.width, this.currentScene!.cameras.main.height);
-      graphics.setAlpha(0);
-
-      this.currentScene!.tweens.add({
-        targets: graphics,
-        alpha: 1,
-        duration: duration * 16, // Convert frames to ms (assuming 60fps)
-        onComplete: () => {
-          // Destroy the graphics object after fade completes
-          graphics.destroy();
-          resolve();
-        }
-      });
-    });
-  }
 
   /**
    * Turn menu on - direct port from Java PSMenu.menuOn()

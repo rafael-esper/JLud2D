@@ -7,6 +7,7 @@ import { PSGame } from './PSGame';
 import { PS1Music } from './game/PSLibMusic';
 import { City, CityHelper } from './game/City';
 import { MainEngine } from '../../core/MainEngine';
+import { ScriptEngine } from '../../core/ScriptEngine';
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { Camineet } from './maps/Camineet';
@@ -117,7 +118,7 @@ export class GameScene extends Phaser.Scene {
     MainEngine.setupCamera();
 
     // Fade in screen (equivalent to Java screen.fadeIn(30, true))
-    await PSGame.fadeIn(30, true);
+    await ScriptEngine.fadein(30, true);
 
     // Turn menu on (equivalent to Java PSMenu.menuOn())
     PSGame.menuOn();

@@ -291,6 +291,105 @@ export class ScriptEngine {
   }
 
   /**
+   * Fade in screen - direct port from Java screen.fadeIn()
+   */
+  public static async fadein(duration: number, renderMap: boolean): Promise<void> {
+    console.log(`ScriptEngine: Fading in over ${duration} frames, renderMap: ${renderMap}`);
+
+    const currentScene = MainEngine.getCurrentScene();
+    if (!currentScene) {
+      console.error("ScriptEngine: No current scene for fade in");
+      return;
+    }
+
+    // START WITH BLACK SCREEN IMMEDIATELY
+    currentScene.cameras.main.setAlpha(0);
+
+    return new Promise<void>((resolve) => {
+      let timer = 0;
+      const maxFrames = duration;
+
+      const fadeStep = () => {
+        if (timer >= maxFrames) {
+          // Fade complete
+          console.log("ScriptEngine: Fade in complete");
+          currentScene!.cameras.main.setAlpha(1);
+
+          // Unpause entities after fade in completes (critical for movement)
+          MainEngine.setEntitiesPaused(false);
+          console.log("ScriptEngine: Entities unpaused after fade in");
+
+          resolve();
+          return;
+        }
+
+        // Calculate fade progress (0 to 1)
+        const progress = timer / maxFrames;
+
+        if (renderMap) {
+          // In full implementation, this would render the map background
+        }
+
+        // Apply fade effect to camera
+        currentScene!.cameras.main.setAlpha(progress);
+
+        timer++;
+        currentScene!.time.delayedCall(16, fadeStep);
+      };
+
+      // Start fade animation
+      fadeStep();
+    });
+  }
+
+  /**
+   * Fade out screen - using camera alpha like fadein for consistency
+   */
+  public static async fadeout(duration: number, renderMap: boolean): Promise<void> {
+    console.log(`ScriptEngine: Fading out over ${duration} frames, renderMap: ${renderMap}`);
+
+    const currentScene = MainEngine.getCurrentScene();
+    if (!currentScene) {
+      console.error("ScriptEngine: No current scene for fade out");
+      return;
+    }
+
+    // Start with full visibility
+    currentScene.cameras.main.setAlpha(1);
+
+    return new Promise<void>((resolve) => {
+      let timer = 0;
+      const maxFrames = duration;
+
+      const fadeStep = () => {
+        if (timer >= maxFrames) {
+          // Fade out complete - screen is black
+          console.log("ScriptEngine: Fade out complete");
+          currentScene!.cameras.main.setAlpha(0);
+          resolve();
+          return;
+        }
+
+        // Calculate fade progress (1 to 0)
+        const progress = 1 - (timer / maxFrames);
+
+        if (renderMap) {
+          // In full implementation, this would render the map background
+        }
+
+        // Apply fade effect to camera
+        currentScene!.cameras.main.setAlpha(progress);
+
+        timer++;
+        currentScene!.time.delayedCall(16, fadeStep);
+      };
+
+      // Start fade animation
+      fadeStep();
+    });
+  }
+
+  /**
    * Clean up all script engine resources
    */
   public static cleanup(): void {

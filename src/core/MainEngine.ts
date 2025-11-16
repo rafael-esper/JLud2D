@@ -913,13 +913,16 @@ export class MainEngine {
       }
 
       if (MainEngine.myself !== null && MainEngine.invc === 0) {
-        // Check if player has moved to a new tile
+        // Check if player has moved to a new tile (using center of sprite for better "settled" detection)
         const hw = MainEngine.myself.getChr()?.getHw() || 16;
         const hh = MainEngine.myself.getChr()?.getHh() || 16;
         const playerX = MainEngine.myself.getx();
         const playerY = MainEngine.myself.gety();
-        const new_px = Math.floor(playerX / 16);
-        const new_py = Math.floor(playerY / 16);
+        // Use center of sprite for zone detection
+        const centerX = playerX + (hw / 2);
+        const centerY = playerY + (hh / 2);
+        const new_px = Math.floor(centerX / 16);
+        const new_py = Math.floor(centerY / 16);
 
 
         if ((MainEngine.px !== new_px) || (MainEngine.py !== new_py)) {
@@ -1011,7 +1014,13 @@ export class MainEngine {
         const sceneConstructor = (currentScene as any).constructor;
         if (typeof sceneConstructor[functionName] === 'function') {
           console.log(`Executing ${functionName}() from current scene`);
-          sceneConstructor[functionName]();
+          const result = sceneConstructor[functionName]();
+          // If the function returns a promise, handle it properly
+          if (result && typeof result.then === 'function') {
+            result.catch((error: any) => {
+              console.error(`Error in async script function ${functionName}:`, error);
+            });
+          }
           return;
         }
       }
@@ -1025,7 +1034,13 @@ export class MainEngine {
       // Check if the function exists in the current script context
       if (typeof MainEngine.currentScriptContext[functionName] === 'function') {
         console.log(`Executing ${functionName}() from script context`);
-        MainEngine.currentScriptContext[functionName]();
+        const result = MainEngine.currentScriptContext[functionName]();
+        // If the function returns a promise, handle it properly
+        if (result && typeof result.then === 'function') {
+          result.catch((error: any) => {
+            console.error(`Error in async script function ${functionName}:`, error);
+          });
+        }
       } else {
         console.warn(`Function ${functionName} not found in current script context or scene`);
       }

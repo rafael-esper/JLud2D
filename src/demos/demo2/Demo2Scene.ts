@@ -8,6 +8,7 @@ import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { FPSDisplay } from '../../utils/FPSDisplay';
 import { MainEngine } from '../../core/MainEngine';
+import { ScriptEngine } from '../../core/ScriptEngine';
 import { DemoUI } from '../../utils/DemoUI';
 import { Entity, EntityDirection } from '../../domain/Entity';
 
@@ -182,11 +183,22 @@ export class Demo2Scene extends Phaser.Scene {
    * House1 teleportation event
    * Teleports player to coordinates (55, 84)
    */
-  public static house1(): void {
+   public static async house1(): Promise<void> {
     console.log("Demo2: house1 teleportation to (55, 84)");
 
     const player = MainEngine.getPlayer();
-    if (player) {
+    if (!player) {
+      console.error("Demo2: No player found for house1 teleportation");
+      return;
+    }
+
+    try {
+      // Pause entities during teleport sequence
+      MainEngine.setEntitiesPaused(true);
+
+      // Fade out
+      await ScriptEngine.fadeout(20, true);
+
       // Convert tile coordinates to pixel coordinates (multiply by 16)
       const pixelX = 55 * 16;
       const pixelY = 84 * 16;
@@ -196,8 +208,14 @@ export class Demo2Scene extends Phaser.Scene {
 
       // Update camera to follow player to new position
       MainEngine.setupCamera();
-    } else {
-      console.error("Demo2: No player found for house1 teleportation");
+
+      // Fade in
+      await ScriptEngine.fadein(20, true);
+
+    } catch (error) {
+      console.error("Demo2: Error during house1 teleportation:", error);
+      // Ensure entities are unpaused even if something goes wrong
+      MainEngine.setEntitiesPaused(false);
     }
   }
 
@@ -205,11 +223,22 @@ export class Demo2Scene extends Phaser.Scene {
    * House2 teleportation event
    * Teleports player to coordinates (72, 96)
    */
-  public static house2(): void {
+   public static async house2(): Promise<void> {
     console.log("Demo2: house2 teleportation to (72, 96)");
 
     const player = MainEngine.getPlayer();
-    if (player) {
+    if (!player) {
+      console.error("Demo2: No player found for house2 teleportation");
+      return;
+    }
+
+    try {
+      // Pause entities during teleport sequence
+      MainEngine.setEntitiesPaused(true);
+
+      // Fade out
+      await ScriptEngine.fadeout(20, true);
+
       // Convert tile coordinates to pixel coordinates (multiply by 16)
       const pixelX = 72 * 16;
       const pixelY = 96 * 16;
@@ -219,8 +248,14 @@ export class Demo2Scene extends Phaser.Scene {
 
       // Update camera to follow player to new position
       MainEngine.setupCamera();
-    } else {
-      console.error("Demo2: No player found for house2 teleportation");
+
+      // Fade in
+      await ScriptEngine.fadein(20, true);
+
+    } catch (error) {
+      console.error("Demo2: Error during house2 teleportation:", error);
+      // Ensure entities are unpaused even if something goes wrong
+      MainEngine.setEntitiesPaused(false);
     }
   }
 
