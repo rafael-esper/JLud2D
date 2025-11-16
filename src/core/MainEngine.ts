@@ -865,6 +865,8 @@ export class MainEngine {
     const cur_timer = MainEngine.timer;
     const cz = MainEngine.current_map.getzone(MainEngine.px, MainEngine.py);
 
+    console.log(`CheckZone at (${MainEngine.px}, ${MainEngine.py}): zone=${cz}`);
+
     if (cz > 0) {
       const percent = MainEngine.current_map.getPercentZone(cz);
       const script = MainEngine.current_map.getScriptZone(cz);
@@ -901,13 +903,7 @@ export class MainEngine {
     while (MainEngine.lastentitythink < MainEngine.systemtime) {
       if (MainEngine.done) break;
 
-      if (MainEngine.myself !== null) {
-        // Update player tile position from pixel position
-        const hw = MainEngine.myself.getChr()?.getHw() || 16;
-        const hh = MainEngine.myself.getChr()?.getHh() || 16;
-        MainEngine.px = Math.floor((MainEngine.myself.getx() + (hw / 2)) / 16);
-        MainEngine.py = Math.floor((MainEngine.myself.gety() + (hh / 2)) / 16);
-      }
+      // Note: px and py are now only updated when movement is detected below
 
       MainEngine.updateEntities();
 
@@ -920,10 +916,15 @@ export class MainEngine {
         // Check if player has moved to a new tile
         const hw = MainEngine.myself.getChr()?.getHw() || 16;
         const hh = MainEngine.myself.getChr()?.getHh() || 16;
-        const new_px = Math.floor((MainEngine.myself.getx() + (hw / 2)) / 16);
-        const new_py = Math.floor((MainEngine.myself.gety() + (hh / 2)) / 16);
+        const playerX = MainEngine.myself.getx();
+        const playerY = MainEngine.myself.gety();
+        const new_px = Math.floor(playerX / 16);
+        const new_py = Math.floor(playerY / 16);
+
 
         if ((MainEngine.px !== new_px) || (MainEngine.py !== new_py)) {
+          console.log(`Player moved from (${MainEngine.px}, ${MainEngine.py}) to (${new_px}, ${new_py})`);
+
           MainEngine.px = new_px;
           MainEngine.py = new_py;
 
