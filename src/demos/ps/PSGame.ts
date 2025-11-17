@@ -37,6 +37,7 @@ export class PSGame {
   private static gotox: number = 0;
   private static gotoy: number = 0;
   private static currentCity: any = null; // Current city for music and location
+  private static currentMusic: PS1Music | null = null; // Track currently playing music
 
   // Sound library cache (equivalent to Java soundLIB HashMap)
   private static soundLIB: Map<PS1Sound, string> = new Map();
@@ -70,10 +71,17 @@ export class PSGame {
    * Play VGM music
    */
   public static async playMusic(music: PS1Music): Promise<void> {
+    // Don't change music if the same music is already playing
+    if (this.currentMusic === music) {
+      console.log(`PSGame: Music ${music} is already playing, skipping`);
+      return;
+    }
+
     const musicPath = music as string;
     console.log(`PSGame: Playing music ${musicPath}`);
     await ScriptEngine.loadVGM('ps_current', musicPath);
     ScriptEngine.playmusic('ps_current');
+    this.currentMusic = music;
   }
 
   /**
@@ -81,6 +89,7 @@ export class PSGame {
    */
   public static stopMusic(): void {
     ScriptEngine.stopmusic();
+    this.currentMusic = null;
   }
 
   /**
@@ -184,8 +193,10 @@ export class PSGame {
   public static async mapswitch(city: any, x: number, y: number): Promise<void>;
 
   public static async mapswitch(mapnameOrCity: string | any, x: number, y: number, fade?: boolean): Promise<void> {
-    // Import Planet enum to check for planet mapswitch
-    const { Planet, PlanetHelper } = await import('./game/City');
+    // Import Planet and City enums to check for mapswitch type
+    const { Planet, PlanetHelper, City, CityHelper } = await import('./game/City');
+
+    console.log(`PSGame.mapswitch: ${mapnameOrCity} (${typeof mapnameOrCity}), Planet values: [${Object.values(Planet)}], City values: [${Object.values(City)}]`);
 
     if (typeof mapnameOrCity === 'string') {
       // Base mapswitch(mapname, x, y, fade)
@@ -194,7 +205,6 @@ export class PSGame {
 
       MainEngine.setEntitiesPaused(true);
       this.setgotoxy(x, y);
-      // unpress(9); // TODO: Implement unpress when input system is ready
       this.transportOff();
 
       if (shouldFade) {
@@ -204,8 +214,9 @@ export class PSGame {
       MainEngine.setEntitiesPaused(false);
       await ScriptEngine.map(mapname);
 
-    } else if (typeof mapnameOrCity === 'number' && mapnameOrCity in Planet) {
-      // Planet mapswitch(planet, x, y)
+    } else if (typeof mapnameOrCity === 'number' && Object.values(Planet).includes(mapnameOrCity)) {
+      // Planet mapswitch(planet, x, y) - check against actual Planet enum values
+      console.log(`Taking Planet branch for: ${mapnameOrCity}`);
       const planet = mapnameOrCity as Planet;
 
       this.gameData.onGroundVehicle = false;
@@ -219,7 +230,8 @@ export class PSGame {
       await this.playMusic(PlanetHelper.getMusic(planet));
 
     } else {
-      // City mapswitch(city, x, y)
+      // City mapswitch(city, x, y) - this should catch City.CAMINEET
+      console.log(`Taking City branch for: ${mapnameOrCity}`);
       const city = mapnameOrCity;
 
       if (this.gameData.current_dungeon && this.gameData.current_dungeon !== 'NONE') {

@@ -137,13 +137,14 @@ export class TitleScene extends PSScene {
     if (opt === 0) {
       // Start as Alis - implement required initialization
       PSGame.initPSGame(GameType.PS_ORIGINAL);
-      PSGame.gameData.current_planet = Planet.PALMA;
-      PSGame.gameData.current_city = City.CAMINEET;
-      PSGame.setgotoxy(29, 9);
 
       console.log("TitleScene: Starting game as Alis in Camineet");
 
-      // Transition to GameScene
+      // Use mapswitch to handle everything properly
+      PSGame.mapswitch(City.CAMINEET, 29, 9);
+
+      // The mapswitch will handle loading map, setting city, playing music
+      // But we still need to manually start GameScene for now
       this.scene.start('PSGameScene', { config: this.config });
       return true;
     } else if (opt === 1) {
