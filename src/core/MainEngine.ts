@@ -865,8 +865,6 @@ export class MainEngine {
     const cur_timer = MainEngine.timer;
     const cz = MainEngine.current_map.getzone(MainEngine.px, MainEngine.py);
 
-    console.log(`CheckZone at (${MainEngine.px}, ${MainEngine.py}): zone=${cz}`);
-
     if (cz > 0) {
       const percent = MainEngine.current_map.getPercentZone(cz);
       const script = MainEngine.current_map.getScriptZone(cz);
@@ -924,10 +922,7 @@ export class MainEngine {
         const new_px = Math.floor(centerX / 16);
         const new_py = Math.floor(centerY / 16);
 
-
         if ((MainEngine.px !== new_px) || (MainEngine.py !== new_py)) {
-          console.log(`Player moved from (${MainEngine.px}, ${MainEngine.py}) to (${new_px}, ${new_py})`);
-
           MainEngine.px = new_px;
           MainEngine.py = new_py;
 
