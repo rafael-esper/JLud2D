@@ -12,6 +12,7 @@ import { PS1Image } from './game/PSLibImage';
 import { MenuPromptBox } from './menu/MenuPromptBox';
 import { PSCancellable } from './menu/MenuStack';
 import { Planet, City } from './game/City';
+import { MainEngine } from '../../core/MainEngine';
 
 export class TitleScene extends PSScene {
   constructor() {
@@ -137,7 +138,8 @@ export class TitleScene extends PSScene {
       // Start as Alis - implement required initialization
       PSGame.initPSGame(GameType.PS_ORIGINAL);
       PSGame.gameData.current_planet = Planet.PALMA;
-      PSGame.mapswitch(City.CAMINEET, 29, 9);
+      PSGame.gameData.current_city = City.CAMINEET;
+      PSGame.setgotoxy(29, 9);
 
       console.log("TitleScene: Starting game as Alis in Camineet");
 
