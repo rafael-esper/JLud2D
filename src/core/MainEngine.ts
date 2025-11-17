@@ -1,12 +1,9 @@
 /**
  * Main Engine
- * TypeScript port of Java MainEngine.java
  * Manages entities, player controls, and core game systems
  */
 
 import { Entity, EntityDirection } from '../domain/Entity';
-import { VGMPlayerAPI } from './vgm/VGMPlayerAPI';
-import { ScriptEngine } from './ScriptEngine';
 
 export class MainEngine {
   // Entity system
@@ -252,7 +249,7 @@ export class MainEngine {
     // Apply movement with Java-style facing and obstruction checking
     if (moveX !== 0 || moveY !== 0) {
       // ALWAYS set facing direction FIRST (like Java setFace)
-      let newDirection = EntityDirection.SOUTH;
+      let newDirection: number = EntityDirection.SOUTH;
       if (moveX !== 0) {
         // Prioritize horizontal movement for facing direction (like Java diagonal handling)
         newDirection = moveX > 0 ? EntityDirection.EAST : EntityDirection.WEST;

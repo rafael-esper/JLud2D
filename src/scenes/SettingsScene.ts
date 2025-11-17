@@ -431,7 +431,7 @@ export class SettingsScene extends Phaser.Scene {
             this.updateMenuSelection();
             break;
           case 'F7': // Toggle Double Screen
-            this.toggleDoubleScreen();
+            //this.toggleDoubleScreen();
             this.updateMenuSelection();
             break;
           case 'F8': // Toggle FPS

@@ -13,6 +13,7 @@ export interface LayerData {
   data: number[];
   opacity?: number;
   properties?: any;
+  objects?: any[];
 }
 
 export interface AnimationFrame {
@@ -23,6 +24,7 @@ export interface AnimationFrame {
 export interface AnimatedTile {
   id: number;
   animation: AnimationFrame[];
+  properties?: any;
 }
 
 export interface TilesetData {
@@ -78,7 +80,6 @@ export class TiledMap {
   // Phaser objects
   private scene: Phaser.Scene;
   private tilemap: Phaser.Tilemaps.Tilemap | null = null;
-  private tileset: Phaser.Tilemaps.Tileset | null = null;
   private layers: { [key: string]: Phaser.Tilemaps.TilemapLayer | null } = {};
 
   // Map properties
@@ -354,19 +355,6 @@ export class TiledMap {
         }
 
         layerIndex++;
-      } else if (layerData.type === 'objectgroup') {
-        // Handle object layers (like Entities)
-        console.log(`Found object layer: ${layerData.name} with ${layerData.objects?.length || 0} objects`);
-
-        if (layerData.name === 'Entities') {
-          // For now, just log the entities - full implementation would spawn them
-          console.log('Entity objects found:', layerData.objects?.map(obj => ({
-            name: obj.name,
-            type: obj.type,
-            x: obj.x,
-            y: obj.y
-          })));
-        }
       }
     }
 
@@ -422,25 +410,14 @@ export class TiledMap {
   }
 
   /**
-   * Start map - equivalent to Java MapTiledJSON.startMap()
    * Sets up the map for gameplay
    */
   public async startMap(): Promise<void> {
-    // Set as current map in MainEngine (will be implemented)
-    // MainEngine.setCurrentMap(this);
-
-    // Load entities from map if present
     await this.loadMapEntities();
-
-    // Call startup script if present
     this.callStartupScript();
-
     console.log(`TiledMap started: ${this.filename}`);
   }
 
-  /**
-   * Load entities from map data
-   */
   private async loadMapEntities(): Promise<void> {
     if (!this.mapData) return;
 
@@ -448,6 +425,8 @@ export class TiledMap {
     const { MainEngine } = await import('../core/MainEngine');
 
     // Look for object layers containing entities
+    if (!this.mapData || !this.mapData.layers) return;
+
     for (const layer of this.mapData.layers) {
       if (layer.type === 'objectgroup' && layer.objects) {
         console.log(`Processing object layer: ${layer.name} with ${layer.objects.length} objects`);
@@ -514,9 +493,6 @@ export class TiledMap {
     }
   }
 
-  /**
-   * Call startup script if present
-   */
   private callStartupScript(): void {
     if (!this.mapData) return;
 
@@ -526,9 +502,6 @@ export class TiledMap {
     }
   }
 
-  /**
-   * Get tile at position for specific layer
-   */
   public getTile(x: number, y: number, layerName: string): number {
     const layer = this.layers[layerName];
     if (!layer || x < 0 || y < 0 || x >= this.width || y >= this.height) {
@@ -557,23 +530,14 @@ export class TiledMap {
     return this.getEntityLayerPosition();
   }
 
-  /**
-   * Get Phaser tilemap object
-   */
   public getTilemap(): Phaser.Tilemaps.Tilemap | null {
     return this.tilemap;
   }
 
-  /**
-   * Get specific layer
-   */
   public getLayer(name: string): Phaser.Tilemaps.TilemapLayer | null {
     return this.layers[name] || null;
   }
 
-  /**
-   * Get all layers
-   */
   public getLayers(): { [key: string]: Phaser.Tilemaps.TilemapLayer | null } {
     return this.layers;
   }
@@ -688,7 +652,7 @@ export class TiledMap {
    * @returns Tile ID or 0 if no tile
    */
   public gettile(x: number, y: number, layer: number = 0): number {
-    if (!this.tilemap || !this.mapData) return 0;
+    if (!this.tilemap || !this.mapData || !this.mapData.layers) return 0;
 
     // Get layer by index
     const layerData = this.mapData.layers[layer];
@@ -709,7 +673,7 @@ export class TiledMap {
    * @param index New tile index
    */
   public settile(x: number, y: number, layer: number, index: number): void {
-    if (!this.mapData || layer >= this.mapData.layers.length) {
+    if (!this.mapData || !this.mapData.layers || layer >= this.mapData.layers.length) {
       return;
     }
     // Get layer by index
@@ -751,7 +715,7 @@ export class TiledMap {
    * @param value Obstacle value (0 = no obstacle, non-zero = obstacle)
    */
   public setobs(x: number, y: number, value: number): void {
-    if (!this.mapData) return;
+    if (!this.mapData || !this.mapData.layers) return;
 
     // Find the Meta layer by name
     let metaLayerData = null;
@@ -834,9 +798,6 @@ export class TiledMap {
        return false;
   }
 
-  /**
-   * Check if tile ID represents a zone
-   */
   private isZone(t: number): boolean {
     const tZone = this.tileToZone(t);
     if (tZone > 0) {
@@ -845,18 +806,11 @@ export class TiledMap {
     return false;
   }
 
-  /**
-   * Zone Tiles start at 20 and goes until 220
-   * This returns 0 (no zone) to 200.
-   */
   private tileToZone(t: number): number {
     const firstGid = this.getMetaTileset().getFirstGid();
     return (t - firstGid - TiledMap.ZONE_OFFSET);
   }
 
-  /**
-   * Convert zone number to tile ID
-   */
   private zoneToTile(zone: number): number {
     if (zone === 0) {
       return 0;
@@ -865,17 +819,11 @@ export class TiledMap {
     return (zone + (firstGid-1) + TiledMap.ZONE_OFFSET);
   }
 
-  /**
-   * Check if zone has obstruction property set
-   */
   private isObstructionZone(zone: number): boolean {
     const tileId = this.zoneToTile(zone+1);
     return this.getTileProperty(tileId, "isObstruction") === true;
   }
 
-  /**
-   * Get a custom property from a tile
-   */
   private getTileProperty(tileId: number, propertyName: string): any {
     if (!this.mapData || !this.mapData.tilesets) {
       return 0;
@@ -907,9 +855,6 @@ export class TiledMap {
     return 0;
   }
 
-  /**
-   * Get the meta tileset (typically the last tileset in the tilesets array)
-   */
   private getMetaTileset(): { getFirstGid(): number } {
     // The meta tileset should be the last tileset
     const lastTileset = this.mapData.tilesets[this.mapData.tilesets.length - 1];
@@ -919,15 +864,13 @@ export class TiledMap {
     };
   }
 
-  /**
-   * Get zone number at tile coordinates (Java getzone method)
-   */
   public getzone(x: number, y: number): number {
     if (x < 0 || y < 0 || x >= this.getWidth() || y >= this.getHeight()) {
       return 0;
     }
 
-    // Get Meta layer tile
+    if (!this.mapData || !this.mapData.layers) return 0;
+
     const metaLayerIndex = this.mapData.layers.length - TiledMap.META_LAYER;
     if (metaLayerIndex < 0 || metaLayerIndex >= this.mapData.layers.length) {
       return 0;
@@ -943,20 +886,16 @@ export class TiledMap {
     return 0; // No zone
   }
 
-  /**
-   * Set zone number at tile coordinates (Java setzone method)
-   */
   public setzone(x: number, y: number, z: number): void {
     if (x < 0 || y < 0 || x >= this.getWidth() || y >= this.getHeight()) {
       return;
     }
+    if (!this.mapData || !this.mapData.layers) return;
+
     const metaLayerIndex = this.mapData.layers.length - TiledMap.META_LAYER;
     this.settile(x, y, metaLayerIndex, z === 0 ? 0 : this.zoneToTile(z));
   }
 
-  /**
-   * Get zone script name - direct port of Java getScriptZone()
-   */
   public getScriptZone(zone: number): string {
     // Use corrected calculation for activation events (different from obstruction zones)
     const firstGid = this.getMetaTileset().getFirstGid();
@@ -965,26 +904,17 @@ export class TiledMap {
     return result;
   }
 
-  /**
-   * Get zone encounter percentage - direct port of Java getPercentZone()
-   */
   public getPercentZone(zone: number): number {
     const tileId = this.zoneToTile(zone);
     return this.getTileProperty(tileId, "activationChance") || 0;
   }
 
-  /**
-   * Get zone method - direct port of Java getMethodZone()
-   */
   public getMethodZone(zone: number): number {
     const tileId = this.zoneToTile(zone);
     return this.getTileProperty(tileId, "isObstruction") ? 1 : 0;
   }
 
 
-  /**
-   * Cleanup map resources
-   */
   public destroy(): void {
     if (this.tilemap) {
       this.tilemap.destroy();
