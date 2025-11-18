@@ -193,10 +193,8 @@ export class Demo2Scene extends Phaser.Scene {
     }
 
     try {
-      // Pause entities during teleport sequence
       MainEngine.setEntitiesPaused(true);
 
-      // Fade out
       await ScriptEngine.fadeout(20, true);
 
       // Convert tile coordinates to pixel coordinates (multiply by 16)
@@ -206,10 +204,8 @@ export class Demo2Scene extends Phaser.Scene {
       player.setxy(pixelX, pixelY);
       console.log(`Demo2: Player teleported to pixel coordinates (${pixelX}, ${pixelY})`);
 
-      // Update camera to follow player to new position
       MainEngine.setupCamera();
 
-      // Fade in
       await ScriptEngine.fadein(20, true);
 
     } catch (error) {
@@ -236,7 +232,6 @@ export class Demo2Scene extends Phaser.Scene {
       // Pause entities during teleport sequence
       MainEngine.setEntitiesPaused(true);
 
-      // Fade out
       await ScriptEngine.fadeout(20, true);
 
       // Convert tile coordinates to pixel coordinates (multiply by 16)
@@ -246,10 +241,8 @@ export class Demo2Scene extends Phaser.Scene {
       player.setxy(pixelX, pixelY);
       console.log(`Demo2: Player teleported to pixel coordinates (${pixelX}, ${pixelY})`);
 
-      // Update camera to follow player to new position
       MainEngine.setupCamera();
 
-      // Fade in
       await ScriptEngine.fadein(20, true);
 
     } catch (error) {
