@@ -12,9 +12,9 @@ export enum Planet {
 
 export class PlanetHelper {
   private static readonly planetConfigs = new Map<Planet, { mapPath: string, music: PS1Music }>([
-    [Planet.PALMA, { mapPath: "Palma.map", music: PS1Music.PALMA }],
-    [Planet.MOTAVIA, { mapPath: "Motavia.map", music: PS1Music.MOTAVIA }],
-    [Planet.DEZORIS, { mapPath: "Dezoris.map", music: PS1Music.DEZORIS }]
+    [Planet.PALMA, { mapPath: "Palma.map.json", music: PS1Music.PALMA }],
+    [Planet.MOTAVIA, { mapPath: "Motavia.map.json", music: PS1Music.MOTAVIA }],
+    [Planet.DEZORIS, { mapPath: "Dezoris.map.json", music: PS1Music.DEZORIS }]
   ]);
 
   public static getMapPath(planet: Planet): string {
@@ -160,7 +160,8 @@ export class CityHelper {
    * Get localized city name
    */
   public static toString(city: City): string {
-    const s = city.toString();
+    // Convert numeric enum value to string name (0 -> "CAMINEET", 1 -> "PAROLIT", etc.)
+    const s = City[city];
     const formatted = s.substring(0, 1) + s.substring(1).toLowerCase();
     return PSGame.getString(`City_${formatted}`);
   }
@@ -169,8 +170,9 @@ export class CityHelper {
    * Get map path
    */
   public static getPath(city: City): string {
-    const name = city.toString();
-    const formatted = name.substring(0, 1) + name.substring(1).toLowerCase() + ".map";
-    return `maps/${formatted}`;
+    // Convert numeric enum value to string name (0 -> "CAMINEET", 1 -> "PAROLIT", etc.)
+    const name = City[city];
+    const formatted = name.substring(0, 1) + name.substring(1).toLowerCase() + ".map.json";
+    return formatted; // Return just filename, not full path
   }
 }

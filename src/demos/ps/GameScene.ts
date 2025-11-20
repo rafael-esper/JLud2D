@@ -35,13 +35,14 @@ export class GameScene extends Phaser.Scene {
   preload() {
     console.log('GameScene: Preloading game resources');
 
-    // Preload the Camineet map
-    // TODO: This should be dynamic based on PSGame.gameData.current_planet and goto coordinates
-    const mapName = 'Camineet.map.json';
     const mapBasePath = 'src/demos/ps/maps';
 
-    console.log(`GameScene: Preloading map ${mapName}`);
-    this.load.tilemapTiledJSON('Camineet-map', `${mapBasePath}/${mapName}`);
+    // Preload commonly used maps to allow transitions between them
+    console.log('GameScene: Preloading Camineet map');
+    this.load.tilemapTiledJSON('Camineet-map', `${mapBasePath}/Camineet.map.json`);
+
+    console.log('GameScene: Preloading Palma map');
+    this.load.tilemapTiledJSON('Palma-map', `${mapBasePath}/Palma.map.json`);
 
     // Load map tileset images (these will be referenced in the map JSON)
     this.load.image('PS1', `${mapBasePath}/PS1.png`);
@@ -90,9 +91,8 @@ export class GameScene extends Phaser.Scene {
 
     this.tiledMap = await MainEngine.loadAndInitMap(this, mapName, mapBasePath);
 
-    // Set Camineet script context manually
-    MainEngine.setScriptContext(Camineet);
-    console.log('GameScene: Camineet script context set');
+    // Set script context dynamically based on map name
+    await this.setScriptContextForMap(mapName, mapBasePath);
 
     // Set screen to black IMMEDIATELY after map loads to prevent flash
     this.cameras.main.setAlpha(0);
@@ -179,6 +179,24 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+
+  /**
+   * Set script context dynamically based on map name
+   */
+  private async setScriptContextForMap(mapName: string, mapBasePath: string): Promise<void> {
+    // Extract script name from map file (e.g., "Camineet.map.json" -> "Camineet")
+    const scriptName = mapName.replace('.map.json', '');
+
+    // Build the script path: relative to current file location
+    const scriptPath = `./maps/${scriptName}`;
+
+    // Dynamic import of the script module
+    const scriptModule = await import(scriptPath);
+
+    // Set the script context (class name matches the file name)
+    MainEngine.setScriptContext(scriptModule[scriptName]);
+    console.log(`GameScene: ${scriptName} script context set`);
+  }
 
   /**
    * Handle scene shutdown

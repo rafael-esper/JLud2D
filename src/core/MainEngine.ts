@@ -967,20 +967,24 @@ export class MainEngine {
       // Extract map name without extension (e.g., "Camineet.map.json" -> "Camineet")
       const scriptName = mapName.replace('.map.json', '');
 
-      // Construct the script path - same folder as the map
-      const scriptPath = `${basePath}/${scriptName}`;
+      // Build the exact same path as the map, but with .ts extension
+      const absoluteScriptPath = `${basePath}/${scriptName}`;
 
-      console.log(`Loading script context from: ${scriptPath}`);
+      // Convert absolute path to relative import path
+      // Remove 'src/' prefix and add '../' to make it relative from core/
+      const relativePath = absoluteScriptPath.replace(/^src\//, '../');
 
-      // Dynamically import the script module
-      const scriptModule = await import(scriptPath);
+      console.log(`Loading script context from: ${absoluteScriptPath}`);
+
+      // Dynamically import the script module using relative path
+      const scriptModule = await import(relativePath);
 
       // Look for a class with the same name as the script
       if (scriptModule[scriptName]) {
         MainEngine.setScriptContext(scriptModule[scriptName]);
         console.log(`Script context loaded: ${scriptName}`);
       } else {
-        console.warn(`Script class ${scriptName} not found in module ${scriptPath}`);
+        console.warn(`Script class ${scriptName} not found in module ${relativePath}`);
       }
     } catch (error) {
       console.warn(`Could not load script context for map ${mapName}:`, error);
@@ -1092,8 +1096,26 @@ export class MainEngine {
       const { TiledMap } = await import('../domain/TiledMap');
 
       // Load the map (equivalent to MapTiledJSON.loadMap(mapname))
-      const scene = MainEngine.current_scene! as any;
-      const mapBasePath = basePath || scene.mapBasePath || 'src/demos/ps/maps'; // Use scene's basePath if available
+      let scene = MainEngine.current_scene as any;
+      const mapBasePath = basePath || (scene?.mapBasePath) || 'src/demos/ps/maps'; // Use scene's basePath if available, with null check
+
+      console.log(`MainEngine: Scene available: ${!!scene}`);
+      if (!scene) {
+        console.error(`MainEngine: No scene available for loading map ${mapname}`);
+        console.error(`MainEngine: current_scene is ${MainEngine.current_scene}`);
+
+        // Try to get scene from Phaser's scene manager as fallback
+        const gameScene = (globalThis as any).game?.scene?.getScene('PSGameScene');
+        if (gameScene) {
+          console.log(`MainEngine: Using fallback scene from Phaser scene manager`);
+          scene = gameScene;
+          MainEngine.current_scene = gameScene; // Restore the scene reference
+        } else {
+          console.error(`MainEngine: No fallback scene available, cannot load map`);
+          return;
+        }
+      }
+
       const current_map = await TiledMap.loadMap(scene, mapname, mapBasePath);
 
       if (current_map) {

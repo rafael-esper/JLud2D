@@ -140,12 +140,12 @@ export class TitleScene extends PSScene {
 
       console.log("TitleScene: Starting game as Alis in Camineet");
 
-      // Use mapswitch to handle everything properly
-      PSGame.mapswitch(City.CAMINEET, 29, 9);
+      // Set starting position for Alis in Camineet
+      PSGame.setgotoxy(29, 9);
 
-      // The mapswitch will handle loading map, setting city, playing music
-      // But we still need to manually start GameScene for now
+      // Start GameScene with scene context established
       this.scene.start('PSGameScene', { config: this.config });
+
       return true;
     } else if (opt === 1) {
       // Start as Odin
