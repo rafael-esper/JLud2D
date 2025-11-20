@@ -71,6 +71,9 @@ export class MenuTextBox extends MenuType {
     });
     textObjectsToDestroy.forEach(obj => obj.destroy());
 
+    // ALPHA FIX: Force clear MenuStack graphics to prevent alpha stacking
+    this.menuStack.clearGraphics();
+
     if (this.drawDelay > 0) {
       // Opening animation - box grows from center (like MenuPromptBox)
       this.drawDelay--;
