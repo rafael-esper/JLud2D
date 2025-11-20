@@ -47,6 +47,7 @@ export class MenuTextBox extends MenuType {
     }
   }
 
+
   public endTextDelay(): boolean {
     if (this.textDelay < (this.text[0].length + this.text[1].length)) {
       this.textDelay = this.text[0].length + this.text[1].length;
@@ -75,15 +76,18 @@ export class MenuTextBox extends MenuType {
       case MenuState.TEXT:
       case MenuState.READY:
       case MenuState.CLOSE:
-        // Draw the text box
+        // Draw the text box using shared graphics
         this.menuStack.drawBox(this.x, this.y, this.wx, this.wy);
 
         // Draw first line of text
         const firstLineText = ScriptEngine.left(this.text[0], this.textDelay);
         if (firstLineText) {
+          const textX = this.x + 1 + MenuStack.fontXSize;
+          const textY = this.y + MenuStack.fontYSize + 12 - 30 + 12; // Moved 30 pixels up, then 12 pixels down
+
           const textObj1 = (this.menuStack as any).scene.add.text(
-            this.x + 1 + MenuStack.fontXSize,
-            this.y + MenuStack.fontYSize + 6,
+            textX,
+            textY,
             firstLineText,
             {
               fontSize: '12px',
@@ -93,6 +97,7 @@ export class MenuTextBox extends MenuType {
             }
           );
           textObj1.setDepth(1002);
+          textObj1.setScrollFactor(0, 0); // Fixed to screen like background
           this.textObjects.push(textObj1);
         }
 
@@ -103,7 +108,7 @@ export class MenuTextBox extends MenuType {
         if (secondLineText) {
           const textObj2 = (this.menuStack as any).scene.add.text(
             this.x + 1 + MenuStack.fontXSize,
-            this.y + MenuStack.fontYSize * 2 + 6 + MenuStack.BETWEEN_ROWS_SPACE,
+            this.y + MenuStack.fontYSize * 2 + 12 + MenuStack.BETWEEN_ROWS_SPACE - 30 + 12, // Moved 30 pixels up, then 12 pixels down
             secondLineText,
             {
               fontSize: '12px',
@@ -113,6 +118,7 @@ export class MenuTextBox extends MenuType {
             }
           );
           textObj2.setDepth(1002);
+          textObj2.setScrollFactor(0, 0); // Fixed to screen like background
           this.textObjects.push(textObj2);
         }
 

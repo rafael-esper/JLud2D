@@ -44,6 +44,7 @@ export class MenuPromptBox extends MenuType {
     // Create graphics object for drawing circles and cursor
     this.graphics = (menuStack as any).scene.add.graphics();
     this.graphics.setDepth(1001);
+    this.graphics.setScrollFactor(0, 0); // Fixed to screen like other UI elements
   }
 
   public setDisabled(option: number): void {
@@ -81,10 +82,7 @@ export class MenuPromptBox extends MenuType {
   }
 
   public draw(active: boolean): void {
-    // Clear previous graphics from menuStack (to hide previous menus)
-    (this.menuStack as any).graphics.clear();
-
-    // Clear our own graphics
+    // Clear our own graphics only (don't clear menuStack graphics to preserve previous menus)
     this.graphics.clear();
 
     // Destroy previous text objects
@@ -104,12 +102,13 @@ export class MenuPromptBox extends MenuType {
       // Draw each option with circles and text
       for (let i = 0; i < this.options.length; i++) {
         const textY = this.y + 2 + ((MenuStack.fontYSize + MenuStack.BETWEEN_ROWS_SPACE) * (i + 1)) - MenuStack.fontYSize;
-        const circleY = this.y - 6 + ((MenuStack.fontYSize + MenuStack.BETWEEN_ROWS_SPACE) * (i + 1)); // Keep original circle position
+        const textX = this.x + 12 + MenuStack.fontXSize;
+        const circleY = this.y - 6 + ((MenuStack.fontYSize + MenuStack.BETWEEN_ROWS_SPACE) * (i + 1));
 
         // Draw text
         const textColor = this.enabled[i] ? '#ffffff' : '#808080'; // White or gray
         const textObj = (this.menuStack as any).scene.add.text(
-          this.x + 12 + MenuStack.fontXSize,
+          textX,
           textY,
           this.options[i],
           {
@@ -120,6 +119,7 @@ export class MenuPromptBox extends MenuType {
           }
         );
         textObj.setDepth(1002);
+        textObj.setScrollFactor(0, 0); // Fixed to screen like other UI elements
         this.textObjects.push(textObj);
 
         // Draw gray circle border (equivalent to Java drawRoundRect)

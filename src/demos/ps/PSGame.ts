@@ -56,7 +56,36 @@ export class PSGame {
     "Title_Newgame_PSArena": "PS Arena",
     "Title_Credits_About": "About",
     "Title_Credits_Game": "Game Credits",
-    "Title_Credits_Contact": "Contact"
+    "Title_Credits_Contact": "Contact",
+    // Camineet house strings
+    "Camineet_House_Alis": "Welcome to Alis's house! This is where your adventure began.",
+    "Camineet_House_Alis_Odin": "This house holds memories of Alis...",
+    "Camineet_House_Man": "Hello there! Welcome to our town.",
+    "Camineet_House_Oldman": "Would you like to hear about the crisis?",
+    "Camineet_House_Oldman_Yes": "Yes, dark times have fallen upon our land...",
+    "Camineet_House_Oldman_No": "Very well.",
+    "Camineet_House_Oldman_NoCrisis": "Perhaps you will change your mind later.",
+    "Camineet_House_Nekise_intro": "Welcome, young traveler! I have something for you.",
+    "Camineet_House_Nekise_greet": "Hello again! How goes your quest?",
+    "Camineet_House_Nekise_Odin": "Greetings, Odin. The road is dangerous.",
+    "Camineet_House_Suelo_intro1": "Welcome to my humble dwelling.",
+    "Camineet_House_Suelo_intro2": "I can help heal your wounds.",
+    "Camineet_House_Suelo_intro3": "Please rest here whenever you need.",
+    "Camineet_House_Suelo_greet": "Welcome back! Let me heal you.",
+    "Camineet_House_Suelo_Odin": "Odin, you look weary. Rest here.",
+    // Shop strings
+    "Shop_Weapon_Welcome": "Welcome to our weapon shop!",
+    "Shop_Pharmacy_Welcome": "Welcome to our pharmacy!",
+    "Shop_Tool_Welcome": "Welcome to our tool shop!",
+    // Citizen strings
+    "Camineet_People_Ent1": "The town has been peaceful lately.",
+    "Camineet_People_Ent2": "Have you heard the latest news?",
+    "Camineet_People_Ent3": "Be careful out there, traveler.",
+    "Camineet_People_Ent4": "The shops have good wares today.",
+    "Camineet_People_Cop_No_Pass": "You need a Road Pass to enter the spaceport.",
+    "Camineet_People_Cop_Pass": "Your Road Pass is in order. You may proceed.",
+    "Camineet_People_Cop1": "I am programmed to protect this city.",
+    "Camineet_People_Cop2": "Security protocols are active."
   };
 
   /**
@@ -100,13 +129,66 @@ export class PSGame {
   }
 
   /**
+   * Get Yes/No choice array for prompts
+   */
+  public static getYesNo(): string[] {
+    return ["Yes", "No"];
+  }
+
+  /**
+   * Check if player is on transport
+   */
+  public static isOnTransport(): boolean {
+    // For now, assume player is not on transport
+    // TODO: Implement proper transport detection
+    return false;
+  }
+
+  /**
+   * Regroup party members
+   */
+  public static regroup(x: number, y: number): void {
+    console.log(`PSGame: Regrouping party at (${x}, ${y})`);
+    // TODO: Implement party regrouping logic
+    // This would position party members around the specified coordinates
+  }
+
+  /**
    * Get image resource path
    */
-  public static getImage(imageKey: PS1Image | string): string {
-    if (typeof imageKey === 'string') {
-      return imageKey;
+  public static getImage(imageKey: PS1Image | string): string;
+  public static getImage(sceneType: any): string; // PSSceneType overload
+  public static getImage(imageKeyOrScene: PS1Image | string | any): string {
+    if (typeof imageKeyOrScene === 'string') {
+      return imageKeyOrScene;
     }
-    return imageKey as string;
+
+    // Handle PSSceneType - import here to avoid circular dependency
+    if (typeof imageKeyOrScene === 'number') {
+      // Map PSSceneType enum values to background images
+      switch (imageKeyOrScene) {
+        case 1: // PSSceneType.BLUE_HOUSE
+          return PS1Image.BLUE_HOUSE;
+        case 2: // PSSceneType.YELLOW_HOUSE
+          return PS1Image.YELLOW_HOUSE;
+        case 3: // PSSceneType.HOSPITAL
+          return PS1Image.HOSPITAL;
+        case 4: // PSSceneType.CHURCH
+          return PS1Image.CHURCH;
+        case 5: // PSSceneType.SHOP_CENTRAL
+          return PS1Image.SHOP_WEAPON; // Generic shop
+        case 6: // PSSceneType.SHOP_FOOD
+          return PS1Image.SHOP_FOOD;
+        case 7: // PSSceneType.SHOP_HAND
+          return PS1Image.SHOP_HAND;
+        case 8: // PSSceneType.SHOP_WEAPON
+          return PS1Image.SHOP_WEAPON;
+        default:
+          return PS1Image.BLUE_HOUSE; // Default fallback
+      }
+    }
+
+    return imageKeyOrScene as string;
   }
 
   /**
@@ -308,25 +390,23 @@ export class PSGame {
       // Create audio key from filename
       const audioKey = soundPath.split('/').pop()?.replace('.wav', '') || 'unknown';
 
-      // Cache check - if not cached, load and cache it
+      // Check if sound needs to be loaded in Phaser's cache
+      if (!this.currentScene.cache.audio.exists(audioKey)) {
+        // Load the sound first
+        this.currentScene.load.audio(audioKey, soundPath);
+        this.currentScene.load.once('complete', () => {
+          // Play sound once loaded
+          this.currentScene!.sound.play(audioKey, { volume: 0.7 });
+        });
+        this.currentScene.load.start();
+      } else {
+        // Sound already loaded in Phaser, play it directly
+        this.currentScene.sound.play(audioKey, { volume: 0.7 });
+      }
+
+      // Cache the sound path for reference
       if (!this.soundLIB.has(sound)) {
         this.soundLIB.set(sound, soundPath);
-
-        // Load the sound if not already loaded
-        if (!this.currentScene.cache.audio.exists(audioKey)) {
-          this.currentScene.load.audio(audioKey, soundPath);
-          this.currentScene.load.once('complete', () => {
-            // Play sound once loaded
-            this.currentScene!.sound.play(audioKey, { volume: 0.7 });
-          });
-          this.currentScene.load.start();
-        } else {
-          // Sound already loaded, play it
-          this.currentScene.sound.play(audioKey, { volume: 0.7 });
-        }
-      } else {
-        // Sound is cached, play it directly
-        this.currentScene.sound.play(audioKey, { volume: 0.7 });
       }
     } catch (error) {
       console.error(`PSGame: Error playing sound ${sound}:`, error);

@@ -64,7 +64,8 @@ export class MenuStack {
     this.scene = scene;
     this.inputManager = inputManager;
     this.graphics = scene.add.graphics();
-    this.graphics.setDepth(1000);
+    this.graphics.setDepth(1001); // Above background, below text
+    this.graphics.setScrollFactor(0, 0); // Fixed to screen like background
   }
 
   public hasMenu(): boolean {
@@ -96,6 +97,42 @@ export class MenuStack {
    */
   public createTextBox(x: number, y: number, wx: number, wy: number, r1: string, r2: string, hasDelay: boolean, hasMore: boolean): MenuTextBox {
     return new MenuTextBox(this, x, y, wx, wy, r1, r2, hasDelay, hasMore);
+  }
+
+  /**
+   * Set background image for the scene
+   */
+  public setBackground(imagePath: string): void {
+    // Clear existing background
+    if (this.back) {
+      this.back.destroy();
+      this.back = null;
+    }
+
+    if (imagePath && imagePath.trim() !== '') {
+      // Check if this is already a texture key (no file path separators)
+      const isTextureKey = !imagePath.includes('/') && !imagePath.includes('.');
+      const imageKey = isTextureKey ? imagePath : (imagePath.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'scene_bg');
+
+      // Check if image/texture is already loaded
+      if (this.scene.textures.exists(imageKey)) {
+        // Create image from existing texture at screen (0,0) with no scaling
+        this.back = this.scene.add.image(0, 0, imageKey);
+        this.back.setOrigin(0, 0);
+        this.back.setDepth(1000); // Above game, below menu elements
+        this.back.setScrollFactor(0, 0); // Fixed to screen, not affected by camera
+      } else if (!isTextureKey) {
+        // Load the image first, then create (only if it's a file path, not a texture key)
+        this.scene.load.once('complete', () => {
+          this.back = this.scene.add.image(0, 0, imageKey);
+          this.back.setOrigin(0, 0);
+          this.back.setDepth(1000); // Above game, below menu elements
+          this.back.setScrollFactor(0, 0); // Fixed to screen, not affected by camera
+        });
+        this.scene.load.image(imageKey, imagePath);
+        this.scene.load.start();
+      }
+    }
   }
 
   /**
@@ -186,8 +223,8 @@ export class MenuStack {
    */
   public drawBox(x: number, y: number, wx: number, wy: number): void {
     // setlucent(15) equivalent - translucent background
-    this.graphics.fillStyle(MenuStack.BACK_COLOR, 0.6);
-    this.graphics.fillRect(x + 5, y + 5, wx - 5, wy - 5);
+    this.graphics.fillStyle(MenuStack.BACK_COLOR, 0.85);
+    this.graphics.fillRect(x, y, wx, wy); // Fill the entire box area, not offset
 
     // Draw the 3D border effect following exact Java order
     // rect(x+4,y+4,wx+x-4,wy+y-4,DARK_GRAY)
@@ -288,24 +325,6 @@ export class MenuStack {
     });
   }
 
-  /**
-   * Set background image
-   */
-  public setBackground(textureKey: string): void {
-    if (this.back) {
-      this.back.destroy();
-    }
-
-    const actualWidth = this.scene.cameras.main.width;
-    const actualHeight = this.scene.cameras.main.height;
-
-    this.back = this.scene.add.image(actualWidth / 2, actualHeight / 2, textureKey);
-    this.back.setDepth(-1);
-
-    const scaleX = actualWidth / this.back.width;
-    const scaleY = actualHeight / this.back.height;
-    this.back.setScale(scaleX, scaleY);
-  }
 
   /**
    * Clear background
@@ -328,6 +347,13 @@ export class MenuStack {
       }
     }
     this.menus = [];
+    this.graphics.clear();
+  }
+
+  /**
+   * Clear graphics only (for PSMenu.endScene)
+   */
+  public clearGraphics(): void {
     this.graphics.clear();
   }
 
@@ -498,13 +524,14 @@ export class MenuStack {
    * Enhanced drawMenus with background animation support - enhanced from Java original
    */
   public drawMenus(): void {
-    // Clear previous graphics
+    // Clear previous graphics - redraw all menus each frame
     this.graphics.clear();
 
     // Draw background or render scene
     if (this.back === null && this.backAnim === null) {
       // Render scene background if no specific background set
       // In original this would call screen.render()
+      // console.log('MenuStack: drawMenus() - No background set');
     } else if (this.back !== null) {
       // Background image is already positioned by setBackground()
     } else if (this.backAnim !== null) {

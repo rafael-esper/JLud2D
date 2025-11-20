@@ -36,6 +36,10 @@ export abstract class PSScene extends Phaser.Scene {
     // Initialize the new ported menu stack
     this.menuStack = new MenuStack(this, this.inputManager);
 
+    // Set PSMenu instance to our menuStack
+    const { PSMenu } = await import('./PSMenu');
+    PSMenu.instance = this.menuStack;
+
     // Set scene reference in PSGame
     PSGame.setCurrentScene(this);
 
@@ -108,7 +112,7 @@ export abstract class PSScene extends Phaser.Scene {
   }
 
   private setupTitleScene(): void {
-    // Set title background
+    // Set title background - 'ps-title' is already loaded as a texture key
     this.menuStack.setBackground('ps-title');
   }
 

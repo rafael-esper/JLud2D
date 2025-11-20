@@ -3,7 +3,7 @@
  * Direct port of PSMenu.java - Handles scene transitions, entity display, and menu utilities
  */
 
-import { MenuStack } from './menu/MenuStack';
+import { MenuStack, PSOutcome } from './menu/MenuStack';
 import { MenuImageBox } from './menu/MenuImageBox';
 import { MenuScrollerText } from './menu/MenuScrollerText';
 import { MenuTextBox } from './menu/MenuTextBox';
@@ -43,6 +43,9 @@ export enum LargeEntity {
 }
 
 export enum Position { TOP_LEFT, TOP_CENTER, TOP_RIGHT, BOTTOM_ROW }
+
+// Type alias for Java compatibility
+export type Scene = PSSceneType;
 
 export class PSMenu {
   public static instance: MenuStack;
@@ -97,21 +100,57 @@ export class PSMenu {
   // Scene management methods
 
   /**
+   * Start scene with special entity - overload for Java compatibility
+   */
+  public static startScene(scene: Scene, specialEntity: SpecialEntity): void;
+  /**
    * Start scene with character - direct port of Java startScene(Scene, String)
    */
-  public static startScene(scene: Scene, strChar?: string): void {
-    if (strChar) {
-      // Big screen shows players in scene graphics
+  public static startScene(scene: Scene, strChar?: string): void;
+  /**
+   * Start scene with entity type and clothes - direct port of Java startScene(Scene, EntityType, Enum)
+   */
+  public static startScene(scene: Scene, entityType: EntityType, entityClothes: EntityClothes): void;
+  public static startScene(scene: Scene, param1?: string | SpecialEntity | EntityType, param2?: EntityClothes): void {
+    if (typeof param1 === 'number' && param2 === undefined) {
+      // Handle SpecialEntity case - startScene(scene, specialEntity)
+      PSMenu.startSceneWithSpecialEntity(scene, param1 as SpecialEntity);
+    } else if (typeof param1 === 'number' && param2 !== undefined) {
+      // Handle EntityType + EntityClothes case - startScene(scene, entityType, entityClothes)
+      const entityType = param1 as EntityType;
+      const entityClothes = param2 as EntityClothes;
+
+      PSMenu.instance.entitySprite = null;
+      // TODO: Create entity sprite based on type and clothes
+
+      const isHalf = scene.toString().startsWith('SHOP') ||
+                     scene.toString().startsWith('HOSP') ||
+                     scene.toString().startsWith('CHURCH');
+
+      // TODO: Load entity graphics based on type and create sprite
+      PSMenu.instance.entityY = 183; // - PSMenu.instance.entitySprite.height;
+
+      // Special positioning for MOTA characters
+      if (!isHalf && (entityType === EntityType.MOTA_CAP || entityType === EntityType.MOTA_MASK ||
+                     entityType === EntityType.MOTA_NOCAP || entityType === EntityType.MOTA_CUSTOM)) {
+        PSMenu.instance.entityY += 20;
+      }
+
+      PSMenu.startSceneInternal(scene);
+    } else if (typeof param1 === 'string') {
+      // Handle string character case - startScene(scene, strChar)
       if (PSGame.gameData.getScreenSize() === ScreenSize.SCREEN_640_480) {
-        PSMenu.instance.npc = CHR.loadChr(strChar);
+        PSMenu.instance.npc = CHR.loadChr(param1);
         PSMenu.instance.showPlayers = true;
       } else {
         PSMenu.instance.npc = null;
         PSMenu.instance.showPlayers = false;
       }
+      PSMenu.startSceneInternal(scene);
+    } else {
+      // Handle no second parameter case - startScene(scene)
+      PSMenu.startSceneInternal(scene);
     }
-
-    PSMenu.startSceneInternal(scene);
   }
 
   /**
@@ -124,7 +163,7 @@ export class PSMenu {
       return;
     }
 
-    PSMenu.startSceneWithEntityType(scene, EntityType.SPECIAL, specialEntity - 1);
+    PSMenu.startScene(scene, EntityType.SPECIAL, specialEntity - 1 as EntityClothes);
   }
 
   /**
@@ -151,29 +190,6 @@ export class PSMenu {
     PSMenu.startSceneInternal(scene);
   }
 
-  /**
-   * Start scene with entity type - direct port of Java startScene(Scene, EntityType, int)
-   */
-  private static startSceneWithEntityType(scene: Scene, entityType: EntityType, numIndex: number): void {
-    PSMenu.instance.entitySprite = null;
-    // TODO: Create entity sprite based on type and index
-    // PSMenu.instance.entitySprite = new VImage(35, 90);
-
-    const isHalf = scene.toString().startsWith('SHOP') ||
-                   scene.toString().startsWith('HOSP') ||
-                   scene.toString().startsWith('CHURCH');
-
-    // TODO: Load entity graphics based on type and create sprite
-    PSMenu.instance.entityY = 183; // - PSMenu.instance.entitySprite.height;
-
-    // Special positioning for MOTA characters
-    if (!isHalf && (entityType === EntityType.MOTA_CAP || entityType === EntityType.MOTA_MASK ||
-                   entityType === EntityType.MOTA_NOCAP || entityType === EntityType.MOTA_CUSTOM)) {
-      PSMenu.instance.entityY += 20;
-    }
-
-    PSMenu.startSceneInternal(scene);
-  }
 
   /**
    * Internal scene start logic - direct port of Java startScene(Scene)
@@ -201,7 +217,7 @@ export class PSMenu {
       // Do nothing
     } else {
       // TODO: screen.fade(25, true);
-      PSMenu.instance.back = null;
+      PSMenu.instance.setBackground('');
       PSMenu.instance.backAnim = null;
     }
 
@@ -229,7 +245,8 @@ export class PSMenu {
       case PSSceneType.CITY:
       case PSSceneType.TITLE:
       case PSSceneType.ENDING:
-        PSMenu.instance.back = PSGame.getImage(scene);
+        const imagePath = PSGame.getImage(scene);
+        PSMenu.instance.setBackground(imagePath);
         PSMenu.instance.outcome = PSOutcome.FADE_HOUSE;
         break;
 
@@ -240,13 +257,13 @@ export class PSMenu {
       case PSSceneType.ARTIC:
       case PSSceneType.PINES:
       case PSSceneType.SKY:
-        PSMenu.instance.back = PSGame.getImage(scene);
+        PSMenu.instance.setBackground(PSGame.getImage(scene));
         PSMenu.instance.outcome = PSOutcome.FADE;
         break;
 
       case PSSceneType.BAYA:
         PSMenu.instance.setdelay(0);
-        PSMenu.instance.back = PSGame.getImage(scene);
+        PSMenu.instance.setBackground(PSGame.getImage(scene));
         PSMenu.instance.outcome = PSOutcome.FADE;
         break;
 
@@ -271,7 +288,7 @@ export class PSMenu {
         break;
 
       case PSSceneType.ALTAR:
-        PSMenu.instance.back = PSGame.getImage(scene);
+        PSMenu.instance.setBackground(PSGame.getImage(scene));
         PSMenu.instance.outcome = PSOutcome.FADE_DUNGEON;
         break;
 
@@ -313,8 +330,14 @@ export class PSMenu {
     PSMenu.instance.entitySprite = null;
     PSMenu.instance.backAnim = null;
 
+    // Clear all menus and graphics
+    while (PSMenu.instance.hasMenu()) {
+      PSMenu.instance.pop();
+    }
+    PSMenu.instance.clearGraphics();
+
     if (outcome === PSOutcome.FADE_HOUSE || outcome === PSOutcome.FADE) {
-      PSMenu.instance.back = null;
+      PSMenu.instance.setBackground('');
 
       if (outcome === PSOutcome.FADE_HOUSE) {
         // TODO: Script.pauseplayerinput();
@@ -411,7 +434,7 @@ export class PSMenu {
         rows[j],
         r2,
         (j < 2) && isFirst,
-        (j + 2 > rows.size())
+        (j + 2 > rows.length)
       );
 
       PSMenu.instance.push(textBox);
@@ -425,9 +448,12 @@ export class PSMenu {
         // Issue prompt
         await PSMenu.instance.waitReady(textBox);
 
+        const promptX = 240; // Use position similar to Title screen that works
+        const promptY = 140; // Use position similar to Title screen that works
+
         const promptBox = PSMenu.instance.createPromptBox(
-          PSMenu.instance.MAX_SCREEN_X * 3 / 4 - MenuStack.getMaxTextLength(choices),
-          PSMenu.instance.STEXT_BOTTOM_Y - 15 - choices.length * (MenuStack.fontYSize + MenuStack.BETWEEN_ROWS_SPACE),
+          promptX,
+          promptY,
           choices,
           true
         );
@@ -435,8 +461,8 @@ export class PSMenu {
 
         const ret = await PSMenu.instance.waitOpt('TRUE' as any);
 
-        PSMenu.instance.pop();
-        PSMenu.instance.pop();
+        PSMenu.instance.pop(); // Pop only the prompt box, leave the text box
+        // Don't pop the text box - it should remain visible for scene context
         return ret + 1; // Start counting options from 1
       }
 

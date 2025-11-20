@@ -6,15 +6,19 @@
 import { PSGame } from './PSGame';
 import { PS1Music } from './game/PSLibMusic';
 import { City, CityHelper } from './game/City';
+import { ScreenSize } from './game/GameData';
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { Camineet } from './maps/Camineet';
+import { MenuStack } from './menu/MenuStack';
+import { PSMenu } from './PSMenu';
 
 export class GameScene extends Phaser.Scene {
   private config: GameConfig;
   private inputManager: InputManager;
+  private menuStack: MenuStack;
   private tiledMap: any = null;
   private mapNameOverride: string | null = null;
   public mapBasePath: string = 'src/demos/ps/maps';
@@ -51,6 +55,15 @@ export class GameScene extends Phaser.Scene {
     const controlsConfig = new ControlsConfig();
     this.inputManager = new InputManager(this, controlsConfig);
     this.inputManager.setMobileButtons([]);
+
+    // Initialize menu stack for PSMenu system
+    this.menuStack = new MenuStack(this, this.inputManager);
+
+    // Set PSMenu instance to our menuStack (critical for PSMenu.startScene to work)
+    PSMenu.instance = this.menuStack;
+
+    // Initialize PSMenu constants (STEXT_BOTTOM_X/Y/WX/WY etc.)
+    PSMenu.initPSMenu(ScreenSize.SCREEN_320_240);
 
     // Initialize the game scene
     PSGame.setCurrentScene(this);
@@ -144,8 +157,18 @@ export class GameScene extends Phaser.Scene {
       this.tiledMap.updateAnimations(delta);
     }
 
-    // Update engine - this handles player movement, entity updates, camera tracking
-    MainEngine.updateEngine(this.inputManager);
+    // Check if PSMenu is active and should pause game
+    const isMenuActive = this.menuStack && this.menuStack.hasMenu();
+
+    if (!isMenuActive) {
+      // Update engine only when menu is not active - this handles player movement, entity updates, camera tracking
+      MainEngine.updateEngine(this.inputManager);
+    }
+
+    // Update and render menu system if PSMenu is active
+    if (isMenuActive) {
+      this.menuStack.drawMenus();
+    }
 
     // Handle ESC/Menu - Back to main menu
     if (this.inputManager.justPressed('menu')) {
