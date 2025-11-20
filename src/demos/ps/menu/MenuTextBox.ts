@@ -19,6 +19,7 @@ export class MenuTextBox extends MenuType {
 
   // Text objects only - no private graphics
   private textObjects: Phaser.GameObjects.Text[] = [];
+  private isDestroyed: boolean = false;
 
   constructor(
     menuStack: MenuStack,
@@ -109,6 +110,10 @@ export class MenuTextBox extends MenuType {
   }
 
   public draw(active: boolean): void {
+    // Don't draw if this menu has been destroyed/popped
+    if (this.isDestroyed) {
+      return;
+    }
     if (this.drawDelay > 0) {
       // Opening animation - box grows from center (like MenuPromptBox)
       this.drawDelay--;
@@ -116,8 +121,12 @@ export class MenuTextBox extends MenuType {
       const middle = (this.x + (this.x + this.wx)) / 2;
       this.menuStack.drawBox(Math.floor(middle - specwx / 2), this.y, Math.floor(specwx), this.wy);
     } else {
-      // Draw the main text box
-      this.menuStack.drawBox(this.x, this.y, this.wx, this.wy);
+      const menus = (this.menuStack as any).menus;
+      const lastMenuTextBox = [...menus].reverse().find((m: any) => m instanceof MenuTextBox);
+
+      if (lastMenuTextBox === this) {
+        this.menuStack.drawBox(this.x, this.y, this.wx, this.wy);
+      }
 
       // Update text content in existing text objects
       const firstLineText = ScriptEngine.left(this.text[0], this.textDelay);
@@ -150,6 +159,9 @@ export class MenuTextBox extends MenuType {
 
 
   public destroy(): void {
+    // Mark as destroyed to prevent further drawing
+    this.isDestroyed = true;
+
     // Clean up our own text objects
     this.textObjects.forEach(text => text.destroy());
     this.textObjects = [];
