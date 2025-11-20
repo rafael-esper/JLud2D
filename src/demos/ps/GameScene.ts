@@ -91,9 +91,6 @@ export class GameScene extends Phaser.Scene {
 
     this.tiledMap = await MainEngine.loadAndInitMap(this, mapName, mapBasePath);
 
-    // Set script context dynamically based on map name
-    await this.setScriptContextForMap(mapName, mapBasePath);
-
     // Set screen to black IMMEDIATELY after map loads to prevent flash
     this.cameras.main.setAlpha(0);
     console.log("GameScene: Screen set to black, ready for fade-in");
@@ -180,23 +177,6 @@ export class GameScene extends Phaser.Scene {
   }
 
 
-  /**
-   * Set script context dynamically based on map name
-   */
-  private async setScriptContextForMap(mapName: string, mapBasePath: string): Promise<void> {
-    // Extract script name from map file (e.g., "Camineet.map.json" -> "Camineet")
-    const scriptName = mapName.replace('.map.json', '');
-
-    // Build the script path: relative to current file location
-    const scriptPath = `./maps/${scriptName}`;
-
-    // Dynamic import of the script module
-    const scriptModule = await import(scriptPath);
-
-    // Set the script context (class name matches the file name)
-    MainEngine.setScriptContext(scriptModule[scriptName]);
-    console.log(`GameScene: ${scriptName} script context set`);
-  }
 
   /**
    * Handle scene shutdown
