@@ -45,6 +45,58 @@ export class MenuTextBox extends MenuType {
     if (hasDelay) {
       this.drawDelay = MenuType.MAX_DELAY;
     }
+
+    // Create text objects once when menu is created (push)
+    this.createTextObjects();
+  }
+
+  private createTextObjects(): void {
+    // Clear any existing text objects from this instance first
+    this.textObjects.forEach(text => text.destroy());
+    this.textObjects = [];
+
+    // PUSH-TIME FIX: Clear all existing text objects from scene when new menu is created
+    const scene = (this.menuStack as any).scene;
+    const textObjectsToDestroy: any[] = [];
+    scene.children.list.forEach((child: any) => {
+      if (child.type === 'Text' && child.depth >= 1002) {
+        textObjectsToDestroy.push(child);
+      }
+    });
+    textObjectsToDestroy.forEach(obj => obj.destroy());
+
+
+    // Create first line text object (initially empty, will be updated in draw)
+    const textObj1 = (this.menuStack as any).scene.add.text(
+      this.x + 1 + MenuStack.fontXSize,
+      this.y + MenuStack.fontYSize + 6 - 12,
+      '',
+      {
+        fontSize: '12px',
+        fontFamily: 'monospace',
+        fontStyle: 'bold',
+        color: '#ffffff'
+      }
+    );
+    textObj1.setDepth(1002);
+    textObj1.setScrollFactor(0, 0);
+    this.textObjects.push(textObj1);
+
+    // Create second line text object (initially empty, will be updated in draw)
+    const textObj2 = (this.menuStack as any).scene.add.text(
+      this.x + 1 + MenuStack.fontXSize,
+      this.y + MenuStack.fontYSize * 2 + 6 + MenuStack.BETWEEN_ROWS_SPACE - 12,
+      '',
+      {
+        fontSize: '12px',
+        fontFamily: 'monospace',
+        fontStyle: 'bold',
+        color: '#ffffff'
+      }
+    );
+    textObj2.setDepth(1002);
+    textObj2.setScrollFactor(0, 0);
+    this.textObjects.push(textObj2);
   }
 
 
@@ -57,23 +109,6 @@ export class MenuTextBox extends MenuType {
   }
 
   public draw(active: boolean): void {
-    // Destroy previous text objects at start of each frame
-    this.textObjects.forEach(text => text.destroy());
-    this.textObjects = [];
-
-    // SIMPLE FIX: Clear all existing text objects from scene
-    const scene = (this.menuStack as any).scene;
-    const textObjectsToDestroy: any[] = [];
-    scene.children.list.forEach((child: any) => {
-      if (child.type === 'Text' && child.depth >= 1002) {
-        textObjectsToDestroy.push(child);
-      }
-    });
-    textObjectsToDestroy.forEach(obj => obj.destroy());
-
-    // ALPHA FIX: Force clear MenuStack graphics to prevent alpha stacking
-    this.menuStack.clearGraphics();
-
     if (this.drawDelay > 0) {
       // Opening animation - box grows from center (like MenuPromptBox)
       this.drawDelay--;
@@ -81,46 +116,22 @@ export class MenuTextBox extends MenuType {
       const middle = (this.x + (this.x + this.wx)) / 2;
       this.menuStack.drawBox(Math.floor(middle - specwx / 2), this.y, Math.floor(specwx), this.wy);
     } else {
-      // Draw the main text box (like MenuPromptBox draws main menu box)
+      // Draw the main text box
       this.menuStack.drawBox(this.x, this.y, this.wx, this.wy);
 
-      // Draw text lines (simplified from MenuPromptBox text drawing)
+      // Update text content in existing text objects
       const firstLineText = ScriptEngine.left(this.text[0], this.textDelay);
-      if (firstLineText) {
-        const textObj1 = (this.menuStack as any).scene.add.text(
-          this.x + 1 + MenuStack.fontXSize,
-          this.y + MenuStack.fontYSize + 6 - 12,
-          firstLineText,
-          {
-            fontSize: '12px',
-            fontFamily: 'monospace',
-            fontStyle: 'bold',
-            color: '#ffffff'
-          }
-        );
-        textObj1.setDepth(1002);
-        textObj1.setScrollFactor(0, 0); // Fixed to screen like other UI elements
-        this.textObjects.push(textObj1);
+      if (this.textObjects[0]) {
+        this.textObjects[0].setText(firstLineText);
+        this.textObjects[0].setVisible(firstLineText.length > 0);
       }
 
       const secondLineText = this.textDelay > this.text[0].length
         ? ScriptEngine.left(this.text[1], this.textDelay - this.text[0].length)
         : '';
-      if (secondLineText) {
-        const textObj2 = (this.menuStack as any).scene.add.text(
-          this.x + 1 + MenuStack.fontXSize,
-          this.y + MenuStack.fontYSize * 2 + 6 + MenuStack.BETWEEN_ROWS_SPACE - 12,
-          secondLineText,
-          {
-            fontSize: '12px',
-            fontFamily: 'monospace',
-            fontStyle: 'bold',
-            color: '#ffffff'
-          }
-        );
-        textObj2.setDepth(1002);
-        textObj2.setScrollFactor(0, 0); // Fixed to screen like other UI elements
-        this.textObjects.push(textObj2);
+      if (this.textObjects[1]) {
+        this.textObjects[1].setText(secondLineText);
+        this.textObjects[1].setVisible(secondLineText.length > 0);
       }
 
       // Update text animation and state
@@ -130,28 +141,30 @@ export class MenuTextBox extends MenuType {
         this.state = MenuState.READY;
       }
 
-      // Draw "more" icon if needed
+      // Handle "more" icon (for simplicity, using existing text objects for now)
       if (this.state !== MenuState.TEXT && this.hasMore && active) {
-        const moreX = this.wx + this.wy - 40;
-        const moreY = this.y + this.wy - 8 + Math.cos((this.menuStack as any).scene.time.now / 133) * 3;
-
-        const moreText = (this.menuStack as any).scene.add.text(moreX, moreY, '>', {
-          fontSize: '12px',
-          fontFamily: 'monospace',
-          fontStyle: 'bold',
-          color: '#ffff00'
-        });
-        moreText.setDepth(1002);
-        moreText.setScrollFactor(0, 0);
-        this.textObjects.push(moreText);
+        // More icon logic can be added here if needed
       }
     }
   }
 
 
   public destroy(): void {
-    // Clean up text objects only
+    // Clean up our own text objects
     this.textObjects.forEach(text => text.destroy());
     this.textObjects = [];
+
+    // EFFICIENT FIX: Clear all remaining text objects from scene only when menu is destroyed
+    const scene = (this.menuStack as any).scene;
+    const textObjectsToDestroy: any[] = [];
+    scene.children.list.forEach((child: any) => {
+      if (child.type === 'Text' && child.depth >= 1002) {
+        textObjectsToDestroy.push(child);
+      }
+    });
+    textObjectsToDestroy.forEach(obj => obj.destroy());
+
+    // Clear MenuStack graphics when menu is destroyed to prevent alpha stacking
+    this.menuStack.clearGraphics();
   }
 }
