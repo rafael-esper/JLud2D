@@ -10,30 +10,16 @@ import { PS1Image } from './game/PSLibImage';
 import { PS1Sound } from './game/PSLibSound';
 import { Party } from './game/Party';
 import { Planet, City, CityHelper } from './game/City';
-import { ScreenSize, GameType } from './game/GameData';
+import { ScreenSize, GameType, Flags, GameData } from './game/GameData';
+import { Dungeon } from './game/Dungeon';
 import { CHR } from '../../domain/CHR';
 import { PS1CHR, PS1CHRHelper } from './game/PSLibCHR';
+import { Item } from './game/Item';
+import { OriginalItem, PSLibItem } from './game/PSLibItem';
 
-export class PSGameData {
-  public enableCheats: boolean = false;
-  private screenSize: ScreenSize = ScreenSize.SCREEN_320_240;
-  public current_planet: any = null; // Planet enum reference
-  public current_dungeon: any = 'NONE'; // Dungeon enum reference
-  public current_city: any = null; // City enum reference
-  public onGroundVehicle: boolean = false;
-  public visitedCities: any[] = [];
-
-  public getScreenSize(): ScreenSize {
-    return this.screenSize;
-  }
-
-  public setScreenSize(size: ScreenSize): void {
-    this.screenSize = size;
-  }
-}
 
 export class PSGame {
-  public static gameData: PSGameData = new PSGameData();
+  public static gameData: GameData = new GameData();
   private static currentScene: Phaser.Scene | null = null;
   private static party: Party | null = null;
   private static gotox: number = 0;
@@ -294,7 +280,7 @@ export class PSGame {
     console.log(`PSGame.mapswitchToPlanet: ${Planet[planet]} at (${x}, ${y})`);
 
     this.gameData.onGroundVehicle = false;
-    this.gameData.current_dungeon = 'NONE';
+    this.gameData.current_dungeon = Dungeon.NONE;
     this.gameData.current_planet = planet;
     this.gameData.current_city = null;
 
@@ -316,19 +302,17 @@ export class PSGame {
     // Import City helpers
     const { CityHelper } = await import('./game/City');
 
-    if (this.gameData.current_dungeon && this.gameData.current_dungeon !== 'NONE') {
+    if (this.gameData.current_dungeon !== null && this.gameData.current_dungeon !== Dungeon.NONE) {
       // PSMenu.setMapOff(); // TODO: Implement when PSMenu is ready
     }
 
     this.gameData.onGroundVehicle = false;
-    this.gameData.current_dungeon = 'NONE';
+    this.gameData.current_dungeon = Dungeon.NONE;
     this.gameData.current_city = city;
     this.gameData.current_planet = CityHelper.getPlanet(city);
 
     // Add to visited cities
-    if (!this.gameData.visitedCities.includes(city)) {
-      this.gameData.visitedCities.push(city);
-    }
+    this.gameData.visitedCities.add(city);
 
     // Call base mapswitch with city path
     await this.mapswitch(CityHelper.getPath(city), x, y, true);
@@ -442,5 +426,39 @@ export class PSGame {
     this.chrLIB.set(chrType, chr);
 
     return chr;
+  }
+
+  /**
+   * Check if a flag is set - direct port from Java hasFlag()
+   */
+  public static hasFlag(flag: Flags): boolean {
+    return this.gameData.flags.has(flag);
+  }
+
+  /**
+   * Set a flag - direct port from Java setFlag()
+   */
+  public static setFlag(flag: Flags): void {
+    this.gameData.flags.add(flag);
+    console.log(`PSGame: Set flag ${Flags[flag]}`);
+  }
+
+  /**
+   * Clear a flag - direct port from Java clearFlag()
+   */
+  public static clearFlag(flag: Flags): void {
+    this.gameData.flags.delete(flag);
+    console.log(`PSGame: Cleared flag ${Flags[flag]}`);
+  }
+
+  /**
+   * Get item by OriginalItem enum - direct port from Java getItem()
+   */
+  public static getItem(originalItem: OriginalItem): Item {
+    const item = PSLibItem.getItemByEnum(originalItem);
+    if (!item) {
+      throw new Error(`Item not found for OriginalItem: ${OriginalItem[originalItem]}`);
+    }
+    return item;
   }
 }

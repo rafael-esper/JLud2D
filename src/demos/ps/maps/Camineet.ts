@@ -4,11 +4,12 @@
  */
 
 import { PSGame } from '../PSGame';
-import { GameType } from '../game/GameData';
+import { GameType, Flags } from '../game/GameData';
 import { Planet, City } from '../game/City';
 import { PS1Sound } from '../game/PSLibSound';
 import { PS1Image } from '../game/PSLibImage';
-import { Item, OriginalItem } from '../game/Item';
+import { Item } from '../game/Item';
+import { OriginalItem } from '../game/PSLibItem';
 import { PSSceneType, SpecialEntity, PSMenu, EntityType, EntityClothes, LargeEntity } from '../PSMenu';
 import { PSCancellable } from '../menu/MenuStack';
 
@@ -59,14 +60,14 @@ export class Camineet {
   public static async nekise(): Promise<void> {
     PSMenu.startScene(PSSceneType.BLUE_HOUSE, EntityType.CITY_MAN_BLOND, EntityClothes.GREEN);
     if (PSGame.getGameType() === GameType.PS_ORIGINAL) {
-      // if (!PSGame.hasFlag(Flags.VISIT_NEKISE)) {
-      //   PSGame.setFlag(Flags.VISIT_NEKISE);
-      //   await PSMenu.StextFirst(PSGame.getString("Camineet_House_Nekise_intro"));
-      //   PSGame.getParty().addQuestItem(PSGame.getItem(OriginalItem.Quest_Laconian_Pot));
-      //   await PSMenu.StextLast(PSGame.getString("Camineet_House_Nekise_greet"));
-      // } else {
-      //   await PSMenu.Stext(PSGame.getString("Camineet_House_Nekise_greet"));
-      // }
+      if (!PSGame.hasFlag(Flags.VISIT_NEKISE)) {
+         PSGame.setFlag(Flags.VISIT_NEKISE);
+         await PSMenu.StextFirst(PSGame.getString("Camineet_House_Nekise_intro"));
+         PSGame.getParty().addQuestItem(PSGame.getItem(OriginalItem.Quest_Laconian_Pot));
+         await PSMenu.StextLast(PSGame.getString("Camineet_House_Nekise_greet"));
+      } else {
+         await PSMenu.Stext(PSGame.getString("Camineet_House_Nekise_greet"));
+      }
       console.log("Camineet: Nekise - first visit gives Laconian Pot");
     } else {
       await PSMenu.Stext(PSGame.getString("Camineet_House_Nekise_Odin"));
