@@ -86,7 +86,7 @@ export class Camineet {
       //   await PSMenu.StextNext(PSGame.getString("Camineet_House_Suelo_intro3"));
       //   await PSMenu.StextLast(PSGame.getString("Camineet_House_Suelo_greet"));
       // } else {
-      //   await PSMenu.Stext(PSGame.getString("Camineet_House_Suelo_greet"));
+        await PSMenu.Stext(PSGame.getString("Camineet_House_Suelo_greet"));
       // }
       PSGame.playSound(PS1Sound.CURE);
       PSGame.getParty().healAll(false);

@@ -5,6 +5,7 @@
 
 import { PSGame } from './PSGame';
 import { PS1Music } from './game/PSLibMusic';
+import { PS1CHR } from './game/PSLibCHR';
 import { City, CityHelper } from './game/City';
 import { ScreenSize } from './game/GameData';
 import { MainEngine } from '../../core/MainEngine';

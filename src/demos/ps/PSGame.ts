@@ -11,6 +11,8 @@ import { PS1Sound } from './game/PSLibSound';
 import { Party } from './game/Party';
 import { Planet, City, CityHelper } from './game/City';
 import { ScreenSize, GameType } from './game/GameData';
+import { CHR } from '../../domain/CHR';
+import { PS1CHR, PS1CHRHelper } from './game/PSLibCHR';
 
 export class PSGameData {
   public enableCheats: boolean = false;
@@ -41,6 +43,9 @@ export class PSGame {
 
   // Sound library cache (equivalent to Java soundLIB HashMap)
   private static soundLIB: Map<PS1Sound, string> = new Map();
+
+  // CHR library cache (equivalent to Java chrLIB HashMap)
+  private static chrLIB: Map<PS1CHR, CHR> = new Map();
 
   // Localization strings (simplified for demo - in original this loads from resource bundles)
   private static strings: { [key: string]: string } = {
@@ -405,5 +410,37 @@ export class PSGame {
     } catch (error) {
       console.error(`PSGame: Error playing sound ${sound}:`, error);
     }
+  }
+
+  /**
+   * Get CHR data for given PS1CHR type - direct port from Java getCHR()
+   */
+  public static async getCHR(chrType: PS1CHR): Promise<CHR> {
+    if (this.chrLIB.has(chrType)) {
+      return this.chrLIB.get(chrType)!;
+    }
+
+    if (!this.currentScene) {
+      throw new Error("PSGame: No current scene to load CHR data");
+    }
+
+    // Load CHR from file
+    const chrUrl = PS1CHRHelper.getUrl(chrType);
+    console.log(`PSGame: Loading CHR ${PS1CHR[chrType]} from ${chrUrl}`);
+
+    // Parse the URL to get base path and filename
+    const urlParts = chrUrl.split('/');
+    const filename = urlParts.pop() || '';
+    const basePath = urlParts.join('/');
+
+    // Keep the full filename since CHR.loadChr expects .anim.json files
+    const chrName = filename;
+
+    console.log(`PSGame: Parsed URL - basePath: "${basePath}", filename: "${filename}", chrName: "${chrName}"`);
+
+    const chr = await CHR.loadChr(this.currentScene, chrName, basePath);
+    this.chrLIB.set(chrType, chr);
+
+    return chr;
   }
 }

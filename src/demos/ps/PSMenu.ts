@@ -13,6 +13,7 @@ import { PSGame } from './PSGame';
 import { CHR } from '../../domain/CHR';
 import { VImage } from '../../domain/VImage';
 import { ScreenSize } from './game/GameData';
+import { PS1CHR } from './game/PSLibCHR';
 
 export enum PSSceneType {
   BLACK, BLUE_HOUSE, YELLOW_HOUSE, HOSPITAL, CHURCH, SHOP_CENTRAL, SHOP_FOOD, SHOP_HAND, SHOP_WEAPON,
@@ -120,23 +121,12 @@ export class PSMenu {
       const entityType = param1 as EntityType;
       const entityClothes = param2 as EntityClothes;
 
-      PSMenu.instance.entitySprite = null;
-      // TODO: Create entity sprite based on type and clothes
-
-      const isHalf = scene.toString().startsWith('SHOP') ||
-                     scene.toString().startsWith('HOSP') ||
-                     scene.toString().startsWith('CHURCH');
-
-      // TODO: Load entity graphics based on type and create sprite
-      PSMenu.instance.entityY = 183; // - PSMenu.instance.entitySprite.height;
-
-      // Special positioning for MOTA characters
-      if (!isHalf && (entityType === EntityType.MOTA_CAP || entityType === EntityType.MOTA_MASK ||
-                     entityType === EntityType.MOTA_NOCAP || entityType === EntityType.MOTA_CUSTOM)) {
-        PSMenu.instance.entityY += 20;
-      }
-
-      PSMenu.startSceneInternal(scene);
+      PSMenu.createEntitySprite(entityType, entityClothes, scene).then(() => {
+        PSMenu.startSceneInternal(scene);
+      }).catch(error => {
+        console.error('PSMenu: Error creating entity sprite:', error);
+        PSMenu.startSceneInternal(scene);
+      });
     } else if (typeof param1 === 'string') {
       // Handle string character case - startScene(scene, strChar)
       if (PSGame.gameData.getScreenSize() === ScreenSize.SCREEN_640_480) {
@@ -150,6 +140,79 @@ export class PSMenu {
     } else {
       // Handle no second parameter case - startScene(scene)
       PSMenu.startSceneInternal(scene);
+    }
+  }
+
+  /**
+   * Create entity sprite from type and clothes - direct port of Java implementation
+   */
+  private static async createEntitySprite(entityType: EntityType, entityClothes: EntityClothes, scene: Scene): Promise<void> {
+    PSMenu.instance.entitySprite = null;
+
+    const isHalf = scene.toString().includes('SHOP') ||
+                   scene.toString().includes('HOSP') ||
+                   scene.toString().includes('CHURCH');
+
+    // Load entity CHR data
+    const entitiesCHR = await PSGame.getCHR(PS1CHR.IMG_ENTITIES);
+
+    // Calculate frame index: (entityType * 4 + entityClothes)
+    const frameIndex = entityType * 4 + entityClothes;
+
+    console.log(`PSMenu: Creating entity sprite - EntityType: ${entityType} (${EntityType[entityType]}), EntityClothes: ${entityClothes} (${EntityClothes[entityClothes]}), Frame Index: ${frameIndex}`);
+    console.log(`PSMenu: Entity CHR loaded with ${entitiesCHR.getFrameCount()} frames, totalframes: ${entitiesCHR.getTotalframes()}`);
+
+    if (!PSGame.getCurrentScene()) {
+      console.error('PSMenu: No current scene to create entity sprite');
+      return;
+    }
+
+    // Create texture key for this specific entity frame
+    const textureKey = `entity_${entityType}_${entityClothes}`;
+
+    // Get the frame image from CHR
+    const frame = entitiesCHR.getFrameByIndex(frameIndex);
+    if (!frame) {
+      console.error(`PSMenu: Entity frame ${frameIndex} not found in entities CHR (total frames: ${entitiesCHR.getFrameCount()})`);
+      return;
+    }
+
+    const currentScene = PSGame.getCurrentScene()!;
+
+    // Create texture from frame if not already exists
+    if (!currentScene.textures.exists(textureKey)) {
+      // Create a canvas to extract the sprite from the entities sheet
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const spriteWidth = 35;
+      const spriteHeight = isHalf ? 51 : 90;
+
+      canvas.width = spriteWidth;
+      canvas.height = spriteHeight;
+
+      // Draw the specific frame to the canvas (extract from Phaser frame)
+      ctx.drawImage(frame.source.image, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, spriteWidth, spriteHeight);
+
+      // Add as texture to Phaser
+      currentScene.textures.addCanvas(textureKey, canvas);
+    }
+
+    // Create Phaser sprite
+    PSMenu.instance.entitySprite = currentScene.add.image(0, 0, textureKey);
+    PSMenu.instance.entitySprite.setOrigin(0.5, 1); // Bottom center origin
+    PSMenu.instance.entitySprite.setDepth(1000.5); // Above background, below menu graphics
+    PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
+
+    // Set position at bottom of screen (240px screen height)
+    // Entity Y should position the bottom of sprite at screen bottom with some padding
+    PSMenu.instance.entityY = 240 - 30; // 30px padding from bottom
+
+    // Special positioning for MOTA characters
+    if (!isHalf && (entityType === EntityType.MOTA_CAP || entityType === EntityType.MOTA_MASK ||
+                   entityType === EntityType.MOTA_NOCAP || entityType === EntityType.MOTA_CUSTOM)) {
+      PSMenu.instance.entityY -= 20; // Move MOTA characters up a bit
     }
   }
 
@@ -169,11 +232,40 @@ export class PSMenu {
   /**
    * Start scene with large entity - direct port of Java startScene(Scene, LargeEntity)
    */
-  public static startSceneWithLargeEntity(scene: Scene, largeEntity: LargeEntity): void {
-    // TODO: Load large entity sprites
-    // PSMenu.instance.entitySprite = new VImage(56, 112);
-    // PSMenu.instance.entitySprite.image = PSGame.getCHR(PS1CHR.IMG_ENTITIES_LARGE).getFrames()[largeEntity];
-    // PSMenu.instance.entityY = 210 - PSMenu.instance.entitySprite.height;
+  public static async startSceneWithLargeEntity(scene: Scene, largeEntity: LargeEntity): Promise<void> {
+    if (!PSGame.getCurrentScene()) {
+      PSMenu.startSceneInternal(scene);
+      return;
+    }
+
+    const currentScene = PSGame.getCurrentScene()!;
+
+    // Load large entities CHR
+    const largeEntitiesCHR = await PSGame.getCHR(PS1CHR.IMG_ENTITIES_LARGE);
+
+    const textureKey = `large_entity_${largeEntity}`;
+
+    // Create texture if not exists
+    if (!currentScene.textures.exists(textureKey)) {
+      const frame = largeEntitiesCHR.getFrameByIndex(largeEntity);
+      if (frame) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          canvas.width = 56;
+          canvas.height = 112;
+          ctx.drawImage(frame.source.image, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, 56, 112);
+          currentScene.textures.addCanvas(textureKey, canvas);
+        }
+      }
+    }
+
+    // Create large entity sprite
+    PSMenu.instance.entitySprite = currentScene.add.image(0, 0, textureKey);
+    PSMenu.instance.entitySprite.setOrigin(0.5, 1); // Bottom center origin
+    PSMenu.instance.entitySprite.setDepth(1000.5); // Above background, below menu graphics
+    PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
+    PSMenu.instance.entityY = 240 - 30; // Large entity positioning at bottom with padding
 
     PSMenu.startSceneInternal(scene);
   }
@@ -182,10 +274,35 @@ export class PSMenu {
    * Start scene with CHR - direct port of Java startScene(Scene, CHR)
    */
   public static startSceneWithCHR(scene: Scene, chr: CHR): void {
-    // TODO: Create VImage from CHR
-    // PSMenu.instance.entitySprite = new VImage(chr.getFxsize(), chr.getFysize());
-    // PSMenu.instance.entitySprite.image = chr.getFrames()[0];
-    // PSMenu.instance.entityY = 183 - PSMenu.instance.entitySprite.height;
+    if (!PSGame.getCurrentScene()) {
+      PSMenu.startSceneInternal(scene);
+      return;
+    }
+
+    const currentScene = PSGame.getCurrentScene()!;
+    const textureKey = `chr_${chr.imageName}`;
+
+    // Create texture if not exists
+    if (!currentScene.textures.exists(textureKey) && chr.getFrameCount() > 0) {
+      const frame = chr.getFrameByIndex(0);
+      if (frame) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          canvas.width = chr.getFxsize();
+          canvas.height = chr.getFysize();
+          ctx.drawImage(frame.source.image, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, chr.getFxsize(), chr.getFysize());
+          currentScene.textures.addCanvas(textureKey, canvas);
+        }
+      }
+    }
+
+    // Create CHR sprite
+    PSMenu.instance.entitySprite = currentScene.add.image(0, 0, textureKey);
+    PSMenu.instance.entitySprite.setOrigin(0.5, 1); // Bottom center origin
+    PSMenu.instance.entitySprite.setDepth(1000.5); // Above background, below menu graphics
+    PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
+    PSMenu.instance.entityY = 240 - 30; // CHR entity positioning at bottom with padding
 
     PSMenu.startSceneInternal(scene);
   }
@@ -327,7 +444,7 @@ export class PSMenu {
   public static endSceneWithOutcome(outcome: PSOutcome): void {
     // Clean up scene elements
     PSMenu.instance.npc = null;
-    PSMenu.instance.entitySprite = null;
+    PSMenu.instance.clearEntity(); // Properly destroy entity sprite
     PSMenu.instance.backAnim = null;
 
     // Clear all menus and graphics

@@ -53,7 +53,7 @@ export class MenuStack {
   public entityX: number = 0;
   public entityY: number = 0;
 
-  private waitDelay: number = 0;
+  private delayTimer: number = 0;
   public showPlayers: boolean = false;
   public outcome: PSOutcome = PSOutcome.NO_FADE;
 
@@ -355,13 +355,26 @@ export class MenuStack {
    */
   public clearGraphics(): void {
     this.graphics.clear();
+    // Note: Do NOT clear entity sprite here - it should persist until scene ends
+  }
+
+  /**
+   * Clear entity sprite (called when scene actually ends)
+   */
+  public clearEntity(): void {
+    if (this.entitySprite) {
+      this.entitySprite.destroy();
+      this.entitySprite = null;
+    }
+    this.entityX = 0;
+    this.entityY = 0;
   }
 
   /**
    * Set delay before showing menus
    */
   public setDelay(delay: number): void {
-    this.waitDelay = delay;
+    this.delayTimer = delay;
   }
 
   /**
@@ -541,10 +554,16 @@ export class MenuStack {
       }
     }
 
-    // Draw entity sprite if present
-    if (this.entitySprite && this.entityX !== undefined && this.entityY !== undefined) {
+    // Draw entity sprite if present - direct port of Java entity rendering
+    if (this.entitySprite) {
+      // Center horizontally if entityX not set
+      if (this.entityX === undefined || this.entityX === 0) {
+        this.entityX = 320 / 2; // Center of 320px screen
+      }
+
       this.entitySprite.setPosition(this.entityX, this.entityY);
       this.entitySprite.setVisible(true);
+      this.entitySprite.setDepth(1000.5); // Ensure entity is above background but below menus
     }
 
     // Draw NPC sprite if present

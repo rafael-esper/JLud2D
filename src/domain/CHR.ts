@@ -46,8 +46,14 @@ export class CHR {
 
     try {
       // Load the JSON animation data
-      const animName = chrname.replace('.chr', '.anim.json').replace('.CHR', '.anim.json');
-      const response = await fetch(`${basePath}/${animName}`);
+      let animName = chrname;
+      // If it's a .chr file, convert to .anim.json, otherwise use as-is
+      if (chrname.endsWith('.chr') || chrname.endsWith('.CHR')) {
+        animName = chrname.replace('.chr', '.anim.json').replace('.CHR', '.anim.json');
+      }
+      const fetchUrl = `${basePath}/${animName}`;
+      console.log(`CHR: Fetching from URL: ${fetchUrl}`);
+      const response = await fetch(fetchUrl);
 
       if (!response.ok) {
         console.error(`Failed to load CHR: ${animName}`);
@@ -55,6 +61,7 @@ export class CHR {
       }
 
       const data: CHRData = await response.json();
+      console.log('CHR: Loaded JSON data:', data);
       chr.loadFromData(data);
 
       // Load the sprite image if not already loaded
@@ -107,6 +114,8 @@ export class CHR {
     this.imageName = data.imageName;
     this.columns = data.columns;
     this.spacing = data.spacing;
+
+    console.log(`CHR: loadFromData - totalframes: ${this.totalframes}, size: ${this.fxsize}x${this.fysize}, imageName: ${this.imageName}`);
 
     // Parse animations from animbuf strings
     this.parseAnimations();
@@ -232,6 +241,13 @@ export class CHR {
     const texture = scene.textures.get(imageKey);
     this.frames = [];
 
+    console.log(`CHR: extractFrames - imageKey: ${imageKey}, texture exists: ${!!texture}, totalframes: ${this.totalframes}, columns: ${this.columns}`);
+
+    if (!texture) {
+      console.error(`CHR: extractFrames - texture ${imageKey} not found`);
+      return;
+    }
+
     for (let i = 0; i < this.totalframes; i++) {
       const row = Math.floor(i / this.columns);
       const col = i % this.columns;
@@ -249,6 +265,8 @@ export class CHR {
 
       this.frames[i] = texture.frames[frameKey];
     }
+
+    console.log(`CHR: extractFrames - Created ${this.frames.length} frames`);
   }
 
   /**
@@ -384,4 +402,22 @@ export class CHR {
   public getHh(): number { return this.hh; }
   public getImageName(): string { return this.imageName; }
   public getIdle(): number[] { return this.idle; }
+
+  /**
+   * Get frame by index for entity sprites
+   */
+  public getFrameByIndex(index: number): Phaser.Textures.Frame | null {
+    if (index < 0 || index >= this.frames.length) {
+      console.error(`CHR::getFrameByIndex() - invalid index ${index}, total frames: ${this.frames.length}`);
+      return null;
+    }
+    return this.frames[index];
+  }
+
+  /**
+   * Get number of loaded frames
+   */
+  public getFrameCount(): number {
+    return this.frames.length;
+  }
 }
