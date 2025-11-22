@@ -123,6 +123,21 @@ export class PSGame {
   }
 
   /**
+   * Get available languages with their display names
+   */
+  public static async getAvailableLanguages(): Promise<{code: string, name: string}[]> {
+    // Define supported languages with native display names
+    return [
+      { code: 'en', name: 'English' },
+      { code: 'de', name: 'Deutsch' },
+      { code: 'fr', name: 'Français' },
+      { code: 'pt', name: 'Português' },
+      { code: 'se', name: 'Svenska' },
+      { code: 'tt', name: 'Português (TT)' }
+    ];
+  }
+
+  /**
    * Check if player is on transport
    */
   public static isOnTransport(): boolean {
@@ -213,10 +228,56 @@ export class PSGame {
   }
 
   /**
-   * Language menu (placeholder)
+   * Language menu - direct port from Java with I18n integration
    */
-  public static languageMenu(x: number, y: number): void {
-    console.log(`PSGame: Language menu at (${x}, ${y}) not implemented in demo`);
+  public static async languageMenu(menuStack: any): Promise<boolean> {
+    console.log("PSGame: Opening language selection menu");
+
+    // Define supported languages with display names
+    const languages = await this.getAvailableLanguages();
+
+    // Get current locale to mark it
+    const currentLocale = this.getCurrentLocale();
+
+    // Create language options with current language marked
+    const languageOptions = languages.map(lang => {
+      const prefix = lang.code === currentLocale ? '* ' : '  ';
+      return prefix + lang.name;
+    });
+
+    // Create language selection menu
+    const languageMenu = menuStack.createPromptBox(90, 140, languageOptions, true);
+    menuStack.push(languageMenu);
+
+    // Import PSCancellable for proper typing
+    const { PSCancellable } = await import('./menu/MenuStack');
+
+    const selectedIndex = await menuStack.waitOpt(PSCancellable.TRUE);
+    menuStack.pop();
+
+    // Handle cancellation (waitOpt returns -1 when cancelled)
+    if (selectedIndex === -1) {
+      console.log("PSGame: Language selection cancelled");
+      return false;
+    }
+
+    const selectedLanguage = languages[selectedIndex];
+    console.log(`PSGame: Selected language: ${selectedLanguage.name} (${selectedLanguage.code})`);
+
+    // Only change language if it's different from current
+    if (selectedLanguage.code !== currentLocale) {
+      try {
+        await this.setLocale(selectedLanguage.code);
+        console.log(`PSGame: Language changed to ${selectedLanguage.name}`);
+        return true; // Indicate that language was changed
+      } catch (error) {
+        console.error(`PSGame: Failed to change language to ${selectedLanguage.code}:`, error);
+        return false;
+      }
+    } else {
+      console.log("PSGame: Language unchanged (same as current)");
+      return false; // No change needed
+    }
   }
 
   /**

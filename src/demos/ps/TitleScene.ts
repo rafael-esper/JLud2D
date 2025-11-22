@@ -99,7 +99,14 @@ export class TitleScene extends PSScene {
 
       if (mainOpt === 4) {
         // Language
-        PSGame.languageMenu(60, 120);
+        const languageChanged = await PSGame.languageMenu(this.menuStack);
+
+        // If language was changed, refresh the title scene to show updated text
+        if (languageChanged) {
+          console.log("TitleScene: Language changed, refreshing scene");
+          this.startScene(PSSceneType.TITLE, SpecialEntity.NONE);
+        }
+        // Continue the loop to show updated menu text
       }
     }
 

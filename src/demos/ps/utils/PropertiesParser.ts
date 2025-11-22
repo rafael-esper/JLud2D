@@ -33,13 +33,19 @@ export class PropertiesParser {
         line = line.slice(0, -1);
       }
 
-      // Skip empty lines
-      if (line.trim().length === 0) {
+      // Skip empty lines and whitespace-only lines
+      const trimmedLine = line.trim();
+      if (trimmedLine.length === 0) {
         continue;
       }
 
-      // Skip comments
-      if (line.trim().startsWith('#') || line.trim().startsWith('!')) {
+      // Skip comments (lines starting with # or !)
+      if (trimmedLine.startsWith('#') || trimmedLine.startsWith('!') || trimmedLine.startsWith('--')) {
+        continue;
+      }
+
+      // Skip lines that are just quotes or special characters
+      if (trimmedLine === '"' || trimmedLine === "'" || trimmedLine.match(/^[^\w\s]*$/)) {
         continue;
       }
 
@@ -66,8 +72,16 @@ export class PropertiesParser {
       // Find the separator (= or :)
       const separatorIndex = this.findSeparator(line);
       if (separatorIndex === -1) {
-        // No separator found, skip this line
-        console.warn(`PropertiesParser: No separator found in line: ${line}`);
+        // Check if this looks like a key without value (common in properties files)
+        if (trimmedLine.length > 0 &&
+            !trimmedLine.startsWith('#') &&
+            !trimmedLine.startsWith('!') &&
+            !trimmedLine.startsWith('--') &&
+            trimmedLine.match(/^[A-Za-z_][A-Za-z0-9_.-]*$/)) {
+          // Treat as key with empty value (some properties files use this pattern for placeholders)
+          properties.set(trimmedLine, '');
+        }
+        // Silently skip malformed lines instead of warning
         continue;
       }
 
@@ -76,7 +90,7 @@ export class PropertiesParser {
       let value = line.substring(separatorIndex + 1).trim();
 
       if (key.length === 0) {
-        console.warn(`PropertiesParser: Empty key in line: ${line}`);
+        console.debug(`PropertiesParser: Empty key in line: ${line}`);
         continue;
       }
 
@@ -155,7 +169,7 @@ export class PropertiesParser {
   }
 
   /**
-   * Load and parse properties file from URL
+   * Load and parse properties file from URL with proper encoding handling
    */
   public static async loadFromUrl(url: string): Promise<Map<string, string>> {
     try {
@@ -165,7 +179,18 @@ export class PropertiesParser {
         throw new Error(`Failed to load properties file: ${response.status} ${response.statusText}`);
       }
 
-      const content = await response.text();
+      // Get the raw bytes first
+      const arrayBuffer = await response.arrayBuffer();
+
+      // Try to decode as UTF-8 first, then fallback to Latin-1 (ISO-8859-1)
+      let content: string;
+      try {
+        content = new TextDecoder('utf-8', { fatal: true }).decode(arrayBuffer);
+      } catch (utfError) {
+        console.log(`PropertiesParser: UTF-8 decode failed for ${url}, trying Latin-1`);
+        content = new TextDecoder('iso-8859-1').decode(arrayBuffer);
+      }
+
       return this.parse(content);
     } catch (error) {
       console.error(`PropertiesParser: Error loading ${url}:`, error);
