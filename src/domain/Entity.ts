@@ -412,6 +412,9 @@ export class Entity {
   public isAutoface(): boolean { return this.properties.autoface || false; }
   public setAutoface(autoface: boolean): void { this.properties.autoface = autoface; }
 
+  public getActivationScript(): string | undefined { return this.properties.activationEvent; }
+  public setActivationScript(script: string): void { this.properties.activationEvent = script; }
+
   // Animation frame control
   public getFrame(): number { return this.frame; }
   public setFrame(frame: number): void { this.frame = frame; }

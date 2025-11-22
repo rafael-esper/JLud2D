@@ -319,6 +319,91 @@ export class MainEngine {
       // Update last player direction for diagonal handling
       MainEngine.lastplayerdir = newDirection;
     }
+
+    // Check for entity/zone activation with B1 button
+    if (inputManager.justPressed('b1')) {
+      let ex = 0, ey = 0;
+
+      // Calculate position in front of player based on facing direction
+      const playerChr = MainEngine.myself.getChr();
+      if (!playerChr) {
+        console.warn('MainEngine: Player has no CHR, cannot calculate activation position');
+        return;
+      }
+
+      switch (MainEngine.myself.getFace()) {
+        case EntityDirection.NORTH:
+          ex = MainEngine.myself.getx() + (playerChr.getHw() / 2);
+          ey = MainEngine.myself.gety() - 1;
+          break;
+        case EntityDirection.SOUTH:
+          ex = MainEngine.myself.getx() + (playerChr.getHw() / 2);
+          ey = MainEngine.myself.gety() + playerChr.getHh() + 1;
+          break;
+        case EntityDirection.WEST:
+          ex = MainEngine.myself.getx() - 1;
+          ey = MainEngine.myself.gety() + (playerChr.getHh() / 2);
+          break;
+        case EntityDirection.EAST:
+          ex = MainEngine.myself.getx() + playerChr.getHw() + 1;
+          ey = MainEngine.myself.gety() + (playerChr.getHh() / 2);
+          break;
+      }
+
+      // First try to find entity at the calculated position
+      const entityIndex = MainEngine.EntityAt(ex, ey);
+      if (entityIndex !== -1) {
+        const targetEntity = MainEngine.entities[entityIndex];
+
+        // Make entity face player (autoface behavior)
+        if (targetEntity.isAutoface()) {
+          switch (MainEngine.myself.getFace()) {
+            case EntityDirection.NORTH:
+              targetEntity.setFace(EntityDirection.SOUTH);
+              break;
+            case EntityDirection.SOUTH:
+              targetEntity.setFace(EntityDirection.NORTH);
+              break;
+            case EntityDirection.WEST:
+              targetEntity.setFace(EntityDirection.EAST);
+              break;
+            case EntityDirection.EAST:
+              targetEntity.setFace(EntityDirection.WEST);
+              break;
+          }
+        }
+
+        // Execute entity's activation script
+        if (targetEntity.getActivationScript && targetEntity.getActivationScript()) {
+          console.log(`MainEngine: Activating entity ${entityIndex} with script: ${targetEntity.getActivationScript()}`);
+          MainEngine.callEntityScript(targetEntity.getActivationScript());
+        } else {
+          console.log(`MainEngine: Entity ${entityIndex} has no activation script`);
+        }
+      } else {
+        // No entity found, check for map zone activation
+        if (MainEngine.current_map && MainEngine.current_map.getzone) {
+          // Convert pixel coordinates to tile coordinates
+          const tileX = Math.floor(ex / 16);
+          const tileY = Math.floor(ey / 16);
+
+          const zone = MainEngine.current_map.getzone(tileX, tileY);
+          if (zone > 0) {
+            const script = MainEngine.current_map.getScriptZone(zone);
+            if (script && script.trim() !== '') {
+              console.log(`MainEngine: Activating map zone ${zone} with script: ${script}`);
+              MainEngine.callScriptFunction(script);
+            } else {
+              console.log(`MainEngine: Zone ${zone} has no script`);
+            }
+          } else {
+            console.log('MainEngine: No entity or zone found at activation position');
+          }
+        } else {
+          console.log('MainEngine: No entity found and no map available for zone checking');
+        }
+      }
+    }
   }
 
   public static RenderEntities(): void {
@@ -364,6 +449,34 @@ export class MainEngine {
 
   public static getNumEntities(): number {
     return MainEngine.numentities;
+  }
+
+  /**
+   * Find entity at specified position - direct port of Java EntityAt()
+   */
+  public static EntityAt(x: number, y: number): number {
+    for (let i = 0; i < MainEngine.numentities; i++) {
+      const entity = MainEngine.entities[i];
+      const chr = entity.getChr();
+
+      if (entity.isActive() && chr &&
+          x >= entity.getx() &&
+          x < entity.getx() + chr.getHw() &&
+          y >= entity.gety() &&
+          y < entity.gety() + chr.getHh()) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  /**
+   * Call entity script function - use existing generic script system
+   */
+  public static async callEntityScript(scriptName: string): Promise<void> {
+    console.log(`MainEngine: Calling entity script: ${scriptName}`);
+    // Use the existing generic callScriptFunction which already handles script contexts
+    MainEngine.callScriptFunction(scriptName);
   }
 
   public static getCameraTracking(): number {

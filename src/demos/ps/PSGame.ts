@@ -518,4 +518,37 @@ export class PSGame {
     }
     return item;
   }
+
+  /**
+   * Start entity interaction - direct port from Java EntStart()
+   * Sets up the interaction context for talking to NPCs/entities
+   */
+  public static EntStart(): void {
+    console.log("PSGame: Starting entity interaction");
+    // FIXME: Implement proper entity interaction start behavior
+    // In the original Java, this would:
+    // 1. Stop entity movement
+    // 2. Face entity towards player
+    // 3. Set interaction state
+    // 4. Potentially show entity sprite/portrait
+
+    // For now, we'll implement basic functionality
+    // The actual sprite/portrait display would be handled by PSMenu if needed
+  }
+
+  /**
+   * Finish entity interaction - direct port from Java EntFinish()
+   * Cleans up after entity interaction
+   */
+  public static EntFinish(): void {
+    console.log("PSGame: Finishing entity interaction");
+    // FIXME: Implement proper entity interaction finish behavior
+    // In the original Java, this would:
+    // 1. Resume entity movement patterns
+    // 2. Clear interaction state
+    // 3. Hide entity portraits/sprites if shown
+    // 4. Return entities to normal behavior
+
+    // For now, we'll implement basic functionality
+  }
 }

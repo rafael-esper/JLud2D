@@ -131,31 +131,31 @@ export class Camineet {
     console.log("Camineet: Hand shop - tools for sale");
   }
 
-  public static ent1(): void {
-    // PSGame.EntStart();
-    // PSMenu.Stext(PSGame.getString("Camineet_People_Ent1"));
-    // PSGame.EntFinish();
+  public static async ent1(): Promise<void> {
+    PSGame.EntStart();
+    await PSMenu.Stext(PSGame.getString("Camineet_People_Ent1"));
+    PSGame.EntFinish();
     console.log("Camineet: Random citizen 1");
   }
 
-  public static ent2(): void {
-    // PSGame.EntStart();
-    // PSMenu.Stext(PSGame.getString("Camineet_People_Ent2"));
-    // PSGame.EntFinish();
+  public static async ent2(): Promise<void> {
+    PSGame.EntStart();
+    await PSMenu.Stext(PSGame.getString("Camineet_People_Ent2"));
+    PSGame.EntFinish();
     console.log("Camineet: Random citizen 2");
   }
 
-  public static ent3(): void {
-    // PSGame.EntStart();
-    // PSMenu.Stext(PSGame.getString("Camineet_People_Ent3"));
-    // PSGame.EntFinish();
+  public static async ent3(): Promise<void> {
+    PSGame.EntStart();
+    await PSMenu.Stext(PSGame.getString("Camineet_People_Ent3"));
+    PSGame.EntFinish();
     console.log("Camineet: Random citizen 3");
   }
 
-  public static ent4(): void {
-    // PSGame.EntStart();
-    // PSMenu.Stext(PSGame.getString("Camineet_People_Ent4"));
-    // PSGame.EntFinish();
+  public static async ent4(): Promise<void> {
+    PSGame.EntStart();
+    await PSMenu.Stext(PSGame.getString("Camineet_People_Ent4"));
+    PSGame.EntFinish();
     console.log("Camineet: Random citizen 4");
   }
 
@@ -167,27 +167,30 @@ export class Camineet {
     PSGame.mapswitchToPlanet(Planet.PALMA, 82, 49);
   }
 
-  public static spaceport(): void {
-    // if (!PSGame.getParty().hasQuestItem(PSGame.getItem(OriginalItem.Quest_Road_Pass))) {
-    //   PSMenu.Stext(PSGame.getString("Camineet_People_Cop_No_Pass"));
-    // } else {
-    //   PSMenu.Stext(PSGame.getString("Camineet_People_Cop_Pass"));
-    //   PSGame.mapswitch(Planet.PALMA, 81, 46);
-    // }
+  public static async spaceport(): Promise<void> {
+    PSGame.EntStart();
+    if (!PSGame.getParty().hasQuestItem(PSGame.getItem(OriginalItem.Quest_Road_Pass))) {
+      await PSMenu.Stext(PSGame.getString("Camineet_People_Cop_No_Pass"));
+    } else {
+      await PSMenu.Stext(PSGame.getString("Camineet_People_Cop_Pass"));
+      // TODO: Implement spaceport map transition
+      // PSGame.mapswitch("spaceport/Spaceport.map", 81, 46);
+    }
+    PSGame.EntFinish();
     console.log("Camineet: Spaceport - need Road Pass");
   }
 
-  public static robot1(): void {
-    // PSGame.EntStart();
-    // PSMenu.Stext(PSGame.getString("Camineet_People_Cop1"));
-    // PSGame.EntFinish();
+  public static async robot1(): Promise<void> {
+    PSGame.EntStart();
+    await PSMenu.Stext(PSGame.getString("Camineet_People_Cop1"));
+    PSGame.EntFinish();
     console.log("Camineet: Robot guard 1");
   }
 
-  public static robot2(): void {
-    // PSGame.EntStart();
-    // PSMenu.Stext(PSGame.getString("Camineet_People_Cop2"));
-    // PSGame.EntFinish();
+  public static async robot2(): Promise<void> {
+    PSGame.EntStart();
+    await PSMenu.Stext(PSGame.getString("Camineet_People_Cop2"));
+    PSGame.EntFinish();
     console.log("Camineet: Robot guard 2");
   }
 }
