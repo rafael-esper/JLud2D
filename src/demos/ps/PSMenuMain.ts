@@ -705,7 +705,7 @@ export class PSMenuMain {
 
         if (cityOpt >= 0) {
           const chosenCity = cities[cityOpt];
-          PSGame.mapswitch(chosenCity.getPlanet(), chosenCity.getX(), chosenCity.getY());
+          PSGame.mapswitchToPlanet(chosenCity.getPlanet(), chosenCity.getX(), chosenCity.getY());
         }
         break;
 

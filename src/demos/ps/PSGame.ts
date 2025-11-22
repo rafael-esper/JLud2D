@@ -265,75 +265,69 @@ export class PSGame {
   }
 
   /**
-   * Map switch with fade - direct port from Java mapswitch(String, int, int, boolean)
+   * Map switch with string path - base implementation
    */
-  public static async mapswitch(mapname: string, x: number, y: number, fade: boolean): Promise<void>;
+  public static async mapswitch(mapname: string, x: number, y: number, fade: boolean = true): Promise<void> {
+    console.log(`PSGame.mapswitch: Loading map ${mapname} at (${x}, ${y})`);
+
+    MainEngine.setEntitiesPaused(true);
+    this.setgotoxy(x, y);
+    this.transportOff();
+
+    if (fade) {
+      await ScriptEngine.fadeout(30, true);
+    }
+
+    MainEngine.setEntitiesPaused(false);
+    await ScriptEngine.map(mapname);
+  }
 
   /**
-   * Map switch to City - direct port from Java mapswitch(City, int, int)
+   * Map switch to Planet - explicit method for Planet enum
    */
-  public static async mapswitch(city: any, x: number, y: number): Promise<void>;
+  public static async mapswitchToPlanet(planet: Planet, x: number, y: number): Promise<void> {
+    console.log(`PSGame.mapswitchToPlanet: ${Planet[planet]} at (${x}, ${y})`);
 
-  public static async mapswitch(mapnameOrCity: string | any, x: number, y: number, fade?: boolean): Promise<void> {
-    // Import Planet and City enums to check for mapswitch type
-    const { Planet, PlanetHelper, City, CityHelper } = await import('./game/City');
+    this.gameData.onGroundVehicle = false;
+    this.gameData.current_dungeon = 'NONE';
+    this.gameData.current_planet = planet;
+    this.gameData.current_city = null;
 
-    console.log(`PSGame.mapswitch: ${mapnameOrCity} (${typeof mapnameOrCity}), Planet values: [${Object.values(Planet)}], City values: [${Object.values(City)}]`);
+    // Import Planet helpers
+    const { PlanetHelper } = await import('./game/City');
 
-    if (typeof mapnameOrCity === 'string') {
-      // Base mapswitch(mapname, x, y, fade)
-      const mapname = mapnameOrCity;
-      const shouldFade = fade !== undefined ? fade : true;
+    // Get planet map path and call base mapswitch
+    const mapPath = PlanetHelper.getMapPath(planet);
+    await this.mapswitch(mapPath, x, y, true);
+    await this.playMusic(PlanetHelper.getMusic(planet));
+  }
 
-      MainEngine.setEntitiesPaused(true);
-      this.setgotoxy(x, y);
-      this.transportOff();
+  /**
+   * Map switch to City - explicit method for City enum
+   */
+  public static async mapswitchToCity(city: City, x: number, y: number): Promise<void> {
+    console.log(`PSGame.mapswitchToCity: ${City[city]} at (${x}, ${y})`);
 
-      if (shouldFade) {
-        await ScriptEngine.fadeout(30, true);
-      }
+    // Import City helpers
+    const { CityHelper } = await import('./game/City');
 
-      MainEngine.setEntitiesPaused(false);
-      await ScriptEngine.map(mapname);
-
-    } else if (typeof mapnameOrCity === 'number' && Object.values(Planet).includes(mapnameOrCity)) {
-      // Planet mapswitch(planet, x, y) - check against actual Planet enum values
-      console.log(`Taking Planet branch for: ${mapnameOrCity}`);
-      const planet = mapnameOrCity as Planet;
-
-      this.gameData.onGroundVehicle = false;
-      this.gameData.current_dungeon = 'NONE';
-      this.gameData.current_planet = planet;
-      this.gameData.current_city = null;
-
-      // Get planet map path and call base mapswitch
-      const mapPath = PlanetHelper.getMapPath(planet);
-      await this.mapswitch(mapPath, x, y, true);
-      await this.playMusic(PlanetHelper.getMusic(planet));
-
-    } else {
-      // City mapswitch(city, x, y) - this should catch City.CAMINEET
-      console.log(`Taking City branch for: ${mapnameOrCity}`);
-      const city = mapnameOrCity;
-
-      if (this.gameData.current_dungeon && this.gameData.current_dungeon !== 'NONE') {
-        // PSMenu.setMapOff(); // TODO: Implement when PSMenu is ready
-      }
-
-      this.gameData.onGroundVehicle = false;
-      this.gameData.current_dungeon = 'NONE';
-      this.gameData.current_city = city;
-      this.gameData.current_planet = city.planet;
-
-      // Add to visited cities
-      if (!this.gameData.visitedCities.includes(city)) {
-        this.gameData.visitedCities.push(city);
-      }
-
-      // Call base mapswitch with city path
-      await this.mapswitch(CityHelper.getPath(city), x, y, true);
-      this.playMusic(CityHelper.getMusic(city));
+    if (this.gameData.current_dungeon && this.gameData.current_dungeon !== 'NONE') {
+      // PSMenu.setMapOff(); // TODO: Implement when PSMenu is ready
     }
+
+    this.gameData.onGroundVehicle = false;
+    this.gameData.current_dungeon = 'NONE';
+    this.gameData.current_city = city;
+    this.gameData.current_planet = CityHelper.getPlanet(city);
+
+    // Add to visited cities
+    if (!this.gameData.visitedCities.includes(city)) {
+      this.gameData.visitedCities.push(city);
+    }
+
+    // Call base mapswitch with city path
+    await this.mapswitch(CityHelper.getPath(city), x, y, true);
+    this.playMusic(CityHelper.getMusic(city));
   }
 
   /**

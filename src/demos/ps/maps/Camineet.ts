@@ -159,11 +159,11 @@ export class Camineet {
   }
 
   public static exit1(): void {
-    PSGame.mapswitch(Planet.PALMA, 84, 49);
+    PSGame.mapswitchToPlanet(Planet.PALMA, 84, 49);
   }
 
   public static exit2(): void {
-    PSGame.mapswitch(Planet.PALMA, 82, 49);
+    PSGame.mapswitchToPlanet(Planet.PALMA, 82, 49);
   }
 
   public static spaceport(): void {

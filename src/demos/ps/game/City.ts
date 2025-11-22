@@ -24,6 +24,7 @@ export class PlanetHelper {
   public static getMusic(planet: Planet): PS1Music {
     return this.planetConfigs.get(planet)?.music || PS1Music.PALMA;
   }
+
 }
 
 enum Flyable {
@@ -175,4 +176,5 @@ export class CityHelper {
     const formatted = name.substring(0, 1) + name.substring(1).toLowerCase() + ".map.json";
     return formatted; // Return just filename, not full path
   }
+
 }

@@ -57,31 +57,31 @@ export class Palma {
   }
 
   public static async camineet(): Promise<void> {
-    await PSGame.mapswitch(City.CAMINEET, 32, 14);
+    await PSGame.mapswitchToCity(City.CAMINEET, 32, 14);
   }
 
   public static async loar(): Promise<void> { // 1 Loar
-    await PSGame.mapswitch(City.LOAR, 6, 10);
+    await PSGame.mapswitchToCity(City.LOAR, 6, 10);
   }
 
   public static async parolit(): Promise<void> { // 3 Parolit
-    await PSGame.mapswitch(City.PAROLIT, 15, 21);
+    await PSGame.mapswitchToCity(City.PAROLIT, 15, 21);
   }
 
   public static async eppi(): Promise<void> { // 4 Eppi
-    await PSGame.mapswitch(City.EPPI, 11, 16);
+    await PSGame.mapswitchToCity(City.EPPI, 11, 16);
   }
 
   public static async bortevo(): Promise<void> { // 5 Bortevo
-    await PSGame.mapswitch(City.BORTEVO, 6, 13);
+    await PSGame.mapswitchToCity(City.BORTEVO, 6, 13);
   }
 
   public static async gothic(): Promise<void> {
-    await PSGame.mapswitch(City.GOTHIC, 32, 15);
+    await PSGame.mapswitchToCity(City.GOTHIC, 32, 15);
   }
 
   public static async scion(): Promise<void> {
-    await PSGame.mapswitch(City.SCION, 7, 16);
+    await PSGame.mapswitchToCity(City.SCION, 7, 16);
   }
 
   public static async naula_cave(): Promise<void> {
@@ -113,11 +113,11 @@ export class Palma {
   }
 
   public static async abion(): Promise<void> {
-    await PSGame.mapswitch(City.ABION, 20, 25);
+    await PSGame.mapswitchToCity(City.ABION, 20, 25);
   }
 
   public static async drasgow(): Promise<void> {
-    await PSGame.mapswitch(City.DRASGOW, 10, 13);
+    await PSGame.mapswitchToCity(City.DRASGOW, 10, 13);
   }
 
   public static async triada(): Promise<void> {
