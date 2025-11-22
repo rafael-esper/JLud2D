@@ -35,6 +35,13 @@ export class ScriptEngine {
   }
 
   /**
+   * Preload music manifest for instant playback
+   */
+  public static async preloadMusicManifest(manifest: any): Promise<void> {
+    return await VGMPlayerAPI.preloadMusicManifest(manifest);
+  }
+
+  /**
    * Play VGM music
    */
   public static playmusic(key: string): boolean {

@@ -17,6 +17,7 @@ import { PS1CHR, PS1CHRHelper } from './game/PSLibCHR';
 import { Item } from './game/Item';
 import { OriginalItem, PSLibItem } from './game/PSLibItem';
 import { I18nManager } from './game/I18nManager';
+import { PS_MUSIC_MANIFEST } from './music-manifest';
 
 
 export class PSGame {
@@ -35,6 +36,7 @@ export class PSGame {
   // CHR library cache (equivalent to Java chrLIB HashMap)
   private static chrLIB: Map<PS1CHR, CHR> = new Map();
 
+
   /**
    * Initialize game screen with specified size
    */
@@ -42,6 +44,7 @@ export class PSGame {
     this.gameData.setScreenSize(screenSize);
     console.log(`PSGame: Initialized with screen size ${screenSize === ScreenSize.SCREEN_320_240 ? '320x240' : '640x480'}`);
   }
+
 
   /**
    * Initialize internationalization system
@@ -57,21 +60,36 @@ export class PSGame {
     }
   }
 
-  /**
-   * Play VGM music
-   */
   public static async playMusic(music: PS1Music): Promise<void> {
-    // Don't change music if the same music is already playing
+    console.log(`PSGame.playMusic: Called with music = "${music}"`);
+
     if (this.currentMusic === music) {
-      console.log(`PSGame: Music ${music} is already playing, skipping`);
+      console.log(`PSGame.playMusic: Same music already playing, skipping`);
       return;
     }
 
-    const musicPath = music as string;
-    console.log(`PSGame: Playing music ${musicPath}`);
-    await ScriptEngine.loadVGM('ps_current', musicPath);
-    ScriptEngine.playmusic('ps_current');
+    const musicKey = this.getMusicKeyFromPath(music as string);
+    console.log(`PSGame.playMusic: Converted to key = "${musicKey}"`);
+    console.log(`PSGame.playMusic: Calling ScriptEngine.playmusic("${musicKey}")`);
+
+    ScriptEngine.playmusic(musicKey);
     this.currentMusic = music;
+  }
+
+  /**
+   * Get music key from music path for cached playback
+   */
+  private static getMusicKeyFromPath(musicPath: string): string {
+    // Find the matching asset key in the manifest based on the path
+    for (const asset of PS_MUSIC_MANIFEST.assets) {
+      if (asset.path === musicPath) {
+        return asset.key;
+      }
+    }
+
+    // Fallback: extract filename without extension as key
+    const filename = musicPath.split('/').pop() || '';
+    return filename.replace(/\.(vgz|vgm)$/, '').toLowerCase();
   }
 
   /**

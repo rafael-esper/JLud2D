@@ -2,17 +2,20 @@
  * VGM Player API
  * Centralized VGM audio management for MainEngine
  * Provides asset loading and playback methods similar to Phaser's audio system
+ * Now uses VGMMusicManager for optimal performance and caching
  */
 
 import { VGMPlayer, VGMPlayerOptions, VGMInfo } from './index';
+import { VGMMusicManager, MusicManifest } from './VGMMusicManager';
 
 export class VGMPlayerAPI {
   private static vgmPlayer: VGMPlayer | null = null;
   private static vgmAssets: Map<string, Uint8Array> = new Map();
   private static initialized: boolean = false;
+  private static musicManager: VGMMusicManager | null = null;
 
   /**
-   * Initialize VGM audio system
+   * Initialize VGM audio system with music manager
    */
   public static async initialize(): Promise<void> {
     if (VGMPlayerAPI.initialized) return;
@@ -23,11 +26,16 @@ export class VGMPlayerAPI {
         enableLooping: true
       };
 
+      // Initialize both legacy VGMPlayer and new VGMMusicManager
       VGMPlayerAPI.vgmPlayer = new VGMPlayer(options);
       await VGMPlayerAPI.vgmPlayer.initialize();
+
+      VGMPlayerAPI.musicManager = VGMMusicManager.getInstance();
+      await VGMPlayerAPI.musicManager.initialize(options);
+
       VGMPlayerAPI.initialized = true;
 
-      console.log('VGMPlayerAPI: Initialized successfully');
+      console.log('VGMPlayerAPI: Initialized with VGMMusicManager successfully');
     } catch (error) {
       console.error('VGMPlayerAPI: Failed to initialize:', error);
     }
@@ -35,6 +43,7 @@ export class VGMPlayerAPI {
 
   /**
    * Load VGM asset (similar to this.load.audio pattern)
+   * Now uses VGMMusicManager for caching to eliminate loading hangs
    * @param key Asset key for later playback
    * @param filePath Path to VGM file
    */
@@ -43,24 +52,19 @@ export class VGMPlayerAPI {
       await VGMPlayerAPI.initialize();
     }
 
-    if (!VGMPlayerAPI.vgmPlayer) {
-      console.error('VGMPlayerAPI: Player not initialized');
+    if (!VGMPlayerAPI.musicManager) {
+      console.error('VGMPlayerAPI: Music manager not initialized');
       return null;
     }
 
     try {
-      const response = await fetch(filePath);
-      if (!response.ok) {
-        throw new Error(`Failed to load VGM file: ${filePath}`);
+      // Use VGMMusicManager for optimized loading and caching
+      const info = await VGMPlayerAPI.musicManager.loadMusicAsset(key, filePath, false);
+
+      if (info) {
+        console.log(`VGMPlayerAPI: Cached ${key}: ${info.chips.join(', ')} - ${info.duration}`);
       }
 
-      const vgmData = new Uint8Array(await response.arrayBuffer());
-      const info = await VGMPlayerAPI.vgmPlayer.loadVGM(vgmData);
-
-      // Store VGM data for later playback
-      VGMPlayerAPI.vgmAssets.set(key, vgmData);
-
-      console.log(`VGMPlayerAPI: Loaded ${key}: ${info.chips.join(', ')} - ${info.duration}`);
       return info;
     } catch (error) {
       console.error(`VGMPlayerAPI: Failed to load ${key}:`, error);
@@ -69,34 +73,32 @@ export class VGMPlayerAPI {
   }
 
   /**
-   * Play VGM music by key
+   * Play VGM music by key using cached music manager for instant playback
    * @param key Asset key of the VGM to play
    */
   public static playMusic(key: string): boolean {
     if (!VGMPlayerAPI.initialized) {
+      console.log(`VGMPlayerAPI: Not initialized, initializing then playing ${key}`);
       VGMPlayerAPI.initialize().then(() => {
         VGMPlayerAPI.playMusic(key);
       }).catch(console.error);
       return false;
     }
 
-    if (!VGMPlayerAPI.vgmPlayer) {
-      console.error('VGMPlayerAPI: Failed to initialize player');
-      return false;
-    }
-
-    const vgmData = VGMPlayerAPI.vgmAssets.get(key);
-    if (!vgmData) {
-      console.error(`VGMPlayerAPI: Asset '${key}' not found. Use loadVGM() first.`);
+    if (!VGMPlayerAPI.musicManager) {
+      console.error('VGMPlayerAPI: Music manager not initialized');
       return false;
     }
 
     try {
-      // Load the VGM data into the player and start playback (non-blocking)
-      VGMPlayerAPI.vgmPlayer.loadVGM(vgmData).then(() => {
-        return VGMPlayerAPI.vgmPlayer!.playMusic();
-      }).then(() => {
-        console.log(`VGMPlayerAPI: Playing '${key}'`);
+      // Use VGMMusicManager for cached/on-demand playback
+      console.log(`VGMPlayerAPI: Attempting to play '${key}'`);
+      VGMPlayerAPI.musicManager.playMusic(key).then((success) => {
+        if (success) {
+          console.log(`VGMPlayerAPI: Successfully playing '${key}'`);
+        } else {
+          console.error(`VGMPlayerAPI: Failed to play '${key}' - could not load or cache`);
+        }
       }).catch((error) => {
         console.error(`VGMPlayerAPI: Failed to play '${key}':`, error);
       });
@@ -109,12 +111,46 @@ export class VGMPlayerAPI {
   }
 
   /**
+   * Preload music manifest for instant playback
+   * @param manifest Music manifest to preload
+   */
+  public static async preloadMusicManifest(manifest: MusicManifest): Promise<void> {
+    if (!VGMPlayerAPI.initialized) {
+      await VGMPlayerAPI.initialize();
+    }
+
+    if (!VGMPlayerAPI.musicManager) {
+      console.error('VGMPlayerAPI: Music manager not initialized');
+      return;
+    }
+
+    // Check if this manifest was already preloaded
+    const preloadAssets = manifest.assets.filter(asset => asset.preload);
+    const allCached = preloadAssets.every(asset => VGMPlayerAPI.musicManager!.isCached(asset.key));
+
+    if (allCached) {
+      console.log(`VGMPlayerAPI: Manifest ${manifest.name} already preloaded, skipping`);
+      return;
+    }
+
+    try {
+      await VGMPlayerAPI.musicManager.preloadMusicManifest(manifest);
+      console.log(`VGMPlayerAPI: Preloaded manifest: ${manifest.name}`);
+    } catch (error) {
+      console.error(`VGMPlayerAPI: Failed to preload manifest:`, error);
+    }
+  }
+
+  /**
    * Stop VGM music playback
    */
   public static stopMusic(): void {
-    if (VGMPlayerAPI.vgmPlayer) {
-      VGMPlayerAPI.vgmPlayer.stopMusic();
+    if (VGMPlayerAPI.musicManager) {
+      VGMPlayerAPI.musicManager.stopMusic();
       console.log('VGMPlayerAPI: Music stopped');
+    } else if (VGMPlayerAPI.vgmPlayer) {
+      VGMPlayerAPI.vgmPlayer.stopMusic();
+      console.log('VGMPlayerAPI: Music stopped (legacy)');
     }
   }
 
@@ -122,6 +158,9 @@ export class VGMPlayerAPI {
    * Check if VGM music is currently playing
    */
   public static isPlaying(): boolean {
+    if (VGMPlayerAPI.musicManager) {
+      return VGMPlayerAPI.musicManager.isPlaying();
+    }
     return VGMPlayerAPI.vgmPlayer ? VGMPlayerAPI.vgmPlayer.isPlaying() : false;
   }
 
@@ -129,7 +168,9 @@ export class VGMPlayerAPI {
    * Resume audio context (call on user interaction)
    */
   public static resumeAudio(): void {
-    if (VGMPlayerAPI.vgmPlayer) {
+    if (VGMPlayerAPI.musicManager) {
+      VGMPlayerAPI.musicManager.resumeAudio();
+    } else if (VGMPlayerAPI.vgmPlayer) {
       VGMPlayerAPI.vgmPlayer.resumeAudio();
     }
   }

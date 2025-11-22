@@ -17,6 +17,7 @@ import { AkSprites } from './AkSprites';
 import { CHR } from '../../domain/CHR';
 import { Scene } from 'phaser';
 import { AkBaseScene } from './AkBaseScene';
+import { AK_MUSIC_MANIFEST } from './music-manifest';
 
 export class AkScene extends AkBaseScene {
   private mapFilename: string = 'level01.map.json';
@@ -137,10 +138,6 @@ export class AkScene extends AkBaseScene {
     // Initialize sprite system
     AkSprites.init(this);
 
-    // Load VGM music files
-    await ScriptEngine.loadVGM('field', 'src/demos/ak/res/music/field.vgz');
-    await ScriptEngine.loadVGM('swim', 'src/demos/ak/res/music/swim.vgz');
-    await ScriptEngine.loadVGM('moto', 'src/demos/ak/res/music/moto.vgz');
 
     // Initialize movement system
     this.movement = new AkMovement(this.tiledMap, this.inputManager);

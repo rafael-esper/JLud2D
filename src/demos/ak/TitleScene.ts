@@ -8,6 +8,7 @@ import { GameConfig } from '../../config/GameConfig';
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { AkBaseScene } from './AkBaseScene';
+import { AK_MUSIC_MANIFEST } from './music-manifest';
 
 export class TitleScene extends AkBaseScene {
 
@@ -36,6 +37,9 @@ export class TitleScene extends AkBaseScene {
   }
 
   async create() {
+    // Preload all Alex Kidd music once at demo start
+    await ScriptEngine.preloadMusicManifest(AK_MUSIC_MANIFEST);
+
     // Setup common AK controls
     this.setupAkControls();
 
@@ -49,8 +53,7 @@ export class TitleScene extends AkBaseScene {
     this.graphics = this.add.graphics();
     this.graphics.setDepth(1000); // High depth to render on top
 
-    // Load and play intro music
-    await ScriptEngine.loadVGM('intro', 'src/demos/ak/res/music/intro.vgz');
+    // Play intro music from cache
     ScriptEngine.playmusic('intro');
 
     console.log('TitleScene: Title screen initialized');
@@ -63,40 +66,44 @@ export class TitleScene extends AkBaseScene {
     // Increment timer
     this.timer++;
 
-    // Clear previous rectangles
-    this.graphics.clear();
-    this.graphics.fillStyle(this.backgroundColor);
-
-    // Progressive rectangle removal (ported from Java)
-    // Each rectangle disappears when timer reaches specified value
-
-    if (this.timer < 75) {
-      this.graphics.fillRect(210, 4, 295 - 210, 50 - 4); // width = 85, height = 46
+    // Clear previous rectangles (only if graphics is initialized)
+    if (this.graphics) {
+      this.graphics.clear();
+      this.graphics.fillStyle(this.backgroundColor);
     }
 
-    if (this.timer < 150) {
-      this.graphics.fillRect(134, 134, 233 - 134, 169 - 134); // width = 99, height = 35
+    // Progressive rectangle removal (only if graphics is initialized)
+    if (this.graphics) {
+      // Each rectangle disappears when timer reaches specified value
+
+      if (this.timer < 75) {
+        this.graphics.fillRect(210, 4, 295 - 210, 50 - 4); // width = 85, height = 46
+      }
+
+      if (this.timer < 150) {
+        this.graphics.fillRect(134, 134, 233 - 134, 169 - 134); // width = 99, height = 35
+      }
+
+      if (this.timer < 225) {
+        this.graphics.fillRect(32, 7, 76 - 32, 60 - 7); // width = 44, height = 53
+      }
+
+      if (this.timer < 300) {
+        this.graphics.fillRect(265, 72, 301 - 265, 156 - 72); // width = 36, height = 84
+      }
+
+      if (this.timer < 375) {
+        this.graphics.fillRect(25, 78, 108 - 25, 194 - 78); // width = 83, height = 116
+      }
+
+      // Blinking text area (shows/hides every 25 frames when timer >= 400)
+      if (this.timer < 400 || this.timer % 50 < 25) {
+        this.graphics.fillRect(88, 207, 228 - 88, 218 - 207); // width = 140, height = 11
+      }
     }
 
-    if (this.timer < 225) {
-      this.graphics.fillRect(32, 7, 76 - 32, 60 - 7); // width = 44, height = 53
-    }
-
-    if (this.timer < 300) {
-      this.graphics.fillRect(265, 72, 301 - 265, 156 - 72); // width = 36, height = 84
-    }
-
-    if (this.timer < 375) {
-      this.graphics.fillRect(25, 78, 108 - 25, 194 - 78); // width = 83, height = 116
-    }
-
-    // Blinking text area (shows/hides every 25 frames when timer >= 400)
-    if (this.timer < 400 || this.timer % 50 < 25) {
-      this.graphics.fillRect(88, 207, 228 - 88, 218 - 207); // width = 140, height = 11
-    }
-
-    // Handle title-specific input
-    if (this.inputManager.justPressed('b1') || this.inputManager.justPressed('start')) {
+    // Handle title-specific input (only if inputManager is initialized)
+    if (this.inputManager && (this.inputManager.justPressed('b1') || this.inputManager.justPressed('start'))) {
       this.startGame();
     }
   }

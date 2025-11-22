@@ -13,6 +13,8 @@ import { MenuPromptBox } from './menu/MenuPromptBox';
 import { PSCancellable } from './menu/MenuStack';
 import { Planet, City } from './game/City';
 import { MainEngine } from '../../core/MainEngine';
+import { PS_MUSIC_MANIFEST } from './music-manifest';
+import { ScriptEngine } from '../../core/ScriptEngine';
 
 export class TitleScene extends PSScene {
   constructor() {
@@ -36,6 +38,9 @@ export class TitleScene extends PSScene {
   async create() {
     console.log('TitleScene: Starting Phantasy Star title screen');
 
+    // Preload all PS music once at demo start (before any initialization)
+    await ScriptEngine.preloadMusicManifest(PS_MUSIC_MANIFEST);
+
     // Initialize game screen (equivalent to Java PSGame.initGameScreen)
     PSGame.initGameScreen(ScreenSize.SCREEN_320_240);
     PSGame.gameData.enableCheats = false;
@@ -43,7 +48,7 @@ export class TitleScene extends PSScene {
     // Initialize internationalization system BEFORE any getString calls
     await PSGame.initializeI18n();
 
-    // Start title music (equivalent to Java PSGame.playMusic(PS1Music.TITLE))
+    // Start title music from cache (should be preloaded at demo start)
     await PSGame.playMusic(PS1Music.TITLE);
 
     // Start the title scene (equivalent to Java PSMenu.startScene)

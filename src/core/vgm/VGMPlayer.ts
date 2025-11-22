@@ -252,7 +252,11 @@ export class VGMPlayer {
   /**
    * Play the loaded VGM file
    */
-  async playMusic(): Promise<void> {
+  /**
+   * Generate audio buffer from currently loaded VGM data
+   * This can be used for pre-generation during preloading
+   */
+  generateAudioBuffer(): AudioBuffer {
     if (!this.initialized || !this.audioCtx) {
       throw new Error('VGM player not initialized. Call initialize() first.');
     }
@@ -260,9 +264,6 @@ export class VGMPlayer {
     if (!this.currentVgm || !this.currentVgmData) {
       throw new Error('No VGM file loaded');
     }
-
-    // Stop any currently playing music
-    this.stopMusic();
 
     // Check if we have any supported chips
     const ay8910Chip = this.currentChips.find(c => c.type === 'AY8910');
@@ -287,15 +288,37 @@ export class VGMPlayer {
 
     // Create stereo audio buffer
     const channels = 2;
-    this.currentSource = this.audioCtx.createBufferSource();
     const buffer = this.audioCtx.createBuffer(channels, bufferSamples, sampleRate);
     const leftChannelData = buffer.getChannelData(0);
     const rightChannelData = buffer.getChannelData(1);
 
-    // Generate audio
+    // Generate audio (this is the expensive operation)
     this.generateVGMAudio(leftChannelData, rightChannelData, sampleRate, vgmInfo);
 
+    return buffer;
+  }
+
+  async playMusic(): Promise<void> {
+    if (!this.initialized || !this.audioCtx) {
+      throw new Error('VGM player not initialized. Call initialize() first.');
+    }
+
+    if (!this.currentVgm || !this.currentVgmData) {
+      throw new Error('No VGM file loaded');
+    }
+
+    // Stop any currently playing music
+    this.stopMusic();
+
+    // Generate audio buffer
+    const buffer = this.generateAudioBuffer();
+
+    // Get VGM info for loop setup
+    const vgmInfo = this.getVGMInfo(this.currentVgmData);
+    const sampleRate = this.options.sampleRate!;
+
     // Set up playback
+    this.currentSource = this.audioCtx.createBufferSource();
     this.currentSource.buffer = buffer;
     this.currentSource.connect(this.audioCtx.destination);
 
@@ -333,6 +356,34 @@ export class VGMPlayer {
    */
   isPlaying(): boolean {
     return this.currentSource !== null;
+  }
+
+  /**
+   * Play pre-generated audio buffer instantly (for VGMMusicManager)
+   */
+  async playPreGeneratedBuffer(audioBuffer: AudioBuffer, enableLoop: boolean = true): Promise<void> {
+    if (!this.initialized || !this.audioCtx) {
+      throw new Error('VGM player not initialized. Call initialize() first.');
+    }
+
+    // Stop any currently playing music
+    this.stopMusic();
+
+    // Create audio source from pre-generated buffer
+    this.currentSource = this.audioCtx.createBufferSource();
+    this.currentSource.buffer = audioBuffer;
+
+    // Connect to output
+    this.currentSource.connect(this.audioCtx.destination);
+
+    // Enable looping based on track setting and global options
+    this.currentSource.loop = enableLoop && (this.options.enableLooping || false);
+
+    // Start playback immediately
+    this.currentSource.start();
+    await this.audioCtx.resume();
+
+    console.log('VGMPlayer: Playing pre-generated audio buffer');
   }
 
   /**
