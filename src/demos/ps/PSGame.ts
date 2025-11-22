@@ -16,6 +16,7 @@ import { CHR } from '../../domain/CHR';
 import { PS1CHR, PS1CHRHelper } from './game/PSLibCHR';
 import { Item } from './game/Item';
 import { OriginalItem, PSLibItem } from './game/PSLibItem';
+import { I18nManager } from './game/I18nManager';
 
 
 export class PSGame {
@@ -26,6 +27,7 @@ export class PSGame {
   private static gotoy: number = 0;
   private static currentCity: any = null; // Current city for music and location
   private static currentMusic: PS1Music | null = null; // Track currently playing music
+  private static i18nManager: I18nManager = I18nManager.getInstance();
 
   // Sound library cache (equivalent to Java soundLIB HashMap)
   private static soundLIB: Map<PS1Sound, string> = new Map();
@@ -33,58 +35,26 @@ export class PSGame {
   // CHR library cache (equivalent to Java chrLIB HashMap)
   private static chrLIB: Map<PS1CHR, CHR> = new Map();
 
-  // Localization strings (simplified for demo - in original this loads from resource bundles)
-  private static strings: { [key: string]: string } = {
-    "Title_Newgame": "New Game",
-    "Title_Loadgame": "Load Game",
-    "Title_Credits": "Credits",
-    "Title_Options_Language": "Language",
-    "Title_Newgame_Alis": "Start as Alis",
-    "Title_Newgame_Odin": "Start as Odin",
-    "Title_Newgame_Noah": "Start as Noah",
-    "Title_Newgame_Party": "Start as Party",
-    "Title_Newgame_Extended": "Extended Game",
-    "Title_Newgame_PSArena": "PS Arena",
-    "Title_Credits_About": "About",
-    "Title_Credits_Game": "Game Credits",
-    "Title_Credits_Contact": "Contact",
-    // Camineet house strings
-    "Camineet_House_Alis": "Welcome to Alis's house! This is where your adventure began.",
-    "Camineet_House_Alis_Odin": "This house holds memories of Alis...",
-    "Camineet_House_Man": "Hello there! Welcome to our town.",
-    "Camineet_House_Oldman": "Would you like to hear about the crisis?",
-    "Camineet_House_Oldman_Yes": "Yes, dark times have fallen upon our land...",
-    "Camineet_House_Oldman_No": "Very well.",
-    "Camineet_House_Oldman_NoCrisis": "Perhaps you will change your mind later.",
-    "Camineet_House_Nekise_intro": "Welcome, young traveler! I have something for you.",
-    "Camineet_House_Nekise_greet": "Hello again! How goes your quest?",
-    "Camineet_House_Nekise_Odin": "Greetings, Odin. The road is dangerous.",
-    "Camineet_House_Suelo_intro1": "Welcome to my humble dwelling.",
-    "Camineet_House_Suelo_intro2": "I can help heal your wounds.",
-    "Camineet_House_Suelo_intro3": "Please rest here whenever you need.",
-    "Camineet_House_Suelo_greet": "Welcome back! Let me heal you.",
-    "Camineet_House_Suelo_Odin": "Odin, you look weary. Rest here.",
-    // Shop strings
-    "Shop_Weapon_Welcome": "Welcome to our weapon shop!",
-    "Shop_Pharmacy_Welcome": "Welcome to our pharmacy!",
-    "Shop_Tool_Welcome": "Welcome to our tool shop!",
-    // Citizen strings
-    "Camineet_People_Ent1": "The town has been peaceful lately.",
-    "Camineet_People_Ent2": "Have you heard the latest news?",
-    "Camineet_People_Ent3": "Be careful out there, traveler.",
-    "Camineet_People_Ent4": "The shops have good wares today.",
-    "Camineet_People_Cop_No_Pass": "You need a Road Pass to enter the spaceport.",
-    "Camineet_People_Cop_Pass": "Your Road Pass is in order. You may proceed.",
-    "Camineet_People_Cop1": "I am programmed to protect this city.",
-    "Camineet_People_Cop2": "Security protocols are active."
-  };
-
   /**
    * Initialize game screen with specified size
    */
   public static initGameScreen(screenSize: ScreenSize): void {
     this.gameData.setScreenSize(screenSize);
     console.log(`PSGame: Initialized with screen size ${screenSize === ScreenSize.SCREEN_320_240 ? '320x240' : '640x480'}`);
+  }
+
+  /**
+   * Initialize internationalization system
+   */
+  public static async initializeI18n(locale?: string): Promise<void> {
+    try {
+      const targetLocale = locale || this.gameData.locale;
+      await this.i18nManager.initialize(targetLocale);
+      console.log(`PSGame: I18n initialized for locale: ${targetLocale}`);
+    } catch (error) {
+      console.error('PSGame: Failed to initialize I18n:', error);
+      throw error;
+    }
   }
 
   /**
@@ -113,17 +83,43 @@ export class PSGame {
   }
 
   /**
-   * Get localized string
+   * Get localized string - direct port from Java getString() method
    */
   public static getString(key: string): string {
-    return this.strings[key] || key;
+    try {
+      return this.i18nManager.getString(key);
+    } catch (error) {
+      console.error(`String ${key} not found.`);
+      return key;
+    }
   }
 
   /**
-   * Get Yes/No choice array for prompts
+   * Get Yes/No choice array for prompts (localized)
    */
   public static getYesNo(): string[] {
-    return ["Yes", "No"];
+    return [this.getString("Menu_Choice_Yes"), this.getString("Menu_Choice_No")];
+  }
+
+  /**
+   * Set current locale and reload language files
+   */
+  public static async setLocale(locale: string): Promise<void> {
+    try {
+      await this.i18nManager.setLocale(locale);
+      this.gameData.locale = locale;
+      console.log(`PSGame: Locale changed to ${locale}`);
+    } catch (error) {
+      console.error(`PSGame: Failed to set locale to ${locale}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get current locale
+   */
+  public static getCurrentLocale(): string {
+    return this.i18nManager.getCurrentLocale();
   }
 
   /**
@@ -199,7 +195,7 @@ export class PSGame {
   /**
    * Initialize PS game with specified type - direct port from Java
    */
-  public static initPSGame(gameType: GameType): void {
+  public static async initPSGame(gameType: GameType): Promise<void> {
     console.log(`PSGame: Initializing game type ${GameType[gameType]}`);
 
     // Initialize party with specified game type

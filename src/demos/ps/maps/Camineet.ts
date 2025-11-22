@@ -80,15 +80,15 @@ export class Camineet {
     PSMenu.startScene(PSSceneType.YELLOW_HOUSE, EntityType.VILLA_WMN_BLOND, EntityClothes.RED);
 
     if (PSGame.getGameType() === GameType.PS_ORIGINAL) {
-      // if (!PSGame.hasFlag(Flags.VISIT_SUELO)) {
-      //   PSGame.setFlag(Flags.VISIT_SUELO);
-      //   await PSMenu.StextFirst(PSGame.getString("Camineet_House_Suelo_intro1"));
-      //   await PSMenu.StextNext(PSGame.getString("Camineet_House_Suelo_intro2"));
-      //   await PSMenu.StextNext(PSGame.getString("Camineet_House_Suelo_intro3"));
-      //   await PSMenu.StextLast(PSGame.getString("Camineet_House_Suelo_greet"));
-      // } else {
+      if (!PSGame.hasFlag(Flags.VISIT_SUELO)) {
+        PSGame.setFlag(Flags.VISIT_SUELO);
+        await PSMenu.StextFirst(PSGame.getString("Camineet_House_Suelo_intro1"));
+        await PSMenu.StextNext(PSGame.getString("Camineet_House_Suelo_intro2"));
+        await PSMenu.StextNext(PSGame.getString("Camineet_House_Suelo_intro3"));
+        await PSMenu.StextLast(PSGame.getString("Camineet_House_Suelo_greet"));
+      } else {
         await PSMenu.Stext(PSGame.getString("Camineet_House_Suelo_greet"));
-      // }
+      }
       PSGame.playSound(PS1Sound.CURE);
       PSGame.getParty().healAll(false);
       console.log("Camineet: Suelo - healing house");

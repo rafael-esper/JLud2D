@@ -40,6 +40,9 @@ export class TitleScene extends PSScene {
     PSGame.initGameScreen(ScreenSize.SCREEN_320_240);
     PSGame.gameData.enableCheats = false;
 
+    // Initialize internationalization system BEFORE any getString calls
+    await PSGame.initializeI18n();
+
     // Start title music (equivalent to Java PSGame.playMusic(PS1Music.TITLE))
     await PSGame.playMusic(PS1Music.TITLE);
 
@@ -81,7 +84,7 @@ export class TitleScene extends PSScene {
 
       if (mainOpt === 2) {
         // Load Game
-        PSGame.initPSGame(GameType.PS_ORIGINAL);
+        await PSGame.initPSGame(GameType.PS_ORIGINAL);
         if (PSGame.loadGame()) {
           // syncAfterLoading() - placeholder
           break;
@@ -136,7 +139,7 @@ export class TitleScene extends PSScene {
 
     if (opt === 0) {
       // Start as Alis - implement required initialization
-      PSGame.initPSGame(GameType.PS_ORIGINAL);
+      await PSGame.initPSGame(GameType.PS_ORIGINAL);
 
       console.log("TitleScene: Starting game as Alis in Camineet");
 
@@ -149,22 +152,22 @@ export class TitleScene extends PSScene {
       return true;
     } else if (opt === 1) {
       // Start as Odin
-      PSGame.initPSGame(GameType.PS_START_AS_ODIN);
+      await PSGame.initPSGame(GameType.PS_START_AS_ODIN);
       console.log("TitleScene: Starting game as Odin");
       // TODO: map("space/Space.map");
     } else if (opt === 2) {
       // Start as Noah
-      PSGame.initPSGame(GameType.PS_START_AS_NOAH);
+      await PSGame.initPSGame(GameType.PS_START_AS_NOAH);
       console.log("TitleScene: Starting game as Noah");
       // TODO: map("space/Space.map");
     } else if (opt === 4) {
       // Extended
-      PSGame.initPSGame(GameType.PS_ORIGINAL);
+      await PSGame.initPSGame(GameType.PS_ORIGINAL);
       console.log("TitleScene: Starting extended game");
       // TODO: PSGame.mapswitch(Planet.DEZORIS, 133, 104);
     } else if (opt === 5) {
       // PS Arena
-      PSGame.initPSGame(GameType.PS_ARENA);
+      await PSGame.initPSGame(GameType.PS_ARENA);
       console.log("TitleScene: Starting PS Arena");
       // TODO: PhantasyArena.PhantasyArenaGame();
       // For now, return to title
