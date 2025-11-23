@@ -207,7 +207,7 @@ export class PSMenu {
 
     // Set position at bottom of screen (240px screen height)
     // Entity Y should position the bottom of sprite at screen bottom with some padding
-    PSMenu.instance.entityY = 240 - 30; // 30px padding from bottom
+    PSMenu.instance.entityY = 190; // 240 - 30 - 20 (moved up 20px)
 
     // Special positioning for MOTA characters
     if (!isHalf && (entityType === EntityType.MOTA_CAP || entityType === EntityType.MOTA_MASK ||
@@ -265,7 +265,7 @@ export class PSMenu {
     PSMenu.instance.entitySprite.setOrigin(0.5, 1); // Bottom center origin
     PSMenu.instance.entitySprite.setDepth(1000.5); // Above background, below menu graphics
     PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
-    PSMenu.instance.entityY = 240 - 30; // Large entity positioning at bottom with padding
+    PSMenu.instance.entityY = 190; // 240 - 30 - 20 (moved up 20px)
 
     PSMenu.startSceneInternal(scene);
   }
@@ -302,7 +302,7 @@ export class PSMenu {
     PSMenu.instance.entitySprite.setOrigin(0.5, 1); // Bottom center origin
     PSMenu.instance.entitySprite.setDepth(1000.5); // Above background, below menu graphics
     PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
-    PSMenu.instance.entityY = 240 - 30; // CHR entity positioning at bottom with padding
+    PSMenu.instance.entityY = 190; // 240 - 30 - 20 (moved up 20px)
 
     PSMenu.startSceneInternal(scene);
   }
