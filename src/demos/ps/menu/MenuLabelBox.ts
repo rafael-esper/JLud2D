@@ -133,6 +133,9 @@ export class MenuLabelBox extends MenuType {
       const specwx = ((MenuType.MAX_DELAY - this.drawDelay) / MenuType.MAX_DELAY) * this.wx;
       const middle = (this.x + (this.x + this.wx)) / 2;
       this.menuStack.drawBox(Math.floor(middle - specwx / 2), this.y, Math.floor(specwx), this.wy);
+
+      // Hide text during animation
+      this.textObjects.forEach(textObj => textObj.setVisible(false));
     } else {
       if (this.state !== MenuState.END) {
         this.menuStack.drawBox(this.x, this.y, this.wx, this.wy);
@@ -142,6 +145,12 @@ export class MenuLabelBox extends MenuType {
           this.createTextObjects();
           this.textObjectsCreated = true;
         }
+
+        // Label boxes (like MST display) should always be visible unless explicitly ended
+        this.textObjects.forEach(textObj => textObj.setVisible(true));
+      } else {
+        // Hide text when menu ends
+        this.textObjects.forEach(textObj => textObj.setVisible(false));
       }
     }
   }

@@ -93,6 +93,9 @@ export class MenuPromptBox extends MenuType {
       const specwx = ((MenuType.MAX_DELAY - this.drawDelay) / MenuType.MAX_DELAY) * this.wx;
       const middle = (this.x + (this.x + this.wx)) / 2;
       this.menuStack.drawBox(Math.floor(middle - specwx / 2), this.y, Math.floor(specwx), this.wy);
+
+      // Hide text during animation
+      this.textObjects.forEach(textObj => textObj.setVisible(false));
     } else {
       // Draw the main menu box
       this.menuStack.drawBox(this.x, this.y, this.wx, this.wy);
@@ -102,6 +105,9 @@ export class MenuPromptBox extends MenuType {
         this.createTextObjects();
         this.textObjectsCreated = true;
       }
+
+      // Show/hide text based on whether menu is active
+      this.textObjects.forEach(textObj => textObj.setVisible(active));
 
       // Draw each option with circles and graphics
       for (let i = 0; i < this.options.length; i++) {

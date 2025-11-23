@@ -565,14 +565,19 @@ export class PSMenu {
         // Issue prompt
         await PSMenu.instance.waitReady(textBox);
 
-        // Calculate dynamic positioning to prevent overflow
-        const maxTextLength = MenuStack.getMaxTextLength(choices);
-        const menuWidth = 25 + maxTextLength; // Same calculation as MenuPromptBox
-        const screenWidth = PSMenu.instance.MAX_SCREEN_X;
-
-        // Position menu to fit on screen, preferring right side but avoiding overflow
-        const promptX = Math.min(240, Math.max(10, screenWidth - menuWidth - 10));
-        const promptY = 140; // Keep Y position fixed
+        let promptX, promptY;
+        if (choices.length > 2) {
+          // Item lists (more than 2 choices) go to top-left
+          promptX = 10;
+          promptY = 10; // Same Y as MST label
+        } else {
+          // Buy/Sell, Yes/No (2 choices) stay in original position
+          const maxTextLength = MenuStack.getMaxTextLength(choices);
+          const menuWidth = 25 + maxTextLength;
+          const screenWidth = PSMenu.instance.MAX_SCREEN_X;
+          promptX = Math.min(240, Math.max(10, screenWidth - menuWidth - 10));
+          promptY = 140;
+        }
 
         const promptBox = PSMenu.instance.createPromptBox(
           promptX,

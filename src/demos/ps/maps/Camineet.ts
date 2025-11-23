@@ -183,14 +183,14 @@ export class Camineet {
 
   public static async robot1(): Promise<void> {
     PSGame.EntStart();
-    await PSMenu.Stext(PSGame.getString("Camineet_People_Cop1"));
+    await PSMenu.StextLast(PSGame.getString("Camineet_People_Cop1"));
     PSGame.EntFinish();
     console.log("Camineet: Robot guard 1");
   }
 
   public static async robot2(): Promise<void> {
     PSGame.EntStart();
-    await PSMenu.Stext(PSGame.getString("Camineet_People_Cop2"));
+    await PSMenu.StextLast(PSGame.getString("Camineet_People_Cop2"));
     PSGame.EntFinish();
     console.log("Camineet: Robot guard 2");
   }

@@ -8,6 +8,7 @@ import { ScriptEngine } from '../../core/ScriptEngine';
 import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
 import { PS1Sound } from './game/PSLibSound';
+import { PSMenu } from './PSMenu';
 import { Party } from './game/Party';
 import { Planet, City, CityHelper } from './game/City';
 import { ScreenSize, GameType, Flags, GameData } from './game/GameData';
@@ -555,13 +556,15 @@ export class PSGame {
    */
   public static EntFinish(): void {
     console.log("PSGame: Finishing entity interaction");
-    // FIXME: Implement proper entity interaction finish behavior
-    // In the original Java, this would:
+
+    // Simple fix: pop the text box from the menu stack and clear graphics
+    PSMenu.instance.pop();
+    PSMenu.instance.clearGraphics();
+
+    // TODO: In the original Java, this would also:
     // 1. Resume entity movement patterns
     // 2. Clear interaction state
     // 3. Hide entity portraits/sprites if shown
     // 4. Return entities to normal behavior
-
-    // For now, we'll implement basic functionality
   }
 }
