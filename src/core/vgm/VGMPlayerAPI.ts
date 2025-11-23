@@ -35,7 +35,6 @@ export class VGMPlayerAPI {
 
       VGMPlayerAPI.initialized = true;
 
-      console.log('VGMPlayerAPI: Initialized with VGMMusicManager successfully');
     } catch (error) {
       console.error('VGMPlayerAPI: Failed to initialize:', error);
     }
@@ -61,9 +60,6 @@ export class VGMPlayerAPI {
       // Use VGMMusicManager for optimized loading and caching
       const info = await VGMPlayerAPI.musicManager.loadMusicAsset(key, filePath, false);
 
-      if (info) {
-        console.log(`VGMPlayerAPI: Cached ${key}: ${info.chips.join(', ')} - ${info.duration}`);
-      }
 
       return info;
     } catch (error) {
@@ -78,7 +74,6 @@ export class VGMPlayerAPI {
    */
   public static playMusic(key: string): boolean {
     if (!VGMPlayerAPI.initialized) {
-      console.log(`VGMPlayerAPI: Not initialized, initializing then playing ${key}`);
       VGMPlayerAPI.initialize().then(() => {
         VGMPlayerAPI.playMusic(key);
       }).catch(console.error);
@@ -91,12 +86,8 @@ export class VGMPlayerAPI {
     }
 
     try {
-      // Use VGMMusicManager for cached/on-demand playback
-      console.log(`VGMPlayerAPI: Attempting to play '${key}'`);
       VGMPlayerAPI.musicManager.playMusic(key).then((success) => {
-        if (success) {
-          console.log(`VGMPlayerAPI: Successfully playing '${key}'`);
-        } else {
+        if (!success) {
           console.error(`VGMPlayerAPI: Failed to play '${key}' - could not load or cache`);
         }
       }).catch((error) => {
@@ -129,13 +120,11 @@ export class VGMPlayerAPI {
     const allCached = preloadAssets.every(asset => VGMPlayerAPI.musicManager!.isCached(asset.key));
 
     if (allCached) {
-      console.log(`VGMPlayerAPI: Manifest ${manifest.name} already preloaded, skipping`);
       return;
     }
 
     try {
       await VGMPlayerAPI.musicManager.preloadMusicManifest(manifest);
-      console.log(`VGMPlayerAPI: Preloaded manifest: ${manifest.name}`);
     } catch (error) {
       console.error(`VGMPlayerAPI: Failed to preload manifest:`, error);
     }

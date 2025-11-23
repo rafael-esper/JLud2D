@@ -32,7 +32,7 @@ export class VGMMusicManager {
   private musicCache = new Map<string, CachedMusic>();
   private initialized = false;
   private maxCacheSize = 100; // Maximum number of cached tracks
-  private maxCacheMemoryMB = 50; // Maximum memory usage in MB
+  private maxCacheMemoryMB = 150; // Maximum memory usage in MB (increased for PS demo)
   private preloadInProgress = false;
   private totalCacheMemory = 0; // Track total memory usage in bytes
   private loadedManifests: Map<string, MusicManifest> = new Map(); // Registry of loaded manifests
@@ -63,7 +63,6 @@ export class VGMMusicManager {
       await this.vgmPlayer.initialize();
       this.initialized = true;
 
-      console.log('VGMMusicManager: Initialized successfully');
     } catch (error) {
       console.error('VGMMusicManager: Failed to initialize:', error);
       throw error;
@@ -89,7 +88,6 @@ export class VGMMusicManager {
     // Register this manifest for on-demand loading
     this.loadedManifests.set(manifest.name, manifest);
 
-    console.log(`VGMMusicManager: Preloading ${manifest.name} music manifest...`);
 
     const preloadAssets = manifest.assets.filter(asset => asset.preload);
     let loaded = 0;
@@ -101,14 +99,12 @@ export class VGMMusicManager {
         try {
           await this.loadMusicAsset(asset.key, asset.path, true, asset.loop ?? true);
           loaded++;
-          console.log(`VGMMusicManager: Preloaded ${asset.key} (${loaded}/${total})`);
         } catch (error) {
           console.error(`VGMMusicManager: Failed to preload ${asset.key}:`, error);
         }
       });
 
       await Promise.all(loadPromises);
-      console.log(`VGMMusicManager: Preloading complete for ${manifest.name} (${loaded}/${total} successful)`);
     } finally {
       this.preloadInProgress = false;
     }
@@ -126,7 +122,6 @@ export class VGMMusicManager {
     if (this.musicCache.has(key)) {
       const cached = this.musicCache.get(key)!;
       cached.lastUsed = Date.now();
-      console.log(`VGMMusicManager: Using cached ${key}`);
       return cached.info;
     }
 
@@ -147,7 +142,6 @@ export class VGMMusicManager {
       if (pregenerate) {
         try {
           audioBuffer = await this.generateAudioBuffer(vgmData, info);
-          console.log(`VGMMusicManager: Pre-generated audio buffer for ${key}`);
         } catch (error) {
           console.warn(`VGMMusicManager: Failed to pre-generate buffer for ${key}:`, error);
         }
@@ -173,7 +167,6 @@ export class VGMMusicManager {
       // Manage cache size and memory
       this.manageCacheSize();
 
-      console.log(`VGMMusicManager: Cached ${key}: ${info.chips.join(', ')} - ${info.duration}`);
       return info;
 
     } catch (error) {
@@ -195,13 +188,9 @@ export class VGMMusicManager {
 
     // If not cached, try to find and load it from manifests
     if (!cached) {
-      console.log(`VGMMusicManager: '${key}' not cached, attempting on-demand load...`);
-
       // Try to find the asset from any loaded manifest
       const asset = this.findAsset(key);
       if (asset) {
-        // Use pregenerate=true for on-demand loading to avoid hangs during playback
-        console.log(`VGMMusicManager: Loading '${key}' on-demand with pre-generation...`);
         const info = await this.loadMusicAsset(key, asset.path, true, asset.loop ?? true);
         if (!info) {
           console.error(`VGMMusicManager: Failed to load '${key}' on-demand`);
@@ -225,7 +214,6 @@ export class VGMMusicManager {
 
       // If we have a pre-generated buffer, use it directly
       if (cached.audioBuffer) {
-        console.log(`VGMMusicManager: Playing pre-generated buffer for '${key}'`);
         await this.vgmPlayer.playPreGeneratedBuffer(cached.audioBuffer, cached.loop);
       } else {
         // Fall back to regular loading (still cached, but needs processing)
@@ -233,7 +221,6 @@ export class VGMMusicManager {
         await this.vgmPlayer.playMusic();
       }
 
-      console.log(`VGMMusicManager: Playing '${key}' from cache`);
       return true;
 
     } catch (error) {
@@ -287,7 +274,6 @@ export class VGMMusicManager {
       // Generate the audio buffer (this is the expensive operation)
       const audioBuffer = this.vgmPlayer.generateAudioBuffer();
 
-      console.log('VGMMusicManager: Successfully pre-generated audio buffer');
       return audioBuffer;
 
     } catch (error) {
@@ -339,8 +325,6 @@ export class VGMMusicManager {
       this.musicCache.delete(key);
       this.totalCacheMemory -= entrySize;
 
-      const memoryMB = (this.totalCacheMemory / (1024 * 1024)).toFixed(2);
-      console.log(`VGMMusicManager: Evicted ${key} from cache (${this.musicCache.size} entries, ${memoryMB}MB)`);
     }
   }
 
@@ -399,7 +383,6 @@ export class VGMMusicManager {
   public clearCache(): void {
     this.musicCache.clear();
     this.totalCacheMemory = 0;
-    console.log('VGMMusicManager: Cache cleared');
   }
 
   /**
@@ -424,6 +407,5 @@ export class VGMMusicManager {
     }
     this.vgmPlayer = null;
     this.initialized = false;
-    console.log('VGMMusicManager: Cleaned up');
   }
 }

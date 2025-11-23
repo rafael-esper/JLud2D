@@ -61,16 +61,11 @@ export class PSGame {
   }
 
   public static async playMusic(music: PS1Music): Promise<void> {
-    console.log(`PSGame.playMusic: Called with music = "${music}"`);
-
     if (this.currentMusic === music) {
-      console.log(`PSGame.playMusic: Same music already playing, skipping`);
       return;
     }
 
     const musicKey = this.getMusicKeyFromPath(music as string);
-    console.log(`PSGame.playMusic: Converted to key = "${musicKey}"`);
-    console.log(`PSGame.playMusic: Calling ScriptEngine.playmusic("${musicKey}")`);
 
     ScriptEngine.playmusic(musicKey);
     this.currentMusic = music;
@@ -344,7 +339,7 @@ export class PSGame {
       await ScriptEngine.fadeout(30, true);
     }
 
-    MainEngine.setEntitiesPaused(false);
+    //MainEngine.setEntitiesPaused(false);
     await ScriptEngine.map(mapname);
   }
 
