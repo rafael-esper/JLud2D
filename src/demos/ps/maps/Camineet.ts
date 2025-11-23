@@ -12,6 +12,7 @@ import { Item } from '../game/Item';
 import { OriginalItem } from '../game/PSLibItem';
 import { PSSceneType, SpecialEntity, PSMenu, EntityType, EntityClothes, LargeEntity } from '../PSMenu';
 import { PSCancellable } from '../menu/MenuStack';
+import { PSMenuShop } from '../PSMenuShop';
 
 export class Camineet {
 
@@ -101,32 +102,32 @@ export class Camineet {
 
   public static async weap_shop(): Promise<void> {
     PSMenu.startScene(PSSceneType.SHOP_WEAPON, EntityType.CITY_MAN_BLOND, EntityClothes.RED);
-    // PSGame.Shop(PSGame.getString("Shop_Weapon_Welcome"), false, [
-    //   PSGame.getItem(OriginalItem.Shield_Leather_Shield),
-    //   PSGame.getItem(OriginalItem.Shield_Iron_Shield),
-    //   PSGame.getItem(OriginalItem.Shield_Ceramic_Shield)
-    // ]); // TODO: Implement Shop method
+    await PSMenuShop.Shop(PSGame.getString("Shop_Weapon_Welcome"), false, PSGame.getParty(), [
+      PSGame.getItem(OriginalItem.Shield_Leather_Shield),
+      PSGame.getItem(OriginalItem.Shield_Iron_Shield),
+      PSGame.getItem(OriginalItem.Shield_Ceramic_Shield)
+    ]);
     PSMenu.endScene();
     console.log("Camineet: Weapon shop - shields for sale");
   }
 
   public static async food_shop(): Promise<void> {
     PSMenu.startScene(PSSceneType.SHOP_FOOD, EntityType.CITY_MAN_BLOND, EntityClothes.BLUE);
-    // PSGame.Shop(PSGame.getString("Shop_Pharmacy_Welcome"), false, [
-    //   PSGame.getItem(OriginalItem.Inventory_Monomate),
-    //   PSGame.getItem(OriginalItem.Inventory_Dimate)
-    // ]); // TODO: Implement Shop method
+    await PSMenuShop.Shop(PSGame.getString("Shop_Pharmacy_Welcome"), false, PSGame.getParty(), [
+      PSGame.getItem(OriginalItem.Inventory_Monomate),
+      PSGame.getItem(OriginalItem.Inventory_Dimate)
+    ]);
     PSMenu.endScene();
     console.log("Camineet: Food shop - healing items for sale");
   }
 
   public static async hand_shop(): Promise<void> {
     PSMenu.startScene(PSSceneType.SHOP_HAND, EntityType.CITY_MAN_BROWN, EntityClothes.GREEN);
-    // PSGame.Shop(PSGame.getString("Shop_Tool_Welcome"), true, [
-    //   PSGame.getItem(OriginalItem.Inventory_Flash),
-    //   PSGame.getItem(OriginalItem.Inventory_Escape_Cloth),
-    //   PSGame.getItem(OriginalItem.Inventory_TranCarpet)
-    // ]); // TODO: Implement Shop method
+    await PSMenuShop.Shop(PSGame.getString("Shop_Tool_Welcome"), true, PSGame.getParty(), [
+      PSGame.getItem(OriginalItem.Inventory_Flash),
+      PSGame.getItem(OriginalItem.Inventory_Escape_Cloth),
+      PSGame.getItem(OriginalItem.Inventory_TranCarpet)
+    ]);
     PSMenu.endScene();
     console.log("Camineet: Hand shop - tools for sale");
   }

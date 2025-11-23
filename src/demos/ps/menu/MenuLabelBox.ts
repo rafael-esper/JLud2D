@@ -15,6 +15,8 @@ export class MenuLabelBox extends MenuType {
   private wy: number;
   private menuStack: MenuStack;
   private scene: Phaser.Scene;
+  private textObjects: Phaser.GameObjects.Text[] = []; // Store text objects for cleanup
+  private textObjectsCreated: boolean = false; // Track if text objects have been properly created
 
   // Color constants matching Java Color values
   private static readonly WHITE = 0xFFFFFF;
@@ -83,6 +85,9 @@ export class MenuLabelBox extends MenuType {
 
     // Update wx size
     this.wx = 16 + MenuStack.getMaxTextLength(this.text.filter(t => t !== null) as string[]);
+
+    // Mark for recreation on next draw
+    this.textObjectsCreated = false;
   }
 
   /**
@@ -90,8 +95,20 @@ export class MenuLabelBox extends MenuType {
    */
   public updateTextArray(s: string[]): void {
     for (let i = 0; i < this.text.length; i++) {
-      this.updateText(i, s[i]);
+      if (s[i] !== undefined) {
+        if (s[i].startsWith('<RED>')) {
+          this.updateColor(i, MenuLabelBox.RED);
+          this.text[i] = s[i].replace(/<RED>/g, '');
+        } else {
+          this.text[i] = s[i];
+        }
+      }
     }
+    // Update wx size
+    this.wx = 16 + MenuStack.getMaxTextLength(this.text.filter(t => t !== null) as string[]);
+
+    // Mark for recreation on next draw
+    this.textObjectsCreated = false;
   }
 
   /**
@@ -120,52 +137,69 @@ export class MenuLabelBox extends MenuType {
       if (this.state !== MenuState.END) {
         this.menuStack.drawBox(this.x, this.y, this.wx, this.wy);
 
-        let pos = 0;
-        for (let i = 0; i < this.text.length; i++) {
-          if (this.text[i] !== null) {
-            this.drawText(
-              this.x + 2 + MenuStack.fontXSize,
-              this.y + MenuStack.fontYSize + 6 + pos,
-              this.text[i]!,
-              this.colors[i]
-            );
-          }
-
-          if (this.text[i] === null || this.text[i]!.trim() === '') {
-            pos += (MenuStack.fontYSize + MenuStack.BETWEEN_ROWS_SPACE) / 2;
-          } else {
-            pos += MenuStack.fontYSize;
-          }
+        // Create text objects only once when delay finishes
+        if (!this.textObjectsCreated) {
+          this.createTextObjects();
+          this.textObjectsCreated = true;
         }
       }
     }
   }
 
   /**
-   * Draw text at specified position with color
-   * Port of screen.g.drawString() functionality for Phaser
+   * Create and manage text objects properly
    */
-  private drawText(x: number, y: number, text: string, color: number): void {
-    try {
-      if (this.scene && text) {
-        // Create temporary text object for drawing
-        // In practice this would be optimized to reuse text objects or use a text pool
-        const textObj = this.scene.add.text(x, y, text, {
-          fontFamily: 'monospace',
-          fontSize: `${MenuStack.fontYSize}px`,
-          color: `#${color.toString(16).padStart(6, '0')}`,
-          resolution: 1
-        });
+  private createTextObjects(): void {
+    // Clean up existing text objects
+    this.cleanupTextObjects();
+
+    if (!this.scene) return;
+
+    // Dynamic depth based on menu stack position
+    const stackDepth = this.menuStack.getStackDepth();
+    const baseDepth = 1002 + stackDepth * 10;
+
+    let pos = 0;
+    for (let i = 0; i < this.text.length; i++) {
+      if (this.text[i] !== null && this.text[i] !== '') {
+        const textX = this.x + 2 + MenuStack.fontXSize;
+        const textY = this.y + 6 + pos; // Removed extra MenuStack.fontYSize offset
+        const colorHex = `#${this.colors[i].toString(16).padStart(6, '0')}`;
+
+        const textObj = this.scene.add.text(textX, textY, this.text[i]!, {
+            fontFamily: 'monospace',
+            fontSize: `${MenuStack.fontYSize}px`,
+            color: colorHex,
+            resolution: 1
+          }
+        );
 
         textObj.setOrigin(0, 0);
-        textObj.setDepth(1002); // Above menu graphics and images
-
-        // In the original Java version, text would persist until the menu is redrawn
-        // In Phaser, we might want to manage text objects differently for performance
+        textObj.setDepth(baseDepth);
+        textObj.setScrollFactor(0, 0); // Fixed to screen
+        textObj.setVisible(true); // Explicitly set visible
+        this.textObjects.push(textObj);
       }
-    } catch (error) {
-      console.error('Error drawing text:', error);
+
+      if (this.text[i] === null || this.text[i]!.trim() === '') {
+        pos += (MenuStack.fontYSize + MenuStack.BETWEEN_ROWS_SPACE) / 2;
+      } else {
+        pos += MenuStack.fontYSize;
+      }
     }
+  }
+
+  /**
+   * Clean up text objects
+   */
+  private cleanupTextObjects(): void {
+    for (const textObj of this.textObjects) {
+      if (textObj && textObj.destroy) {
+        textObj.destroy();
+      }
+    }
+    this.textObjects = [];
+    this.textObjectsCreated = false;
   }
 
   /**
@@ -180,6 +214,14 @@ export class MenuLabelBox extends MenuType {
    */
   public setOff(): void {
     this.state = MenuState.END;
+    this.cleanupTextObjects();
+  }
+
+  /**
+   * Destroy/cleanup method for proper resource cleanup
+   */
+  public destroy(): void {
+    this.cleanupTextObjects();
   }
 
   /**

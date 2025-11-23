@@ -19,6 +19,7 @@ export class MenuPromptBox extends MenuType {
   // Graphics objects for drawing
   private graphics: Phaser.GameObjects.Graphics;
   private textObjects: Phaser.GameObjects.Text[] = [];
+  private textObjectsCreated: boolean = false;
 
   constructor(menuStack: MenuStack, x: number, y: number, options: string[], hasDelay: boolean) {
     super();
@@ -43,7 +44,8 @@ export class MenuPromptBox extends MenuType {
 
     // Create graphics object for drawing circles and cursor
     this.graphics = (menuStack as any).scene.add.graphics();
-    this.graphics.setDepth(1001);
+    // Dynamic depth for graphics based on menu stack position
+    this.graphics.setDepth(1001 + this.menuStack.getStackDepth() * 10);
     this.graphics.setScrollFactor(0, 0); // Fixed to screen like other UI elements
   }
 
@@ -85,10 +87,6 @@ export class MenuPromptBox extends MenuType {
     // Clear our own graphics only (don't clear menuStack graphics to preserve previous menus)
     this.graphics.clear();
 
-    // Destroy previous text objects
-    this.textObjects.forEach(text => text.destroy());
-    this.textObjects = [];
-
     if (this.drawDelay > 0) {
       // Opening animation - box grows from center
       this.drawDelay--;
@@ -99,28 +97,15 @@ export class MenuPromptBox extends MenuType {
       // Draw the main menu box
       this.menuStack.drawBox(this.x, this.y, this.wx, this.wy);
 
-      // Draw each option with circles and text
-      for (let i = 0; i < this.options.length; i++) {
-        const textY = this.y + 2 + ((MenuStack.fontYSize + MenuStack.BETWEEN_ROWS_SPACE) * (i + 1)) - MenuStack.fontYSize;
-        const textX = this.x + 12 + MenuStack.fontXSize;
-        const circleY = this.y - 6 + ((MenuStack.fontYSize + MenuStack.BETWEEN_ROWS_SPACE) * (i + 1));
+      // Create text objects only once when delay finishes
+      if (!this.textObjectsCreated) {
+        this.createTextObjects();
+        this.textObjectsCreated = true;
+      }
 
-        // Draw text
-        const textColor = this.enabled[i] ? '#ffffff' : '#808080'; // White or gray
-        const textObj = (this.menuStack as any).scene.add.text(
-          textX,
-          textY,
-          this.options[i],
-          {
-            fontSize: '12px',
-            fontFamily: 'monospace',
-            fontStyle: 'bold',
-            color: textColor
-          }
-        );
-        textObj.setDepth(1002);
-        textObj.setScrollFactor(0, 0); // Fixed to screen like other UI elements
-        this.textObjects.push(textObj);
+      // Draw each option with circles and graphics
+      for (let i = 0; i < this.options.length; i++) {
+        const circleY = this.y - 6 + ((MenuStack.fontYSize + MenuStack.BETWEEN_ROWS_SPACE) * (i + 1));
 
         // Draw gray circle border (equivalent to Java drawRoundRect)
         this.graphics.lineStyle(1, 0x808080); // Gray color
@@ -144,10 +129,48 @@ export class MenuPromptBox extends MenuType {
     }
   }
 
+  private createTextObjects(): void {
+    // Clean up existing text objects
+    this.cleanupTextObjects();
+
+    const scene = (this.menuStack as any).scene;
+    if (!scene) return;
+
+    const stackDepth = this.menuStack.getStackDepth();
+    const baseDepth = 1002 + stackDepth * 10;
+
+    for (let i = 0; i < this.options.length; i++) {
+      const textY = this.y + 2 + ((MenuStack.fontYSize + MenuStack.BETWEEN_ROWS_SPACE) * (i + 1)) - MenuStack.fontYSize;
+      const textX = this.x + 12 + MenuStack.fontXSize;
+      const textColor = this.enabled[i] ? '#ffffff' : '#808080'; // White or gray
+
+      const textObj = scene.add.text(textX, textY, this.options[i], {
+        fontSize: '12px',
+        fontFamily: 'monospace',
+        fontStyle: 'bold',
+        color: textColor
+      });
+
+      textObj.setDepth(baseDepth);
+      textObj.setScrollFactor(0, 0); // Fixed to screen like other UI elements
+      textObj.setVisible(true); // Explicitly set visible
+      this.textObjects.push(textObj);
+    }
+  }
+
+  private cleanupTextObjects(): void {
+    for (const textObj of this.textObjects) {
+      if (textObj && textObj.destroy) {
+        textObj.destroy();
+      }
+    }
+    this.textObjects = [];
+    this.textObjectsCreated = false;
+  }
+
   public destroy(): void {
     // Clean up graphics and text objects
     this.graphics.destroy();
-    this.textObjects.forEach(text => text.destroy());
-    this.textObjects = [];
+    this.cleanupTextObjects();
   }
 }

@@ -201,7 +201,8 @@ export class PSLibItem {
     sound: PS1Sound
   ): void {
     const itemKey = this.getItemOrdinal(item);
-    items.set(itemKey, new Item(`Item_${item}`, price, type, mod, animation, sound));
+    const itemName = OriginalItem[item]; // Get the string name of the enum
+    items.set(itemKey, new Item(`Item_${itemName}`, price, type, mod, animation, sound));
   }
 
   /**
@@ -216,7 +217,8 @@ export class PSLibItem {
     effect: Effect
   ): void {
     const itemKey = this.getItemOrdinal(item);
-    items.set(itemKey, new Item(`Item_${item}`, price, type, mod, effect));
+    const itemName = OriginalItem[item]; // Get the string name of the enum
+    items.set(itemKey, new Item(`Item_${itemName}`, price, type, mod, effect));
   }
 
   /**

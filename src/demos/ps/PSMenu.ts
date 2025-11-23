@@ -565,8 +565,14 @@ export class PSMenu {
         // Issue prompt
         await PSMenu.instance.waitReady(textBox);
 
-        const promptX = 240; // Use position similar to Title screen that works
-        const promptY = 140; // Use position similar to Title screen that works
+        // Calculate dynamic positioning to prevent overflow
+        const maxTextLength = MenuStack.getMaxTextLength(choices);
+        const menuWidth = 25 + maxTextLength; // Same calculation as MenuPromptBox
+        const screenWidth = PSMenu.instance.MAX_SCREEN_X;
+
+        // Position menu to fit on screen, preferring right side but avoiding overflow
+        const promptX = Math.min(240, Math.max(10, screenWidth - menuWidth - 10));
+        const promptY = 140; // Keep Y position fixed
 
         const promptBox = PSMenu.instance.createPromptBox(
           promptX,

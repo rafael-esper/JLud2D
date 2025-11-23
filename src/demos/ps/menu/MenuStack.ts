@@ -84,6 +84,13 @@ export class MenuStack {
     return menu;
   }
 
+  /**
+   * Get current stack depth for proper layering
+   */
+  public getStackDepth(): number {
+    return this.menus.length;
+  }
+
 
   /**
    * Create prompt box - direct port of Java createPromptBox()

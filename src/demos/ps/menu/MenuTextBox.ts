@@ -79,8 +79,11 @@ export class MenuTextBox extends MenuType {
         color: '#ffffff'
       }
     );
-    textObj1.setDepth(1002);
+    // Dynamic depth based on menu stack position to prevent text overlap
+    const stackDepth = this.menuStack.getStackDepth();
+    textObj1.setDepth(1002 + stackDepth * 10); // Each menu level gets +10 depth
     textObj1.setScrollFactor(0, 0);
+    textObj1.setVisible(true); // Explicitly set visible
     this.textObjects.push(textObj1);
 
     // Create second line text object (initially empty, will be updated in draw)
@@ -95,8 +98,9 @@ export class MenuTextBox extends MenuType {
         color: '#ffffff'
       }
     );
-    textObj2.setDepth(1002);
+    textObj2.setDepth(1002 + stackDepth * 10); // Use same stack depth as first text object
     textObj2.setScrollFactor(0, 0);
+    textObj2.setVisible(true); // Explicitly set visible
     this.textObjects.push(textObj2);
   }
 
