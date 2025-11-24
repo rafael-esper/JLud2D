@@ -410,15 +410,25 @@ export class MainEngine {
     // Sort entities by Y position for proper depth ordering
     const sortedEntities = [...MainEngine.entities].sort((a, b) => a.gety() - b.gety());
 
+    // Get the base entity depth from the map's renderString
+    const baseEntityDepth = MainEngine.current_map ? MainEngine.current_map.getEntityDepth() : 2;
+
     // Update sprite depths based on sorted order for proper Y-sorting
     for (let i = 0; i < sortedEntities.length; i++) {
       const entity = sortedEntities[i];
       if (entity.isActive() && entity.isVisible()) {
         const sprite = entity.getSprite();
         if (sprite) {
-          // Set depth based on Y position - higher Y = higher depth (drawn on top)
-          // Base depth 1000 + Y position ensures proper sorting
-          sprite.setDepth(1000 + entity.gety());
+          // Use map's entity depth as base, then add small Y-based offset for sorting
+          // This keeps entities in their proper layer while allowing Y-sorting within that layer
+          let depth = baseEntityDepth + (entity.gety() * 0.001);
+
+          // Give player a tiny depth advantage to appear above other entities at same Y
+          if (entity === MainEngine.myself) {
+            depth += 0.0001;
+          }
+
+          sprite.setDepth(depth);
         }
         entity.draw();
       }

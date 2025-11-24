@@ -64,7 +64,7 @@ export class MenuStack {
     this.scene = scene;
     this.inputManager = inputManager;
     this.graphics = scene.add.graphics();
-    this.graphics.setDepth(1001); // Above background, below text
+    this.graphics.setDepth(2000); // Well above entities (which max around 1000 + map_height)
     this.graphics.setScrollFactor(0, 0); // Fixed to screen like background
   }
 
@@ -126,14 +126,14 @@ export class MenuStack {
         // Create image from existing texture at screen (0,0) with no scaling
         this.back = this.scene.add.image(0, 0, imageKey);
         this.back.setOrigin(0, 0);
-        this.back.setDepth(1000); // Above game, below menu elements
+        this.back.setDepth(1950); // Above entities, below menu boxes and text
         this.back.setScrollFactor(0, 0); // Fixed to screen, not affected by camera
       } else if (!isTextureKey) {
         // Load the image first, then create (only if it's a file path, not a texture key)
         this.scene.load.once('complete', () => {
           this.back = this.scene.add.image(0, 0, imageKey);
           this.back.setOrigin(0, 0);
-          this.back.setDepth(1000); // Above game, below menu elements
+          this.back.setDepth(1950); // Above entities, below menu boxes and text
           this.back.setScrollFactor(0, 0); // Fixed to screen, not affected by camera
         });
         this.scene.load.image(imageKey, imagePath);
@@ -570,7 +570,7 @@ export class MenuStack {
 
       this.entitySprite.setPosition(this.entityX, this.entityY);
       this.entitySprite.setVisible(true);
-      this.entitySprite.setDepth(1000.5); // Ensure entity is above background but below menus
+      this.entitySprite.setDepth(1960); // Above background but below menu boxes
     }
 
     // Draw NPC sprite if present

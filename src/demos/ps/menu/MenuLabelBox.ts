@@ -166,7 +166,7 @@ export class MenuLabelBox extends MenuType {
 
     // Dynamic depth based on menu stack position
     const stackDepth = this.menuStack.getStackDepth();
-    const baseDepth = 1002 + stackDepth * 10;
+    const baseDepth = 2010 + stackDepth * 10; // Above all menu graphics
 
     let pos = 0;
     for (let i = 0; i < this.text.length; i++) {
