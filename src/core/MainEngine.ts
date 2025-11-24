@@ -271,6 +271,11 @@ export class MainEngine {
       if (MainEngine.current_map) {
         canMove = !MainEngine.current_map.getobspixel(targetX, targetY);
 
+        // Additional check for entity obstructions (for demos that use them)
+        if (canMove) {
+          canMove = !MainEngine.isEntityObstruction(targetX, targetY);
+        }
+
         // For diagonal movement, also check that we can't squeeze between diagonal obstacles
         if (canMove && moveX !== 0 && moveY !== 0) {
           // Check the two adjacent cells for diagonal movement
@@ -441,6 +446,58 @@ export class MainEngine {
 
   public static getCurrentMap(): any {
     return MainEngine.current_map;
+  }
+
+  /**
+   * Check if there's an entity obstruction at the given pixel coordinates
+   * This is used only for demos that have entities with obstruction flags
+   */
+  private static isEntityObstruction(x: number, y: number): boolean {
+    if (!MainEngine.entities || MainEngine.entities.length === 0) {
+      return false;
+    }
+
+    // Quick check: if no entities have obstruction enabled, skip the expensive checking
+    const hasObstructionEntities = MainEngine.entities.some(entity => {
+      try {
+        return entity &&
+               typeof entity.isActive === 'function' && entity.isActive() &&
+               typeof entity.isObstruction === 'function' && entity.isObstruction();
+      } catch (error) {
+        return false;
+      }
+    });
+    if (!hasObstructionEntities) {
+      return false;
+    }
+
+    const tileWidth = MainEngine.current_map ? MainEngine.current_map.getTileWidth() : 16;
+    const tileHeight = MainEngine.current_map ? MainEngine.current_map.getTileHeight() : 16;
+    const tileX = Math.floor(x / tileWidth);
+    const tileY = Math.floor(y / tileHeight);
+
+    for (const entity of MainEngine.entities) {
+      try {
+        if (!entity ||
+            typeof entity.isActive !== 'function' || !entity.isActive() ||
+            typeof entity.isObstruction !== 'function' || !entity.isObstruction() ||
+            typeof entity.getx !== 'function' || typeof entity.gety !== 'function') {
+          continue;
+        }
+
+        // Check if entity is at the same tile position
+        const entityTileX = Math.floor(entity.getx() / tileWidth);
+        const entityTileY = Math.floor(entity.gety() / tileHeight);
+
+        if (entityTileX === tileX && entityTileY === tileY) {
+          return true;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+
+    return false;
   }
 
   public static getPlayerIndex(): number {

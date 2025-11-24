@@ -789,46 +789,9 @@ export class TiledMap {
   public getobspixel(x: number, y: number): boolean {
     const tileX = Math.floor(x / this.tilewidth);
     const tileY = Math.floor(y / this.tileheight);
-
-    // Check tile-based obstructions first
-    if (this.getobs(tileX, tileY)) {
-      return true;
-    }
-
-    // Check for entity obstructions at this position
-    return this.isEntityObstruction(x, y);
+    return this.getobs(tileX, tileY);
   }
 
-  /**
-   * Check if there's an entity obstruction at the given pixel coordinates
-   */
-  private isEntityObstruction(x: number, y: number): boolean {
-    // Access MainEngine through global reference to avoid circular imports
-    const MainEngine = (globalThis as any).MainEngine;
-    if (!MainEngine || !MainEngine.getEntities) {
-      return false;
-    }
-
-    const entities = MainEngine.getEntities();
-    const tileX = Math.floor(x / this.tilewidth);
-    const tileY = Math.floor(y / this.tileheight);
-
-    for (const entity of entities) {
-      if (!entity || !entity.isActive() || !entity.isObstruction()) {
-        continue;
-      }
-
-      // Check if entity is at the same tile position
-      const entityTileX = Math.floor(entity.getx() / this.tilewidth);
-      const entityTileY = Math.floor(entity.gety() / this.tileheight);
-
-      if (entityTileX === tileX && entityTileY === tileY) {
-        return true;
-      }
-    }
-
-    return false;
-  }
 
   public isObs(t: number): boolean {
        const firstGid = this.getMetaTileset().getFirstGid();
