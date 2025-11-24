@@ -5,6 +5,7 @@
 
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
+import { EntityDirection } from '../../domain/Entity';
 import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
 import { PS1Sound } from './game/PSLibSound';
@@ -161,12 +162,36 @@ export class PSGame {
   }
 
   /**
-   * Regroup party members
+   * Regroup party members - direct port of Java PSGame.regroup()
+   * Positions the player at adjusted coordinates and faces south
    */
-  public static regroup(x: number, y: number): void {
-    console.log(`PSGame: Regrouping party at (${x}, ${y})`);
-    // TODO: Implement party regrouping logic
-    // This would position party members around the specified coordinates
+  public static regroup(xAdjust: number, yAdjust: number): void {
+    console.log(`PSGame: Regrouping party with adjustment (${xAdjust}, ${yAdjust})`);
+
+    // Early exit if no player (equivalent to TEST_SIMULATION or entities == null checks)
+    const player = MainEngine.getPlayer();
+    if (!player) {
+      console.log('PSGame.regroup: No player entity found');
+      return;
+    }
+
+    // Get current position and convert to tile coordinates
+    // Java: int x = (entities.get(player).getx()+16*xAdjust)/16;
+    // Java: int y = (entities.get(player).gety()+16*yAdjust)/16;
+    const currentX = player.getx();
+    const currentY = player.gety();
+    const tileX = Math.floor((currentX + 16 * xAdjust) / 16);
+    const tileY = Math.floor((currentY + 16 * yAdjust) / 16);
+
+    // Set player to exact tile position (removes sub-pixel positioning)
+    // Java: entities.get(player).setxy(x*16, y*16);
+    player.setxy(tileX * 16, tileY * 16);
+
+    // Force player to face south
+    // Java: entities.get(player).setFace(Entity.SOUTH);
+    player.setFace(EntityDirection.SOUTH);
+
+    console.log(`PSGame.regroup: Player moved from (${currentX}, ${currentY}) to tile (${tileX}, ${tileY}) = (${tileX * 16}, ${tileY * 16}) pixels, facing south`);
   }
 
   /**

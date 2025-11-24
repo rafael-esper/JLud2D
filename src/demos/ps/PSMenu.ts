@@ -103,29 +103,29 @@ export class PSMenu {
   /**
    * Start scene with special entity - overload for Java compatibility
    */
-  public static startScene(scene: Scene, specialEntity: SpecialEntity): void;
+  public static startScene(scene: Scene, specialEntity: SpecialEntity): Promise<void>;
   /**
    * Start scene with character - direct port of Java startScene(Scene, String)
    */
-  public static startScene(scene: Scene, strChar?: string): void;
+  public static startScene(scene: Scene, strChar?: string): Promise<void>;
   /**
    * Start scene with entity type and clothes - direct port of Java startScene(Scene, EntityType, Enum)
    */
-  public static startScene(scene: Scene, entityType: EntityType, entityClothes: EntityClothes): void;
-  public static startScene(scene: Scene, param1?: string | SpecialEntity | EntityType, param2?: EntityClothes): void {
+  public static startScene(scene: Scene, entityType: EntityType, entityClothes: EntityClothes): Promise<void>;
+  public static async startScene(scene: Scene, param1?: string | SpecialEntity | EntityType, param2?: EntityClothes): Promise<void> {
     if (typeof param1 === 'number' && param2 === undefined) {
       // Handle SpecialEntity case - startScene(scene, specialEntity)
-      PSMenu.startSceneWithSpecialEntity(scene, param1 as SpecialEntity);
+      await PSMenu.startSceneWithSpecialEntity(scene, param1 as SpecialEntity);
     } else if (typeof param1 === 'number' && param2 !== undefined) {
       // Handle EntityType + EntityClothes case - startScene(scene, entityType, entityClothes)
       const entityType = param1 as EntityType;
       const entityClothes = param2 as EntityClothes;
 
-      PSMenu.createEntitySprite(entityType, entityClothes, scene).then(() => {
-        PSMenu.startSceneInternal(scene);
-      }).catch(error => {
+      PSMenu.createEntitySprite(entityType, entityClothes, scene).then(async () => {
+        await PSMenu.startSceneInternal(scene);
+      }).catch(async (error) => {
         console.error('PSMenu: Error creating entity sprite:', error);
-        PSMenu.startSceneInternal(scene);
+        await PSMenu.startSceneInternal(scene);
       });
     } else if (typeof param1 === 'string') {
       // Handle string character case - startScene(scene, strChar)
@@ -136,10 +136,10 @@ export class PSMenu {
         PSMenu.instance.npc = null;
         PSMenu.instance.showPlayers = false;
       }
-      PSMenu.startSceneInternal(scene);
+      await PSMenu.startSceneInternal(scene);
     } else {
       // Handle no second parameter case - startScene(scene)
-      PSMenu.startSceneInternal(scene);
+      await PSMenu.startSceneInternal(scene);
     }
   }
 
@@ -219,10 +219,10 @@ export class PSMenu {
   /**
    * Start scene with special entity - direct port of Java startScene(Scene, SpecialEntity)
    */
-  public static startSceneWithSpecialEntity(scene: Scene, specialEntity: SpecialEntity): void {
+  public static async startSceneWithSpecialEntity(scene: Scene, specialEntity: SpecialEntity): Promise<void> {
     if (specialEntity === SpecialEntity.NONE) {
       PSMenu.instance.entitySprite = null;
-      PSMenu.startSceneInternal(scene);
+      await PSMenu.startSceneInternal(scene);
       return;
     }
 
@@ -234,7 +234,7 @@ export class PSMenu {
    */
   public static async startSceneWithLargeEntity(scene: Scene, largeEntity: LargeEntity): Promise<void> {
     if (!PSGame.getCurrentScene()) {
-      PSMenu.startSceneInternal(scene);
+      await PSMenu.startSceneInternal(scene);
       return;
     }
 
@@ -273,9 +273,9 @@ export class PSMenu {
   /**
    * Start scene with CHR - direct port of Java startScene(Scene, CHR)
    */
-  public static startSceneWithCHR(scene: Scene, chr: CHR): void {
+  public static async startSceneWithCHR(scene: Scene, chr: CHR): Promise<void> {
     if (!PSGame.getCurrentScene()) {
-      PSMenu.startSceneInternal(scene);
+      await PSMenu.startSceneInternal(scene);
       return;
     }
 
@@ -311,7 +311,7 @@ export class PSMenu {
   /**
    * Internal scene start logic - direct port of Java startScene(Scene)
    */
-  private static startSceneInternal(scene: Scene): void {
+  private static async startSceneInternal(scene: Scene): Promise<void> {
     // Clear button press state
     // unpress(9);
 
@@ -329,11 +329,11 @@ export class PSMenu {
 
     // Handle scene fading
     if (scene === PSSceneType.DUNGEON || scene === PSSceneType.SCREEN || scene === PSSceneType.BLACK || scene === PSSceneType.ALTAR) {
-      // TODO: screen.fadeIn(25, false);
+      //await ScriptEngine.fadein(25, false);
     } else if (scene === PSSceneType.CORRIDOR || scene === PSSceneType.SCREEN_NOFADE) {
       // Do nothing
     } else {
-      // TODO: screen.fade(25, true);
+      //await ScriptEngine.fadeout(25, true);
       PSMenu.instance.setBackground('');
       PSMenu.instance.backAnim = null;
     }
@@ -434,14 +434,14 @@ export class PSMenu {
   /**
    * End scene - direct port of Java endScene()
    */
-  public static endScene(): void {
-    PSMenu.endSceneWithOutcome(PSMenu.instance.outcome);
+  public static async endScene(): Promise<void> {
+    await PSMenu.endSceneWithOutcome(PSMenu.instance.outcome);
   }
 
   /**
    * End scene with specific outcome - direct port of Java endScene(Outcome)
    */
-  public static endSceneWithOutcome(outcome: PSOutcome): void {
+  public static async endSceneWithOutcome(outcome: PSOutcome): Promise<void> {
     // Clean up scene elements
     PSMenu.instance.npc = null;
     PSMenu.instance.clearEntity(); // Properly destroy entity sprite
@@ -459,7 +459,8 @@ export class PSMenu {
       if (outcome === PSOutcome.FADE_HOUSE) {
         // TODO: Script.pauseplayerinput();
         PSGame.regroup(0, 1);
-        // TODO: screen.fade(25, false);
+        //await ScriptEngine.fadeout(25, false);
+        //await ScriptEngine.fadein(25, false);
         // TODO: Script.unpauseplayerinput();
       }
 
@@ -468,13 +469,14 @@ export class PSMenu {
         if (!PSGame.isOnTransport()) {
           PSGame.regroup(0, 0);
         }
-        // TODO: screen.fadeOut(50, false);
+        //await ScriptEngine.fadeout(50, false);
+        //await ScriptEngine.fadein(50, false);
         // TODO: Script.unpauseplayerinput();
       }
 
       ScriptEngine.setEntitiesPaused(false);
     } else if (outcome === PSOutcome.FADE_DUNGEON) {
-      // TODO: screen.fadeOut(25, false);
+      await ScriptEngine.fadeout(25, false);
       // TODO: PSDungeon.warpBack(2);
     }
 
@@ -508,7 +510,7 @@ export class PSMenu {
 
         // If last chunk of text, fade out
         if (t === texts.length - 1 && i + 1 > Math.floor((rows.length - 1) / 4)) {
-          // TODO: screen.fadeOut(25, false);
+          //await ScriptEngine.fadeout(25, false);
         }
 
         PSMenu.instance.pop();
