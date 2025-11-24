@@ -341,11 +341,11 @@ export class MainEngine {
           ey = MainEngine.myself.gety() + playerChr.getHh() + 1;
           break;
         case EntityDirection.WEST:
-          ex = MainEngine.myself.getx() - 1;
+          ex = MainEngine.myself.getx() - 8; // Use more significant offset for reliable detection
           ey = MainEngine.myself.gety() + (playerChr.getHh() / 2);
           break;
         case EntityDirection.EAST:
-          ex = MainEngine.myself.getx() + playerChr.getHw() + 1;
+          ex = MainEngine.myself.getx() + playerChr.getHw() + 8; // Consistent offset for east
           ey = MainEngine.myself.gety() + (playerChr.getHh() / 2);
           break;
       }
@@ -410,8 +410,16 @@ export class MainEngine {
     // Sort entities by Y position for proper depth ordering
     const sortedEntities = [...MainEngine.entities].sort((a, b) => a.gety() - b.gety());
 
-    for (const entity of sortedEntities) {
+    // Update sprite depths based on sorted order for proper Y-sorting
+    for (let i = 0; i < sortedEntities.length; i++) {
+      const entity = sortedEntities[i];
       if (entity.isActive() && entity.isVisible()) {
+        const sprite = entity.getSprite();
+        if (sprite) {
+          // Set depth based on Y position - higher Y = higher depth (drawn on top)
+          // Base depth 1000 + Y position ensures proper sorting
+          sprite.setDepth(1000 + entity.gety());
+        }
         entity.draw();
       }
     }
@@ -1280,3 +1288,6 @@ export class MainEngine {
     }
   }
 }
+
+// Make MainEngine available globally to avoid circular import issues
+(globalThis as any).MainEngine = MainEngine;
