@@ -67,8 +67,12 @@ export class CHR {
       // Load the sprite image if not already loaded
       const imageKey = `chr-${data.imageName.replace('.png', '')}`;
       if (!scene.textures.exists(imageKey)) {
+        // Image is in same folder as JSON file - extract folder from fetchUrl
+        const jsonFolder = fetchUrl.substring(0, fetchUrl.lastIndexOf('/'));
+        const imagePath = `${jsonFolder}/${data.imageName}`;
+        console.log(`CHR: Loading image ${imageKey} from: ${imagePath}`);
         // Load image with transparency support for magenta (255, 0, 255)
-        scene.load.image(imageKey, `${basePath}/${data.imageName}`);
+        scene.load.image(imageKey, imagePath);
 
         // Wait for the image to load
         await new Promise<void>((resolve) => {
@@ -290,7 +294,8 @@ export class CHR {
     try {
       sprite.setFrame(frameKey);
     } catch (error) {
-      console.warn(`Could not set frame ${frameKey}, using frame 0`);
+      console.warn(`Could not set frame ${frameKey}, error:`, error);
+      console.warn(`Available frames:`, Object.keys(sprite.scene.textures.get(`chr-${this.imageName.replace('.png', '')}`).frames));
       const fallbackKey = `chr-${this.imageName.replace('.png', '')}_frame_0`;
       sprite.setFrame(fallbackKey);
     }

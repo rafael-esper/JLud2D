@@ -470,12 +470,16 @@ export class TiledMap {
                 if (properties.face !== undefined) entity.setFace(properties.face);
                 if (properties.speed !== undefined) entity.setSpeed(properties.speed);
                 if (properties.autoface !== undefined) entity.setAutoface(properties.autoface);
+                if (properties.activationEvent !== undefined) entity.setActivationScript(properties.activationEvent);
                 if (properties.obstructable !== undefined) {
                   // Set obstructable property if needed
                 }
 
                 // Convert back to pixel coordinates (matching Java: e.setx(e.getx()*tilewidth))
                 entity.setxy(tileX * this.tilewidth, tileY * this.tileheight);
+
+                // Load CHR sprite for the entity using the map's basePath (includes /maps folder)
+                await entity.initSprite(this.scene, this.getEntityDepth(), this.basePath);
 
                 console.log(`Entity ${entityIndex} created successfully:`, {
                   chrname: properties.chrname,
