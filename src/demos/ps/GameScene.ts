@@ -161,6 +161,9 @@ export class GameScene extends Phaser.Scene {
     if (!isMenuActive) {
       // Update engine only when menu is not active - this handles player movement, entity updates, camera tracking
       MainEngine.updateEngine(this.inputManager);
+
+      // Render entities with Y-sorting for proper depth ordering
+      MainEngine.RenderEntities();
     }
 
     // Update and render menu system if PSMenu is active

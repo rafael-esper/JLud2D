@@ -471,9 +471,14 @@ export class TiledMap {
                 if (properties.speed !== undefined) entity.setSpeed(properties.speed);
                 if (properties.autoface !== undefined) entity.setAutoface(properties.autoface);
                 if (properties.activationEvent !== undefined) entity.setActivationScript(properties.activationEvent);
-                if (properties.obstructable !== undefined) {
-                  // Set obstructable property if needed
-                }
+                if (properties.obstruction !== undefined) entity.setObstruction(properties.obstruction);
+                if (properties.obstructable !== undefined) entity.setObstructable(properties.obstructable);
+                if (properties.movecode !== undefined) entity.setMovecode(properties.movecode);
+                if (properties.wanderDelay !== undefined) entity.setWanderDelay(properties.wanderDelay);
+                if (properties.wx1 !== undefined) entity.setWx1(properties.wx1);
+                if (properties.wy1 !== undefined) entity.setWy1(properties.wy1);
+                if (properties.wx2 !== undefined) entity.setWx2(properties.wx2);
+                if (properties.wy2 !== undefined) entity.setWy2(properties.wy2);
 
                 // Convert back to pixel coordinates (matching Java: e.setx(e.getx()*tilewidth))
                 entity.setxy(tileX * this.tilewidth, tileY * this.tileheight);
@@ -784,7 +789,45 @@ export class TiledMap {
   public getobspixel(x: number, y: number): boolean {
     const tileX = Math.floor(x / this.tilewidth);
     const tileY = Math.floor(y / this.tileheight);
-    return this.getobs(tileX, tileY);
+
+    // Check tile-based obstructions first
+    if (this.getobs(tileX, tileY)) {
+      return true;
+    }
+
+    // Check for entity obstructions at this position
+    return this.isEntityObstruction(x, y);
+  }
+
+  /**
+   * Check if there's an entity obstruction at the given pixel coordinates
+   */
+  private isEntityObstruction(x: number, y: number): boolean {
+    // Access MainEngine through global reference to avoid circular imports
+    const MainEngine = (globalThis as any).MainEngine;
+    if (!MainEngine || !MainEngine.getEntities) {
+      return false;
+    }
+
+    const entities = MainEngine.getEntities();
+    const tileX = Math.floor(x / this.tilewidth);
+    const tileY = Math.floor(y / this.tileheight);
+
+    for (const entity of entities) {
+      if (!entity || !entity.isActive() || !entity.isObstruction()) {
+        continue;
+      }
+
+      // Check if entity is at the same tile position
+      const entityTileX = Math.floor(entity.getx() / this.tilewidth);
+      const entityTileY = Math.floor(entity.gety() / this.tileheight);
+
+      if (entityTileX === tileX && entityTileY === tileY) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   public isObs(t: number): boolean {

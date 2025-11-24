@@ -77,6 +77,9 @@ export class Entity {
   private follower: Entity | null = null;
   private follow: Entity | null = null;
 
+  // Wander movement state
+  private wanderDelayCount: number = 0;
+
   constructor(x: number, y: number, chrname: string = '') {
     this.setxy(x*16, y*16);
     this.chrname = chrname;
@@ -131,10 +134,75 @@ export class Entity {
     for (let i = 0; i < numTicks; i++) {
       if (!this.ready()) {
         this.moveTick();
+      } else {
+        // Handle movement code when entity is ready (not currently moving)
+        this.handleMovementCode();
       }
     }
 
     this.updateFrame();
+  }
+
+  /**
+   * Handle movement code behavior when entity is ready
+   */
+  private handleMovementCode(): void {
+    const movecode = this.properties.movecode || 0;
+
+    switch (movecode) {
+      case 2: // ENT_WANDERBOX - Wander within defined boundaries
+        this.do_wanderbox();
+        break;
+      // Add other movement codes as needed
+    }
+  }
+
+  /**
+   * Wander movement within defined boundaries (movecode=2)
+   * Port of Java EntityImpl.do_wanderbox()
+   */
+  private do_wanderbox(): void {
+    const wanderDelay = this.getWanderDelay();
+
+    // Increment delay counter
+    this.wanderDelayCount++;
+
+    // Only move when delay counter reaches wanderDelay
+    if (this.wanderDelayCount >= wanderDelay) {
+      this.wanderDelayCount = 0; // Reset counter
+
+      // Get wander boundaries (default to small area around spawn if not set)
+      const wx1 = this.getWx1() !== undefined ? this.getWx1()! : Math.floor(this.x / 16) - 1;
+      const wy1 = this.getWy1() !== undefined ? this.getWy1()! : Math.floor(this.y / 16) - 1;
+      const wx2 = this.getWx2() !== undefined ? this.getWx2()! : Math.floor(this.x / 16) + 1;
+      const wy2 = this.getWy2() !== undefined ? this.getWy2()! : Math.floor(this.y / 16) + 1;
+
+      // Choose random direction (0=north, 1=south, 2=west, 3=east)
+      const direction = Math.floor(Math.random() * 4);
+      let newX = Math.floor(this.x / 16);
+      let newY = Math.floor(this.y / 16);
+
+      switch (direction) {
+        case 0: // North
+          newY = Math.max(wy1, newY - 1);
+          break;
+        case 1: // South
+          newY = Math.min(wy2, newY + 1);
+          break;
+        case 2: // West
+          newX = Math.max(wx1, newX - 1);
+          break;
+        case 3: // East
+          newX = Math.min(wx2, newX + 1);
+          break;
+      }
+
+      // Only move if the new position is different and within bounds
+      if ((newX !== Math.floor(this.x / 16) || newY !== Math.floor(this.y / 16)) &&
+          newX >= wx1 && newX <= wx2 && newY >= wy1 && newY <= wy2) {
+        this.setWaypoint(newX, newY);
+      }
+    }
   }
 
   /**
@@ -205,21 +273,11 @@ export class Entity {
 
       // Use Java logic: idle frame when ready, walking frame when moving
       if (this.ready()) {
-        // Increment idle timer
-        this.idleTimer++;
-
-        // Only show idle frame after being stopped for a few frames
-        if (this.idleTimer > 5) {
-          const idleFrames = this.chr.getIdle();
-          this.frame = idleFrames[direction] || 0;
-        } else {
-          // Keep showing walking animation frame to avoid jumps
-          this.frame = this.chr.getFrame(direction, this.framect);
-        }
+        // Always show idle frame when not moving
+        const idleFrames = this.chr.getIdle();
+        this.frame = idleFrames[direction] || 0;
       } else {
-        // Reset idle timer when moving
-        this.idleTimer = 0;
-        // Use walking animation frame
+        // Use walking animation frame when moving
         this.frame = this.chr.getFrame(direction, this.framect);
       }
     }
@@ -428,6 +486,22 @@ export class Entity {
 
   public getMovecode(): number { return this.properties.movecode || 0; }
   public setMovecode(movecode: number): void { this.properties.movecode = movecode; }
+
+  // Wander properties
+  public getWanderDelay(): number { return this.properties.wanderDelay || 60; }
+  public setWanderDelay(delay: number): void { this.properties.wanderDelay = delay; }
+
+  public getWx1(): number | undefined { return this.properties.wx1; }
+  public setWx1(wx1: number): void { this.properties.wx1 = wx1; }
+
+  public getWy1(): number | undefined { return this.properties.wy1; }
+  public setWy1(wy1: number): void { this.properties.wy1 = wy1; }
+
+  public getWx2(): number | undefined { return this.properties.wx2; }
+  public setWx2(wx2: number): void { this.properties.wx2 = wx2; }
+
+  public getWy2(): number | undefined { return this.properties.wy2; }
+  public setWy2(wy2: number): void { this.properties.wy2 = wy2; }
 
   // Entity management
   public getIndex(): number { return this.index; }
