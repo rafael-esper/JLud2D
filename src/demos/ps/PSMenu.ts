@@ -150,9 +150,17 @@ export class PSMenu {
   private static async createEntitySprite(entityType: EntityType, entityClothes: EntityClothes, scene: Scene): Promise<void> {
     PSMenu.instance.entitySprite = null;
 
-    const isHalf = scene.toString().includes('SHOP') ||
-                   scene.toString().includes('HOSP') ||
-                   scene.toString().includes('CHURCH');
+    const isHalf = scene === PSSceneType.SHOP_FOOD ||
+                   scene === PSSceneType.SHOP_HAND ||
+                   scene === PSSceneType.SHOP_WEAPON ||
+                   scene === PSSceneType.SHOP_CENTRAL ||
+                   scene === PSSceneType.SHOP_FOOD_VILLAGE ||
+                   scene === PSSceneType.SHOP_HAND_VILLAGE ||
+                   scene === PSSceneType.SHOP_WEAPON_VILLAGE ||
+                   scene === PSSceneType.HOSPITAL ||
+                   scene === PSSceneType.HOSPITAL_VILLAGE ||
+                   scene === PSSceneType.CHURCH ||
+                   scene === PSSceneType.CHURCH_VILLAGE;
 
     // Load entity CHR data
     const entitiesCHR = await PSGame.getCHR(PS1CHR.IMG_ENTITIES);
@@ -194,7 +202,15 @@ export class PSMenu {
       canvas.height = spriteHeight;
 
       // Draw the specific frame to the canvas (extract from Phaser frame)
-      ctx.drawImage(frame.source.image, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, spriteWidth, spriteHeight);
+      if (isHalf) {
+        // For half sprites: crop to show only top 51 pixels (characters behind counter)
+        // Take only the top portion of the source image
+        const cropHeight = 51;
+        ctx.drawImage(frame.source.image, frame.cutX, frame.cutY, frame.cutWidth, cropHeight, 0, 0, spriteWidth, spriteHeight);
+      } else {
+        // For full sprites: draw the entire frame
+        ctx.drawImage(frame.source.image, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, spriteWidth, spriteHeight);
+      }
 
       // Add as texture to Phaser
       currentScene.textures.addCanvas(textureKey, canvas);
@@ -210,7 +226,12 @@ export class PSMenu {
     // Calculate position but don't set it yet (will be set after fade in)
     PSMenu.instance.entityY = 190; // 240 - 30 - 20 (moved up 20px)
 
-    // Special positioning for MOTA characters
+    // Half sprites (shops/churches/hospitals) need to be positioned higher (behind counter)
+    if (isHalf) {
+      PSMenu.instance.entityY -= 45; // Move half sprites 45 pixels up
+    }
+
+    // Special positioning for MOTA characters (only for full sprites)
     if (!isHalf && (entityType === EntityType.MOTA_CAP || entityType === EntityType.MOTA_MASK ||
                    entityType === EntityType.MOTA_NOCAP || entityType === EntityType.MOTA_CUSTOM)) {
       PSMenu.instance.entityY -= 20; // Move MOTA characters up a bit
