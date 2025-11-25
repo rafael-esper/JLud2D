@@ -119,6 +119,9 @@ export class GameScene extends Phaser.Scene {
   private async startmap(): Promise<void> {
     console.log("PS::startmap");
 
+    // Start with black screen for proper fade-in
+    this.cameras.main.setAlpha(0);
+
     // Enable camera tracking (equivalent to Java cameratracking=1)
     MainEngine.setCameraTracking(1);
 
