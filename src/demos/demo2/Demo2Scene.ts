@@ -187,26 +187,41 @@ export class Demo2Scene extends Phaser.Scene {
     console.log("Demo2: house1 teleportation to (55, 84)");
 
     const player = MainEngine.getPlayer();
+    const scene = MainEngine.getCurrentScene();
     if (!player) {
       console.error("Demo2: No player found for house1 teleportation");
+      return;
+    }
+    if (!scene) {
+      console.error("Demo2: No scene found for house1 teleportation");
       return;
     }
 
     try {
       MainEngine.setEntitiesPaused(true);
 
-      await ScriptEngine.fadeout(20, true);
+      // Fade Out → Teleport → Fade In using native Phaser camera methods
+      scene.cameras.main.fadeOut(500, 0, 0, 0); // 500ms fade to black
 
-      // Convert tile coordinates to pixel coordinates (multiply by 16)
-      const pixelX = 55 * 16;
-      const pixelY = 84 * 16;
+      scene.cameras.main.once('camerafadeoutcomplete', () => {
+        // Convert tile coordinates to pixel coordinates (multiply by 16)
+        const pixelX = 55 * 16;
+        const pixelY = 84 * 16;
 
-      player.setxy(pixelX, pixelY);
-      console.log(`Demo2: Player teleported to pixel coordinates (${pixelX}, ${pixelY})`);
+        player.setxy(pixelX, pixelY);
+        console.log(`Demo2: Player teleported to pixel coordinates (${pixelX}, ${pixelY})`);
 
-      MainEngine.setupCamera();
+        MainEngine.setupCamera();
+        MainEngine.RenderEntities(); // Render entities at new position before fade-in
 
-      await ScriptEngine.fadein(20, true);
+        // Fade back in
+        scene.cameras.main.fadeIn(500, 0, 0, 0);
+
+        scene.cameras.main.once('camerafadeincomplete', () => {
+          MainEngine.setEntitiesPaused(false);
+          console.log("Demo2: house1 teleportation complete");
+        });
+      });
 
     } catch (error) {
       console.error("Demo2: Error during house1 teleportation:", error);
@@ -223,8 +238,13 @@ export class Demo2Scene extends Phaser.Scene {
     console.log("Demo2: house2 teleportation to (72, 96)");
 
     const player = MainEngine.getPlayer();
+    const scene = MainEngine.getCurrentScene();
     if (!player) {
       console.error("Demo2: No player found for house2 teleportation");
+      return;
+    }
+    if (!scene) {
+      console.error("Demo2: No scene found for house2 teleportation");
       return;
     }
 
@@ -232,18 +252,28 @@ export class Demo2Scene extends Phaser.Scene {
       // Pause entities during teleport sequence
       MainEngine.setEntitiesPaused(true);
 
-      await ScriptEngine.fadeout(20, true);
+      // Fade Out → Teleport → Fade In using native Phaser camera methods
+      scene.cameras.main.fadeOut(500, 0, 0, 0); // 500ms fade to black
 
-      // Convert tile coordinates to pixel coordinates (multiply by 16)
-      const pixelX = 72 * 16;
-      const pixelY = 96 * 16;
+      scene.cameras.main.once('camerafadeoutcomplete', () => {
+        // Convert tile coordinates to pixel coordinates (multiply by 16)
+        const pixelX = 72 * 16;
+        const pixelY = 96 * 16;
 
-      player.setxy(pixelX, pixelY);
-      console.log(`Demo2: Player teleported to pixel coordinates (${pixelX}, ${pixelY})`);
+        player.setxy(pixelX, pixelY);
+        console.log(`Demo2: Player teleported to pixel coordinates (${pixelX}, ${pixelY})`);
 
-      MainEngine.setupCamera();
+        MainEngine.setupCamera();
+        MainEngine.RenderEntities(); // Render entities at new position before fade-in
 
-      await ScriptEngine.fadein(20, true);
+        // Fade back in
+        scene.cameras.main.fadeIn(500, 0, 0, 0);
+
+        scene.cameras.main.once('camerafadeincomplete', () => {
+          MainEngine.setEntitiesPaused(false);
+          console.log("Demo2: house2 teleportation complete");
+        });
+      });
 
     } catch (error) {
       console.error("Demo2: Error during house2 teleportation:", error);
