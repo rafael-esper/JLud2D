@@ -18,13 +18,13 @@ export class Camineet {
 
   public static async alis(): Promise<void> {
     if (PSGame.getGameType() === GameType.PS_ORIGINAL) {
-      PSMenu.startScene(PSSceneType.YELLOW_HOUSE, SpecialEntity.NONE);
+      await PSMenu.startScene(PSSceneType.YELLOW_HOUSE, SpecialEntity.NONE);
       await PSMenu.Stext(PSGame.getString("Camineet_House_Alis"));
-      PSMenu.endScene();
+      await PSMenu.endScene();
     } else {
-      PSMenu.startSceneWithLargeEntity(PSSceneType.YELLOW_HOUSE, LargeEntity.ALIS);
+      await PSMenu.startSceneWithLargeEntity(PSSceneType.YELLOW_HOUSE, LargeEntity.ALIS);
       await PSMenu.Stext(PSGame.getString("Camineet_House_Alis_Odin"));
-      PSMenu.endScene();
+      await PSMenu.endScene();
     }
   }
 
@@ -33,33 +33,33 @@ export class Camineet {
     console.log("Camineet: Entering warehouse");
   }
 
-  public static church(): void {
-    PSMenu.startScene(PSSceneType.CHURCH, SpecialEntity.PRIEST);
+  public static async church(): Promise<void> {
+    await PSMenu.startScene(PSSceneType.CHURCH, SpecialEntity.PRIEST);
     // PSGame.Church(1); // TODO: Implement Church method
-    PSMenu.endScene();
+    await PSMenu.endScene();
     console.log("Camineet: Church - healing services");
   }
 
   public static async yellow(): Promise<void> { // house
-    PSMenu.startScene(PSSceneType.YELLOW_HOUSE, EntityType.CITY_MAN_BLOND, EntityClothes.RED);
+    await PSMenu.startScene(PSSceneType.YELLOW_HOUSE, EntityType.CITY_MAN_BLOND, EntityClothes.RED);
     await PSMenu.Stext(PSGame.getString("Camineet_House_Man"));
-    PSMenu.endScene();
+    await PSMenu.endScene();
   }
 
   public static async oldman(): Promise<void> { // house
-    PSMenu.startScene(PSSceneType.BLUE_HOUSE, SpecialEntity.OLDMAN);
+    await PSMenu.startScene(PSSceneType.BLUE_HOUSE, SpecialEntity.OLDMAN);
     if (await PSMenu.Prompt(PSGame.getString("Camineet_House_Oldman"), PSGame.getYesNo()) === 1) {
       await PSMenu.StextLast(PSGame.getString("Camineet_House_Oldman_Yes"));
     } else {
       await PSMenu.StextNext(PSGame.getString("Camineet_House_Oldman_No"));
       await PSMenu.StextLast(PSGame.getString("Camineet_House_Oldman_NoCrisis"));
     }
-    PSMenu.endScene();
+    await PSMenu.endScene();
     console.log("Camineet: Old man house with dialogue choice");
   }
 
   public static async nekise(): Promise<void> {
-    PSMenu.startScene(PSSceneType.BLUE_HOUSE, EntityType.CITY_MAN_BLOND, EntityClothes.GREEN);
+    await PSMenu.startScene(PSSceneType.BLUE_HOUSE, EntityType.CITY_MAN_BLOND, EntityClothes.GREEN);
     if (PSGame.getGameType() === GameType.PS_ORIGINAL) {
       if (!PSGame.hasFlag(Flags.VISIT_NEKISE)) {
          PSGame.setFlag(Flags.VISIT_NEKISE);
@@ -74,11 +74,11 @@ export class Camineet {
       await PSMenu.Stext(PSGame.getString("Camineet_House_Nekise_Odin"));
       console.log("Camineet: Nekise - Odin version");
     }
-    PSMenu.endScene();
+    await PSMenu.endScene();
   }
 
   public static async suelo(): Promise<void> {
-    PSMenu.startScene(PSSceneType.YELLOW_HOUSE, EntityType.VILLA_WMN_BLOND, EntityClothes.RED);
+    await PSMenu.startScene(PSSceneType.YELLOW_HOUSE, EntityType.VILLA_WMN_BLOND, EntityClothes.RED);
 
     if (PSGame.getGameType() === GameType.PS_ORIGINAL) {
       if (!PSGame.hasFlag(Flags.VISIT_SUELO)) {
@@ -97,38 +97,38 @@ export class Camineet {
       await PSMenu.Stext(PSGame.getString("Camineet_House_Suelo_Odin"));
       console.log("Camineet: Suelo - Odin version");
     }
-    PSMenu.endScene();
+    await PSMenu.endScene();
   }
 
   public static async weap_shop(): Promise<void> {
-    PSMenu.startScene(PSSceneType.SHOP_WEAPON, EntityType.CITY_MAN_BLOND, EntityClothes.RED);
+    await PSMenu.startScene(PSSceneType.SHOP_WEAPON, EntityType.CITY_MAN_BLOND, EntityClothes.RED);
     await PSMenuShop.Shop(PSGame.getString("Shop_Weapon_Welcome"), false, PSGame.getParty(), [
       PSGame.getItem(OriginalItem.Shield_Leather_Shield),
       PSGame.getItem(OriginalItem.Shield_Iron_Shield),
       PSGame.getItem(OriginalItem.Shield_Ceramic_Shield)
     ]);
-    PSMenu.endScene();
+    await PSMenu.endScene();
     console.log("Camineet: Weapon shop - shields for sale");
   }
 
   public static async food_shop(): Promise<void> {
-    PSMenu.startScene(PSSceneType.SHOP_FOOD, EntityType.CITY_MAN_BLOND, EntityClothes.BLUE);
+    await PSMenu.startScene(PSSceneType.SHOP_FOOD, EntityType.CITY_MAN_BLOND, EntityClothes.BLUE);
     await PSMenuShop.Shop(PSGame.getString("Shop_Pharmacy_Welcome"), false, PSGame.getParty(), [
       PSGame.getItem(OriginalItem.Inventory_Monomate),
       PSGame.getItem(OriginalItem.Inventory_Dimate)
     ]);
-    PSMenu.endScene();
+    await PSMenu.endScene();
     console.log("Camineet: Food shop - healing items for sale");
   }
 
   public static async hand_shop(): Promise<void> {
-    PSMenu.startScene(PSSceneType.SHOP_HAND, EntityType.CITY_MAN_BROWN, EntityClothes.GREEN);
+    await PSMenu.startScene(PSSceneType.SHOP_HAND, EntityType.CITY_MAN_BROWN, EntityClothes.GREEN);
     await PSMenuShop.Shop(PSGame.getString("Shop_Tool_Welcome"), true, PSGame.getParty(), [
       PSGame.getItem(OriginalItem.Inventory_Flash),
       PSGame.getItem(OriginalItem.Inventory_Escape_Cloth),
       PSGame.getItem(OriginalItem.Inventory_TranCarpet)
     ]);
-    PSMenu.endScene();
+    await PSMenu.endScene();
     console.log("Camineet: Hand shop - tools for sale");
   }
 

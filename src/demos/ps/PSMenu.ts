@@ -199,14 +199,14 @@ export class PSMenu {
       currentScene.textures.addCanvas(textureKey, canvas);
     }
 
-    // Create Phaser sprite
+    // Create Phaser sprite but make it invisible initially
     PSMenu.instance.entitySprite = currentScene.add.image(0, 0, textureKey);
     PSMenu.instance.entitySprite.setOrigin(0.5, 1); // Bottom center origin
     PSMenu.instance.entitySprite.setDepth(1000.5); // Above background, below menu graphics
     PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
+    PSMenu.instance.entitySprite.setVisible(false); // Hide until after fade in
 
-    // Set position at bottom of screen (240px screen height)
-    // Entity Y should position the bottom of sprite at screen bottom with some padding
+    // Calculate position but don't set it yet (will be set after fade in)
     PSMenu.instance.entityY = 190; // 240 - 30 - 20 (moved up 20px)
 
     // Special positioning for MOTA characters
@@ -226,7 +226,7 @@ export class PSMenu {
       return;
     }
 
-    PSMenu.startScene(scene, EntityType.SPECIAL, specialEntity - 1 as EntityClothes);
+    await PSMenu.startScene(scene, EntityType.SPECIAL, specialEntity - 1 as EntityClothes);
   }
 
   /**
@@ -267,7 +267,7 @@ export class PSMenu {
     PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
     PSMenu.instance.entityY = 190; // 240 - 30 - 20 (moved up 20px)
 
-    PSMenu.startSceneInternal(scene);
+    await PSMenu.startSceneInternal(scene);
   }
 
   /**
@@ -304,7 +304,7 @@ export class PSMenu {
     PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
     PSMenu.instance.entityY = 190; // 240 - 30 - 20 (moved up 20px)
 
-    PSMenu.startSceneInternal(scene);
+    await PSMenu.startSceneInternal(scene);
   }
 
 
@@ -315,27 +315,21 @@ export class PSMenu {
     // Clear button press state
     // unpress(9);
 
-    // Position entity sprite if present
-    if (PSMenu.instance.entitySprite) {
-      PSMenu.instance.entityX = 320 / 2; // - (PSMenu.instance.entitySprite.width / 2);
-      if (scene === PSSceneType.DUNGEON || scene === PSSceneType.CORRIDOR) {
-        PSMenu.instance.entityY += 13;
-      }
-    }
-
-    // Pause entities and disable menu
+    // Pause entities and disable menu first
     ScriptEngine.setEntitiesPaused(true);
     PSMenu.menuOff();
 
-    // Handle scene fading
+    // First fade out to prepare for scene rendering
+    let needsFadeIn = false;
     if (scene === PSSceneType.DUNGEON || scene === PSSceneType.SCREEN || scene === PSSceneType.BLACK || scene === PSSceneType.ALTAR) {
-      //await ScriptEngine.fadein(25, false);
+      needsFadeIn = true;
     } else if (scene === PSSceneType.CORRIDOR || scene === PSSceneType.SCREEN_NOFADE) {
       // Do nothing
     } else {
-      //await ScriptEngine.fadeout(25, true);
+      await ScriptEngine.fadeout(25, true);
       PSMenu.instance.setBackground('');
       PSMenu.instance.backAnim = null;
+      needsFadeIn = true;
     }
 
     PSMenu.instance.setdelay(20);
@@ -429,6 +423,18 @@ export class PSMenu {
         PSMenu.instance.outcome = PSOutcome.FADE_HOUSE;
         break;
     }
+
+    // Fade in after all scene content is set up and rendered
+    if (needsFadeIn) {
+      await ScriptEngine.fadein(25, false);
+    }
+
+    // Show and position entity sprite after fade in is complete
+    if (PSMenu.instance.entitySprite) {
+      PSMenu.instance.entityX = 320 / 2; // Center horizontally
+      PSMenu.instance.entitySprite.setPosition(PSMenu.instance.entityX, PSMenu.instance.entityY);
+      PSMenu.instance.entitySprite.setVisible(true);
+    }
   }
 
   /**
@@ -454,23 +460,25 @@ export class PSMenu {
     PSMenu.instance.clearGraphics();
 
     if (outcome === PSOutcome.FADE_HOUSE || outcome === PSOutcome.FADE) {
-      PSMenu.instance.setBackground('');
-
       if (outcome === PSOutcome.FADE_HOUSE) {
         // TODO: Script.pauseplayerinput();
+        await ScriptEngine.fadeout(25, false);
+        // Clear scene background and prepare map only after fade out
+        PSMenu.instance.setBackground('');
         PSGame.regroup(0, 1);
-        //await ScriptEngine.fadeout(25, false);
-        //await ScriptEngine.fadein(25, false);
+        await ScriptEngine.fadein(25, false);
         // TODO: Script.unpauseplayerinput();
       }
 
       if (outcome === PSOutcome.FADE) {
         // TODO: Script.pauseplayerinput();
+        await ScriptEngine.fadeout(50, false);
+        // Clear scene background and prepare map only after fade out
+        PSMenu.instance.setBackground('');
         if (!PSGame.isOnTransport()) {
           PSGame.regroup(0, 0);
         }
-        //await ScriptEngine.fadeout(50, false);
-        //await ScriptEngine.fadein(50, false);
+        await ScriptEngine.fadein(50, false);
         // TODO: Script.unpauseplayerinput();
       }
 
