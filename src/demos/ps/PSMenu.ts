@@ -121,12 +121,13 @@ export class PSMenu {
       const entityType = param1 as EntityType;
       const entityClothes = param2 as EntityClothes;
 
-      PSMenu.createEntitySprite(entityType, entityClothes, scene).then(async () => {
+      try {
+        await PSMenu.createEntitySprite(entityType, entityClothes, scene);
         await PSMenu.startSceneInternal(scene);
-      }).catch(async (error) => {
+      } catch (error) {
         console.error('PSMenu: Error creating entity sprite:', error);
         await PSMenu.startSceneInternal(scene);
-      });
+      }
     } else if (typeof param1 === 'string') {
       // Handle string character case - startScene(scene, strChar)
       if (PSGame.gameData.getScreenSize() === ScreenSize.SCREEN_640_480) {
