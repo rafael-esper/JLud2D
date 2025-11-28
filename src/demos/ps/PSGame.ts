@@ -100,9 +100,24 @@ export class PSGame {
   /**
    * Get localized string - direct port from Java getString() method
    */
-  public static getString(key: string): string {
+  public static getString(key: string): string;
+  public static getString(key: string, ...params: string[]): string;
+  public static getString(key: string, ...params: string[]): string {
     try {
-      return this.i18nManager.getString(key);
+      let result = this.i18nManager.getString(key);
+
+      // Handle parameter substitution (Java style with placeholder/value pairs)
+      if (params.length > 0) {
+        for (let i = 0; i < params.length; i += 2) {
+          if (i + 1 < params.length) {
+            const placeholder = params[i];
+            const value = params[i + 1];
+            result = result.replace(new RegExp(placeholder.replace(/[<>]/g, '\\$&'), 'g'), value);
+          }
+        }
+      }
+
+      return result;
     } catch (error) {
       console.error(`String ${key} not found.`);
       return key;
