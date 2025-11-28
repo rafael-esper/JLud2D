@@ -750,4 +750,26 @@ export class PSMenu {
 
     return rows;
   }
+
+  /**
+   * Show MST (money) display - required for Church and shop systems
+   * Creates a MenuLabelBox showing current party money
+   */
+  public static async showMST(): Promise<void> {
+    // Get party money
+    const party = PSGame.getParty();
+    const money = party.getMesetas();
+
+    // Create MST display box with correct signature
+    const mstBox = PSMenu.instance.createLabelBox(
+      220, 10, // Position (top-right corner)
+      [`MST: ${money}`], // Text array
+      false // No delay
+    );
+
+    PSMenu.instance.push(mstBox);
+
+    // MST display stays on screen until explicitly removed
+    // The Church routine or other systems will pop it when done
+  }
 }

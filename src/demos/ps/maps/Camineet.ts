@@ -35,9 +35,9 @@ export class Camineet {
 
   public static async church(): Promise<void> {
     await PSMenu.startScene(PSSceneType.CHURCH, SpecialEntity.PRIEST);
-    // PSGame.Church(1); // TODO: Implement Church method
+    await PSGame.Church(1); // Cost multiplier of 1 for Camineet
     await PSMenu.endScene();
-    console.log("Camineet: Church - healing services");
+    console.log("Camineet: Church - resurrection services completed");
   }
 
   public static async yellow(): Promise<void> { // house

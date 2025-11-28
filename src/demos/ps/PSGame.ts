@@ -592,4 +592,147 @@ export class PSGame {
     // 3. Hide entity portraits/sprites if shown
     // 4. Return entities to normal behavior
   }
+
+  /**
+   * Church routine - direct port from Java PSGame.Church(int costMultiplier)
+   * Provides resurrection services for dead party members
+   */
+  public static async Church(costMultiplier: number): Promise<void> {
+    console.log(`PSGame: Church routine started with cost multiplier ${costMultiplier}`);
+
+    // Play church music
+    await this.playMusic(PS1Music.CHURCH);
+
+    // Show MST display
+    await PSMenu.showMST();
+
+    // Get dead party members
+    const party = this.getParty();
+    const deadMembers = party.getDeadMembers();
+
+    if (deadMembers.length === 0) {
+      // No one needs resurrection
+      await PSMenu.Stext(this.getString("Church_NoResurrectionNeeded"));
+      return;
+    }
+
+    // Create resurrection menu with dead members
+    const resurrectionOptions: string[] = [];
+    const costs: number[] = [];
+
+    for (const member of deadMembers) {
+      const cost = member.getLevel() * 20 * costMultiplier;
+      costs.push(cost);
+      resurrectionOptions.push(`${member.getName()} - ${cost} MST`);
+    }
+
+    // Add "None" option
+    resurrectionOptions.push(this.getString("Church_None"));
+
+    while (true) {
+      const resurrectionMenu = PSMenu.instance.createPromptBox(
+        50, 80, resurrectionOptions, true
+      );
+
+      PSMenu.instance.push(resurrectionMenu);
+
+      // Import PSCancellable for proper typing
+      const { PSCancellable } = await import('./menu/MenuStack');
+
+      const choice = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
+      PSMenu.instance.pop();
+
+      if (choice === -1 || choice === resurrectionOptions.length - 1) {
+        // Cancelled or chose "None"
+        await PSMenu.Stext(this.getString("Church_Goodbye"));
+        break;
+      }
+
+      const selectedMember = deadMembers[choice];
+      const cost = costs[choice];
+
+      // Check if party has enough money
+      if (party.getMesetas() < cost) {
+        await PSMenu.Stext(this.getString("Church_NotEnoughMoney"));
+        continue;
+      }
+
+      // Confirm resurrection
+      const confirmText = this.getString("Church_ConfirmResurrection")
+        .replace("{name}", selectedMember.getName())
+        .replace("{cost}", cost.toString());
+
+      const confirmChoice = await PSMenu.Prompt(confirmText, this.getYesNo());
+
+      if (confirmChoice === 0) { // Yes
+        // Deduct money and resurrect
+        party.removeMesetas(cost);
+        selectedMember.resurrect();
+
+        this.playSound(PS1Sound.CURE);
+
+        await PSMenu.Stext(
+          this.getString("Church_ResurrectionSuccess")
+            .replace("{name}", selectedMember.getName())
+        );
+
+        // Check for level up (if character gained experience while dead)
+        if (selectedMember.checkLevelUp()) {
+          await this.showLevelUp(selectedMember);
+        }
+
+        // Update the dead members list and options
+        const updatedDeadMembers = party.getDeadMembers();
+        if (updatedDeadMembers.length === 0) {
+          await PSMenu.Stext(this.getString("Church_AllRevived"));
+          break;
+        }
+
+        // Update the arrays for next iteration
+        deadMembers.length = 0;
+        deadMembers.push(...updatedDeadMembers);
+        resurrectionOptions.length = 0;
+        costs.length = 0;
+
+        for (const member of deadMembers) {
+          const newCost = member.getLevel() * 20 * costMultiplier;
+          costs.push(newCost);
+          resurrectionOptions.push(`${member.getName()} - ${newCost} MST`);
+        }
+        resurrectionOptions.push(this.getString("Church_None"));
+
+      } else {
+        // No - continue the loop to show menu again
+        continue;
+      }
+    }
+
+    // Remove MST display
+    PSMenu.instance.pop();
+
+    console.log("PSGame: Church routine completed");
+  }
+
+  /**
+   * Show level up information - helper for Church and other level-up scenarios
+   */
+  private static async showLevelUp(member: any): Promise<void> {
+    const levelUpText = this.getString("LevelUp_Message")
+      .replace("{name}", member.getName())
+      .replace("{level}", member.getLevel().toString());
+
+    await PSMenu.Stext(levelUpText);
+
+    // Show stat increases if available
+    const statIncrease = member.getLastLevelUpStats();
+    if (statIncrease) {
+      const statsText = this.getString("LevelUp_Stats")
+        .replace("{hp}", statIncrease.hp.toString())
+        .replace("{mp}", statIncrease.mp.toString())
+        .replace("{attack}", statIncrease.attack.toString())
+        .replace("{defense}", statIncrease.defense.toString());
+
+      await PSMenu.Stext(statsText);
+    }
+  }
 }

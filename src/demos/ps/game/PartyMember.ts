@@ -442,4 +442,41 @@ export class PartyMember extends Battler {
   public toString(): string {
     return `${this.name} level ${this.level} is a ${SpecieHelper.toString(this.spe)} ${JobHelper.toString(this.job)} with ${this.maxHp} HP and ${this.maxMp} MP. ATK: ${this.atk} DEF: ${this.def}`;
   }
+
+  // Methods for Church resurrection system
+  public resurrect(): void {
+    // Resurrect with 1 HP
+    this.hp = 1;
+    console.log(`${this.name} has been resurrected with 1 HP`);
+  }
+
+  private lastLevelUpStats: {hp: number, mp: number, attack: number, defense: number} | null = null;
+
+  public checkLevelUp(): boolean {
+    // Check if character has enough XP for next level
+    const requiredXp = JobHelper.getXp(this.job, this.level + 1);
+    if (this.xp >= requiredXp) {
+      const oldHp = this.maxHp;
+      const oldMp = this.maxMp;
+      const oldAtk = this.atk;
+      const oldDef = this.def;
+
+      this.advanceLevel();
+
+      // Store stat increases for display
+      this.lastLevelUpStats = {
+        hp: this.maxHp - oldHp,
+        mp: this.maxMp - oldMp,
+        attack: this.atk - oldAtk,
+        defense: this.def - oldDef
+      };
+
+      return true;
+    }
+    return false;
+  }
+
+  public getLastLevelUpStats(): {hp: number, mp: number, attack: number, defense: number} | null {
+    return this.lastLevelUpStats;
+  }
 }
