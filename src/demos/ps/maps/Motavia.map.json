@@ -1,4 +1,12 @@
 { "compressionlevel":-1,
+ "editorsettings":
+    {
+     "export":
+        {
+         "format":"json",
+         "target":"Motavia.tmj"
+        }
+    },
  "height":96,
  "infinite":false,
  "layers":[
@@ -387,7 +395,7 @@
          "name":"Meta",
          "opacity":1,
          "type":"tilelayer",
-         "visible":false,
+         "visible":true,
          "width":130,
          "x":0,
          "y":0
