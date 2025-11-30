@@ -176,8 +176,8 @@ export class PSMenu {
       return;
     }
 
-    // Create texture key for this specific entity frame
-    const textureKey = `entity_${entityType}_${entityClothes}`;
+    // Create texture key for this specific entity frame (include isHalf to prevent caching conflicts)
+    const textureKey = `entity_${entityType}_${entityClothes}_${isHalf ? 'half' : 'full'}`;
 
     // Get the frame image from CHR
     const frame = entitiesCHR.getFrameByIndex(frameIndex);

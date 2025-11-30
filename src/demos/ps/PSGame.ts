@@ -714,6 +714,84 @@ export class PSGame {
   }
 
   /**
+   * Hospital routine - direct port of Java Hospital() method
+   * Heals party members for a fee based on cost multiplier
+   */
+  public static async Hospital(costMultiplier: number): Promise<void> {
+    // Create MST display box
+    const mstBox = PSMenu.instance.createOneLabelBox(200, 10, "MST " + this.getParty().mst, true);
+    PSMenu.instance.push(mstBox);
+
+    const option = await PSMenu.Prompt(this.getString("Hospital_Welcome"), this.getYesNo());
+    if (option === 1) { // Yes
+
+      if (this.getParty().partySize() === 1) {
+        const member = this.getParty().getMember(0);
+        if (member) {
+          const hpMpDiff = (member.getMaxHp() - member.getHp()) + (member.getMaxMp() - member.mp);
+          if (hpMpDiff <= 0) {
+            await PSMenu.StextNext(this.getString("Hospital_Healthy"));
+          } else {
+            const cost = hpMpDiff * costMultiplier;
+            const optCure = await PSMenu.PromptNext(this.getString("Hospital_Cost", "<number>", cost.toString()), this.getYesNo());
+            if (optCure === 1) { // Yes
+              if (this.getParty().mst >= cost) {
+                this.getParty().mst -= cost;
+                mstBox.updateText(0, "MST " + this.getParty().mst);
+                member.heal();
+                this.playSound(PS1Sound.CURE);
+                await PSMenu.StextLast(this.getString("Hospital_Cure"));
+                PSMenu.instance.pop(); // mstBox
+                return;
+              } else {
+                await PSMenu.StextLast(this.getString("Shop_Not_Enough_Money"));
+                PSMenu.instance.pop(); // mstBox
+                return;
+              }
+            }
+          }
+        }
+      } else { // Party size > 1
+        let cureWho = await PSMenu.PromptNext(this.getString("Hospital_Who"), this.getParty().listMembers());
+        while (cureWho > 0) {
+          const member = this.getParty().getMember(cureWho - 1);
+          if (member) {
+            if (member.getHp() <= 0) {
+              await PSMenu.StextNext(this.getString("Hospital_Dead", "<player>", member.getName()));
+            } else {
+              const hpMpDiff = (member.getMaxHp() - member.getHp()) + (member.getMaxMp() - member.mp);
+              if (hpMpDiff <= 0) {
+                await PSMenu.StextNext(this.getString("Hospital_Player_Healthy", "<player>", member.getName()));
+              } else {
+                const cost = hpMpDiff * costMultiplier;
+                const optCure = await PSMenu.PromptNext(this.getString("Hospital_Cost", "<number>", cost.toString()), this.getYesNo());
+                if (optCure === 1) { // Yes
+                  if (this.getParty().mst >= cost) {
+                    this.getParty().mst -= cost;
+                    mstBox.updateText(0, "MST " + this.getParty().mst);
+                    member.heal();
+                    this.playSound(PS1Sound.CURE);
+                    await PSMenu.StextNext(this.getString("Hospital_Cure"));
+                  } else {
+                    await PSMenu.StextLast(this.getString("Shop_Not_Enough_Money"));
+                    PSMenu.instance.pop(); // mstBox
+                    return;
+                  }
+                }
+              }
+            }
+          }
+
+          cureWho = await PSMenu.PromptNext(this.getString("Hospital_Other"), this.getParty().listMembers());
+        }
+      }
+    }
+
+    await PSMenu.StextLast(this.getString("Hospital_End"));
+    PSMenu.instance.pop(); // mstBox
+  }
+
+  /**
    * Show level up information - helper for Church and other level-up scenarios
    */
   private static async showLevelUp(member: any): Promise<void> {
