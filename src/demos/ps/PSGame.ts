@@ -615,6 +615,9 @@ export class PSGame {
   public static async Church(costMultiplier: number): Promise<void> {
     console.log(`PSGame: Church routine started with cost multiplier ${costMultiplier}`);
 
+    // Store current music to restore later
+    const previousMusic = this.currentMusic;
+
     // Play church music
     await this.playMusic(PS1Music.CHURCH);
 
@@ -628,23 +631,21 @@ export class PSGame {
     if (deadMembers.length === 0) {
       // No one needs resurrection
       await PSMenu.Stext(this.getString("Church_NoResurrectionNeeded"));
-      return;
-    }
+    } else {
+      // Create resurrection menu with dead members (similar to shop menu)
+      const resurrectionOptions: string[] = [];
+      const costs: number[] = [];
 
-    // Create resurrection menu with dead members
-    const resurrectionOptions: string[] = [];
-    const costs: number[] = [];
+      for (const member of deadMembers) {
+        const cost = member.getLevel() * 20 * costMultiplier;
+        costs.push(cost);
+        resurrectionOptions.push(`${member.getName()} - ${cost} MST`);
+      }
 
-    for (const member of deadMembers) {
-      const cost = member.getLevel() * 20 * costMultiplier;
-      costs.push(cost);
-      resurrectionOptions.push(`${member.getName()} - ${cost} MST`);
-    }
+      // Add "None" option
+      resurrectionOptions.push(this.getString("Church_None"));
 
-    // Add "None" option
-    resurrectionOptions.push(this.getString("Church_None"));
-
-    while (true) {
+      // Single menu interaction (like shop)
       const resurrectionMenu = PSMenu.instance.createPromptBox(
         50, 80, resurrectionOptions, true
       );
@@ -657,73 +658,57 @@ export class PSGame {
       const choice = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
       PSMenu.instance.pop();
 
-      if (choice === -1 || choice === resurrectionOptions.length - 1) {
+      if (choice !== -1 && choice !== resurrectionOptions.length - 1) {
+        // Valid selection - handle resurrection
+        const selectedMember = deadMembers[choice];
+        const cost = costs[choice];
+
+        // Check if party has enough money
+        if (party.getMesetas() < cost) {
+          await PSMenu.Stext(this.getString("Church_NotEnoughMoney"));
+        } else {
+          // Confirm resurrection
+          const confirmText = this.getString("Church_ConfirmResurrection")
+            .replace("{name}", selectedMember.getName())
+            .replace("{cost}", cost.toString());
+
+          const confirmChoice = await PSMenu.Prompt(confirmText, this.getYesNo());
+
+          if (confirmChoice === 0) { // Yes
+            // Deduct money and resurrect
+            party.removeMesetas(cost);
+            selectedMember.resurrect();
+
+            this.playSound(PS1Sound.CURE);
+
+            await PSMenu.Stext(
+              this.getString("Church_ResurrectionSuccess")
+                .replace("{name}", selectedMember.getName())
+            );
+
+            // Check for level up (if character gained experience while dead)
+            if (selectedMember.checkLevelUp()) {
+              await this.showLevelUp(selectedMember);
+            }
+          } else {
+            // Player chose "No" for confirmation
+            await PSMenu.Stext(this.getString("Church_Goodbye"));
+          }
+        }
+      } else {
         // Cancelled or chose "None"
         await PSMenu.Stext(this.getString("Church_Goodbye"));
-        break;
-      }
-
-      const selectedMember = deadMembers[choice];
-      const cost = costs[choice];
-
-      // Check if party has enough money
-      if (party.getMesetas() < cost) {
-        await PSMenu.Stext(this.getString("Church_NotEnoughMoney"));
-        continue;
-      }
-
-      // Confirm resurrection
-      const confirmText = this.getString("Church_ConfirmResurrection")
-        .replace("{name}", selectedMember.getName())
-        .replace("{cost}", cost.toString());
-
-      const confirmChoice = await PSMenu.Prompt(confirmText, this.getYesNo());
-
-      if (confirmChoice === 0) { // Yes
-        // Deduct money and resurrect
-        party.removeMesetas(cost);
-        selectedMember.resurrect();
-
-        this.playSound(PS1Sound.CURE);
-
-        await PSMenu.Stext(
-          this.getString("Church_ResurrectionSuccess")
-            .replace("{name}", selectedMember.getName())
-        );
-
-        // Check for level up (if character gained experience while dead)
-        if (selectedMember.checkLevelUp()) {
-          await this.showLevelUp(selectedMember);
-        }
-
-        // Update the dead members list and options
-        const updatedDeadMembers = party.getDeadMembers();
-        if (updatedDeadMembers.length === 0) {
-          await PSMenu.Stext(this.getString("Church_AllRevived"));
-          break;
-        }
-
-        // Update the arrays for next iteration
-        deadMembers.length = 0;
-        deadMembers.push(...updatedDeadMembers);
-        resurrectionOptions.length = 0;
-        costs.length = 0;
-
-        for (const member of deadMembers) {
-          const newCost = member.getLevel() * 20 * costMultiplier;
-          costs.push(newCost);
-          resurrectionOptions.push(`${member.getName()} - ${newCost} MST`);
-        }
-        resurrectionOptions.push(this.getString("Church_None"));
-
-      } else {
-        // No - continue the loop to show menu again
-        continue;
       }
     }
 
     // Remove MST display
     PSMenu.instance.pop();
+
+    // Restore previous music
+    if (previousMusic) {
+      await this.playMusic(previousMusic);
+      console.log(`PSGame: Restored previous music: ${previousMusic}`);
+    }
 
     console.log("PSGame: Church routine completed");
   }
