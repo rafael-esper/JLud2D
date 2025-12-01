@@ -14,6 +14,7 @@ import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { Camineet } from './maps/Camineet';
 import { Parolit } from './maps/Parolit';
+import { Scion } from './maps/Scion';
 import { MenuStack } from './menu/MenuStack';
 import { PSMenu } from './PSMenu';
 

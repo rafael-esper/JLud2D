@@ -9,7 +9,8 @@ import { Party } from './game/Party';
 import { Item, ItemType } from './game/Item';
 import { MenuLabelBox } from './menu/MenuLabelBox';
 import { PS1Sound } from './game/PSLibSound';
-import { ScriptEngine } from '../../core/ScriptEngine';
+import { Flags } from './game/GameData';
+import { OriginalItem } from './game/PSLibItem';
 
 export class PSMenuShop {
   public static mstBox: MenuLabelBox | null = null;
@@ -77,10 +78,22 @@ export class PSMenuShop {
           buyIsDone = true;
           return false; // End Shop routine
         } else {
-          // Secret Thing 'hack'
+          // Secret Thing 'hack' - handle directly in shop context like other shop interactions
           if (chosenItem.type === ItemType.SECRET) {
-            await ScriptEngine.callfunction("secret_item");
-            return false;
+            if (!PSGame.hasFlag(Flags.SCION_INSIST_1)) {
+              await PSMenu.StextLast(PSGame.getString("Scion_Second_Hand_Shop_Secret1"));
+              PSGame.setFlag(Flags.SCION_INSIST_1);
+            } else if (!PSGame.hasFlag(Flags.SCION_INSIST_2)) {
+              await PSMenu.StextLast(PSGame.getString("Scion_Second_Hand_Shop_Secret2"));
+              PSGame.setFlag(Flags.SCION_INSIST_2);
+            } else {
+              // Final interaction: purchase the Road Pass
+              PSGame.getParty().mst -= chosenItem.getCost();
+              PSMenuShop.mstBox?.updateText(0, "MST " + PSGame.getParty().mst);
+              PSGame.getParty().addQuestItem(PSGame.getItem(OriginalItem.Quest_Road_Pass));
+              await PSMenu.StextLast(PSGame.getString("Scion_Second_Hand_Shop_Secret3"));
+            }
+            return false; // End shop after secret item interaction
           }
 
           // If there is only one member

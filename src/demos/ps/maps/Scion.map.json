@@ -181,7 +181,7 @@
                         {
                          "name":"chrname",
                          "type":"string",
-                         "value":"chars\/man5.chr"
+                         "value":"chars\/Man5.chr"
                         }, 
                         {
                          "name":"face",
@@ -258,7 +258,7 @@
                         {
                          "name":"chrname",
                          "type":"string",
-                         "value":"chars\/wmn4.chr"
+                         "value":"chars\/Wmn4.chr"
                         }, 
                         {
                          "name":"face",
