@@ -828,14 +828,23 @@ export class PSGame {
    * Animates party movement in specified direction until reaching stop point, then switches to destination
    */
   public static async spaceportTransition(direction: number, whenStop: number, destiny: City, gotox: number, gotoy: number): Promise<void> {
-    MainEngine.setScriptActive(true);
+    MainEngine.setEntitiesPaused(true);
     this.menuOff();
     this.transportOff();
 
+    // Allocate party at correct position like normal mapswitch
     await this.getParty().allocate(this.getgotox(), this.getgotoy());
+
+    // Set camera tracking and position once
     MainEngine.setCameraTracking(1);
     MainEngine.setupCamera();
+
+    // Fade in to show the animation
     await ScriptEngine.fadein(30, true);
+
+    // Ensure player controls remain disabled after fade-in
+    MainEngine.setScriptActive(true);
+    MainEngine.setEntitiesPaused(true);
 
     let count = 0;
     const party = this.getParty();
@@ -848,10 +857,10 @@ export class PSGame {
       const playerTileX = Math.floor(player.getx() / 16);
       const playerTileY = Math.floor(player.gety() / 16);
 
-      if (direction === 3 && playerTileX < whenStop) break; // WEST
-      if (direction === 4 && playerTileX > whenStop) break; // EAST
-      if (direction === 1 && playerTileY < whenStop) break; // NORTH
-      if (direction === 2 && playerTileY > whenStop) break; // SOUTH
+      if (direction === 3 && playerTileX <= whenStop) break; // WEST
+      if (direction === 4 && playerTileX >= whenStop) break; // EAST
+      if (direction === 1 && playerTileY <= whenStop) break; // NORTH
+      if (direction === 2 && playerTileY >= whenStop) break; // SOUTH
 
       // Move all party members
       let currentEntity: Entity | null = player;
@@ -864,6 +873,11 @@ export class PSGame {
 
         if (currentEntity && count === 0) {
           currentEntity.setFace(direction);
+          const chr = currentEntity.getChr();
+          if (chr) {
+            const idleFrames = chr.getIdle();
+            currentEntity.setSpecframe(idleFrames[direction] || 0);
+          }
           if (direction === 2 || direction === 1) {
             currentEntity.incx(4);
           }
@@ -888,9 +902,26 @@ export class PSGame {
       }
 
       count++;
+
+      // Force sprite visual update for all entities
+      currentEntity = player;
+      for (let j = 0; j < party.partySize(); j++) {
+        if (j === 0) {
+          currentEntity = player;
+        } else if (currentEntity) {
+          currentEntity = currentEntity.getFollower();
+        }
+
+        if (currentEntity) {
+          currentEntity.draw();
+        }
+      }
+
+      // Add delay to slow down animation (one pixel at a time)
       await new Promise(resolve => setTimeout(resolve, 16));
     }
 
+    MainEngine.setEntitiesPaused(false);
     MainEngine.setScriptActive(false);
     this.menuOn();
     await this.mapswitchToCity(destiny, gotox, gotoy);
