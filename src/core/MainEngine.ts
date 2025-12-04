@@ -719,8 +719,6 @@ export class MainEngine {
 
     // Center camera on start position with proper clamping
     MainEngine.setCameraPosition(startX, startY);
-
-    console.log(`Camera setup: demo resolution ${config.xRes}x${config.yRes}, map bounds ${mapWidth}x${mapHeight}, camera at ${startX},${startY}`);
   }
 
   /**
@@ -1150,6 +1148,10 @@ export class MainEngine {
     MainEngine.currentScriptContext = context;
   }
 
+  public static getScriptContext(): any {
+    return MainEngine.currentScriptContext;
+  }
+
   public static async loadScriptContextForMap(mapName: string, basePath: string): Promise<void> {
     try {
       // Extract map name without extension (e.g., "Camineet.map.json" -> "Camineet")
@@ -1322,8 +1324,13 @@ export class MainEngine {
           currentScene.tiledMap = current_map;
         }
 
-        // Call scene's post-map-load initialization if available (for PS startmap flow)
-        if (currentScene && 'startmap' in currentScene && typeof currentScene.startmap === 'function') {
+        // Call script context's startmap method if available (for PS map scripts like Palma.ts)
+        const scriptContext = MainEngine.getScriptContext();
+        if (scriptContext && 'startmap' in scriptContext && typeof scriptContext.startmap === 'function') {
+          console.log(`MainEngine: Calling startmap() on script context`);
+          await scriptContext.startmap();
+        } else if (currentScene && 'startmap' in currentScene && typeof currentScene.startmap === 'function') {
+          // Fallback: Call scene's post-map-load initialization if available
           await currentScene.startmap();
         } else {
           // Fallback: For non-PS scenes, unpause entities

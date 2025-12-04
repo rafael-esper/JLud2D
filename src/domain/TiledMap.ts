@@ -531,6 +531,15 @@ export class TiledMap {
   public getFilename(): string { return this.filename; }
   public getRenderstring(): string { return this.renderstring; }
 
+  // Setters for wrapping properties
+  public setHorizontalWrappable(wrappable: boolean): void {
+    this.horizontalWrappable = wrappable;
+  }
+
+  public setVerticalWrappable(wrappable: boolean): void {
+    this.verticalWrappable = wrappable;
+  }
+
   /**
    * Get the depth at which entities should render
    * Based on renderstring position of 'E'

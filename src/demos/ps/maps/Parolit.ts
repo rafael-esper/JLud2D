@@ -84,12 +84,14 @@ export class Parolit {
   }
 
   public static async spaceport(): Promise<void> {
+    PSGame.EntStart();
     if (!PSGame.getParty().hasQuestItem(PSGame.getItem(OriginalItem.Quest_Road_Pass))) {
       await PSMenu.Stext(PSGame.getString("Parolit_People_Cop_No_Pass"));
     } else {
       await PSMenu.Stext(PSGame.getString("Parolit_People_Cop_Pass"));
       PSGame.mapswitchToPlanet(Planet.PALMA, 70, 57);
     }
+    PSGame.EntFinish();
   }
 
   public static async robot1(): Promise<void> {

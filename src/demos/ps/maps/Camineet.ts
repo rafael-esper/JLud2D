@@ -173,11 +173,9 @@ export class Camineet {
       await PSMenu.Stext(PSGame.getString("Camineet_People_Cop_No_Pass"));
     } else {
       await PSMenu.Stext(PSGame.getString("Camineet_People_Cop_Pass"));
-      // TODO: Implement spaceport map transition
-      // PSGame.mapswitch("spaceport/Spaceport.map", 81, 46);
+      PSGame.mapswitchToPlanet(Planet.PALMA, 81, 46);
     }
     PSGame.EntFinish();
-    console.log("Camineet: Spaceport - need Road Pass");
   }
 
   public static async robot1(): Promise<void> {

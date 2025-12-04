@@ -10,6 +10,7 @@ import { Specie } from './Specie';
 import { GameType } from './GameData';
 import { PS1Image } from './PSLibImage';
 import { PS1Sound } from './PSLibSound';
+import { OriginalItem } from './PSLibItem';
 import { PSGame } from '../PSGame';
 import { MainEngine } from '../../../core/MainEngine';
 
@@ -58,6 +59,11 @@ export class Party {
           "Alis.anim.json"
         ));
         console.log(`Party constructor: Added member, party size now ${this.members.length}`);
+
+        // Add Road Pass for debugging spaceport transitions
+        this.addQuestItem(PSGame.getItem(OriginalItem.Quest_Road_Pass));
+        console.log('Party constructor: Added Road Pass for debugging');
+
         // Commented out additional members from original
         // this.addMember(new PartyMember(Gender.MALE, Specie.MUSK_CAT, Job.NATURER, PSGame.getString("Name_Myau"), "chars/myau.chr"));
         // this.addMember(new PartyMember(Gender.MALE, Specie.PALMAN, Job.FIGHTER, PSGame.getString("Name_Odin"), "chars/odin.chr"));

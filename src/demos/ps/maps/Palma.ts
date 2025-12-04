@@ -8,7 +8,7 @@ import { ScriptEngine } from '../../../core/ScriptEngine';
 import { PSGame } from '../PSGame';
 import { PSMenu } from '../PSMenu';
 import { City } from '../game/City';
-import { Dungeon } from '../game/Dungeon';
+import { Dungeon, EntityDirection } from '../game/Dungeon';
 import { PSSceneType, SpecialEntity } from '../PSMenu';
 import { PS1Enemy, PS4Enemy } from '../game/PSLibEnemy';
 import { OriginalItem } from '../game/PSLibItem';
@@ -38,20 +38,41 @@ export class Palma {
 
     // PSGame.planetAllocate(); // TODO: Not implemented yet
 
-    await ScriptEngine.fadein(30, true);
-
     console.log("Palma::mapinit");
 
-    // TODO: Spaceport transitions not implemented yet
-    // if (PSGame.getgotox() === 81 && PSGame.getgotoy() === 46) { // Camineet To Spaceport
-    //   PSGame.spaceportTransition(Entity.Direction.WEST, 70, City.SPACEPORT1, 28, 12);
-    // } else if (PSGame.getgotox() === 72 && PSGame.getgotoy() === 46) { // Spaceport To Camineet
-    //   PSGame.spaceportTransition(Entity.Direction.EAST, 82, City.CAMINEET, 7, 16);
-    // } else if (PSGame.getgotox() === 70 && PSGame.getgotoy() === 48) { // Spaceport To Parolit
-    //   PSGame.spaceportTransition(Entity.Direction.SOUTH, 58, City.PAROLIT, 17, 6);
-    // } else if (PSGame.getgotox() === 70 && PSGame.getgotoy() === 57) { // Parolit To Spaceport
-    //   PSGame.spaceportTransition(Entity.Direction.NORTH, 46, City.SPACEPORT1, 17, 18);
-    // }
+    // Debug spaceport transition coordinates
+    const gotox = PSGame.getgotox();
+    const gotoy = PSGame.getgotoy();
+    console.log(`Palma.startmap: gotox=${gotox}, gotoy=${gotoy}`);
+
+    // Spaceport transitions with animation
+    if (gotox === 81 && gotoy === 46) { // Camineet To Spaceport
+      console.log("Palma.startmap: Triggering Camineet to Spaceport transition");
+      await PSGame.spaceportTransition(EntityDirection.WEST, 70, City.SPACEPORT1, 28, 12);
+    } else if (gotox === 72 && gotoy === 46) { // Spaceport To Camineet
+      console.log("Palma.startmap: Triggering Spaceport to Camineet transition");
+      await PSGame.spaceportTransition(EntityDirection.EAST, 82, City.CAMINEET, 7, 16);
+    } else if (gotox === 70 && gotoy === 48) { // Spaceport To Parolit
+      console.log("Palma.startmap: Triggering Spaceport to Parolit transition");
+      await PSGame.spaceportTransition(EntityDirection.SOUTH, 58, City.PAROLIT, 17, 6);
+    } else if (gotox === 70 && gotoy === 57) { // Parolit To Spaceport
+      console.log("Palma.startmap: Triggering Parolit to Spaceport transition");
+      await PSGame.spaceportTransition(EntityDirection.NORTH, 46, City.SPACEPORT1, 17, 18);
+    } else {
+      console.log("Palma.startmap: No spaceport transition triggered for these coordinates");
+      // Continue with normal Palma map initialization for regular coordinates
+
+      // Allocate party at goto position (spawn player)
+      await PSGame.getParty().allocate(PSGame.getgotox(), PSGame.getgotoy());
+
+      // Setup camera to center on player after spawning
+      MainEngine.setupCamera();
+
+      await ScriptEngine.fadein(30, true);
+
+      PSGame.menuOn();
+      PSGame.transportOff();
+    }
 
     // PSGame.transportOn(); // TODO: Not implemented yet
   }

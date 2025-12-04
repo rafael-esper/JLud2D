@@ -5,7 +5,7 @@
 
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
-import { EntityDirection } from '../../domain/Entity';
+import { Entity, EntityDirection } from '../../domain/Entity';
 import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
 import { PS1Sound } from './game/PSLibSound';
@@ -464,6 +464,15 @@ export class PSGame {
   }
 
   /**
+   * Turn menu off - direct port from Java PSMenu.menuOff()
+   */
+  public static menuOff(): void {
+    console.log("PSGame: Menu system deactivated");
+    // In full implementation, this would disable the in-game menu system
+    // This would integrate with our ported menu system
+  }
+
+  /**
    * Play sound - direct port of Java PSGame.playSound()
    */
   public static playSound(sound: PS1Sound): void {
@@ -812,5 +821,78 @@ export class PSGame {
 
       await PSMenu.Stext(statsText);
     }
+  }
+
+  /**
+   * Spaceport transition with animation - direct port of Java spaceportTransition() method
+   * Animates party movement in specified direction until reaching stop point, then switches to destination
+   */
+  public static async spaceportTransition(direction: number, whenStop: number, destiny: City, gotox: number, gotoy: number): Promise<void> {
+    MainEngine.setScriptActive(true);
+    this.menuOff();
+    this.transportOff();
+
+    await this.getParty().allocate(this.getgotox(), this.getgotoy());
+    MainEngine.setCameraTracking(1);
+    MainEngine.setupCamera();
+    await ScriptEngine.fadein(30, true);
+
+    let count = 0;
+    const party = this.getParty();
+
+    while (true) {
+      const player = MainEngine.getPlayer();
+      if (!player) break;
+
+      // Check stop conditions based on direction
+      const playerTileX = Math.floor(player.getx() / 16);
+      const playerTileY = Math.floor(player.gety() / 16);
+
+      if (direction === 3 && playerTileX < whenStop) break; // WEST
+      if (direction === 4 && playerTileX > whenStop) break; // EAST
+      if (direction === 1 && playerTileY < whenStop) break; // NORTH
+      if (direction === 2 && playerTileY > whenStop) break; // SOUTH
+
+      // Move all party members
+      let currentEntity: Entity | null = player;
+      for (let j = 0; j < party.partySize(); j++) {
+        if (j === 0) {
+          currentEntity = player;
+        } else if (currentEntity) {
+          currentEntity = currentEntity.getFollower();
+        }
+
+        if (currentEntity && count === 0) {
+          currentEntity.setFace(direction);
+          if (direction === 2 || direction === 1) {
+            currentEntity.incx(4);
+          }
+        }
+
+        if (currentEntity && count > j * 16) {
+          switch (direction) {
+            case 3: // WEST
+              currentEntity.incx(-1);
+              break;
+            case 4: // EAST
+              currentEntity.incx(1);
+              break;
+            case 1: // NORTH
+              currentEntity.incy(-1);
+              break;
+            case 2: // SOUTH
+              currentEntity.incy(1);
+              break;
+          }
+        }
+      }
+
+      count++;
+      await new Promise(resolve => setTimeout(resolve, 16));
+    }
+
+    MainEngine.setScriptActive(false);
+    this.menuOn();
+    await this.mapswitchToCity(destiny, gotox, gotoy);
   }
 }
