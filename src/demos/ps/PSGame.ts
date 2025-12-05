@@ -829,6 +829,7 @@ export class PSGame {
    */
   public static async spaceportTransition(direction: number, whenStop: number, destiny: City, gotox: number, gotoy: number): Promise<void> {
     MainEngine.setEntitiesPaused(true);
+    MainEngine.setScriptActive(true);
     this.menuOff();
     this.transportOff();
 
@@ -842,8 +843,7 @@ export class PSGame {
     // Fade in to show the animation
     await ScriptEngine.fadein(30, true);
 
-    // Ensure player controls remain disabled after fade-in
-    MainEngine.setScriptActive(true);
+    // Ensure entities remain paused and controls disabled for the animation
     MainEngine.setEntitiesPaused(true);
 
     let count = 0;
@@ -918,7 +918,7 @@ export class PSGame {
       }
 
       // Add delay to slow down animation (one pixel at a time)
-      await new Promise(resolve => setTimeout(resolve, 16));
+      await new Promise(resolve => setTimeout(resolve, 8));
     }
 
     MainEngine.setEntitiesPaused(false);

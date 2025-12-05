@@ -1045,6 +1045,12 @@ export class MainEngine {
   public static CheckZone(): void {
     if (!MainEngine.current_map) return;
 
+    // Don't trigger zone events when entities are paused (during animations/transitions)
+    if (MainEngine.entitiespaused) return;
+
+    // Don't trigger zone events when scripts are active (during cutscenes/spaceport transitions)
+    if (MainEngine.invc !== 0) return;
+
     const cur_timer = MainEngine.timer;
     const cz = MainEngine.current_map.getzone(MainEngine.px, MainEngine.py);
 
@@ -1093,7 +1099,7 @@ export class MainEngine {
         // MainEngine.ProcessControls();
       }
 
-      if (MainEngine.myself !== null && MainEngine.invc === 0) {
+      if (MainEngine.myself !== null && MainEngine.invc === 0 && !MainEngine.entitiespaused) {
         // Check if player has moved to a new tile (using center of sprite for better "settled" detection)
         const hw = MainEngine.myself.getChr()?.getHw() || 16;
         const hh = MainEngine.myself.getChr()?.getHh() || 16;

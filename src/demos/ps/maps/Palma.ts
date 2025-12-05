@@ -70,6 +70,8 @@ export class Palma {
 
       await ScriptEngine.fadein(30, true);
 
+      // Enable normal gameplay after fade-in
+      MainEngine.setEntitiesPaused(false);
       PSGame.menuOn();
       PSGame.transportOff();
     }
