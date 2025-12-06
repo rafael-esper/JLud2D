@@ -462,7 +462,14 @@ export class Entity {
 
   // Properties
   public getFace(): number { return this.properties.face; }
-  public setFace(direction: number): void { this.properties.face = direction; }
+  public setFace(direction: number): void {
+    this.properties.face = direction;
+    // Update frame to idle frame for new facing direction
+    if (this.chr) {
+      const idleFrames = this.chr.getIdle();
+      this.frame = idleFrames[direction] || 0;
+    }
+  }
 
   public getSpeed(): number { return this.properties.speed || 100; }
   public setSpeed(speed: number): void { this.properties.speed = speed; }
