@@ -43,13 +43,10 @@ export class Spaceport1 {
     await PSMenu.startScene(PSSceneType.SPACESHIP, EntityType.CITY_MAN_BLOND, EntityClothes.BLUE);
 
     if (await PSMenu.Prompt(PSGame.getString("Spaceport_Shuttle"), PSGame.getYesNo()) === 1) {
-      // TODO: Implement spaceshipRoutineStart
-      // PSGame.spaceshipRoutineStart(City.CAMINEET, City.PASEO);
-      console.log("Spaceport1: Starting spaceship routine");
+      // Travel to Spaceport2 on Motavia
+      await PSGame.mapswitchToCity(City.SPACEPORT2, 17, 18);
     }
 
-    // TODO: Implement proper scene ending with fade
-    // PSMenu.endScene(Outcome.FADE_HOUSE);
     await PSMenu.endScene();
   }
 
@@ -156,7 +153,8 @@ export class Spaceport1 {
     if (await PSMenu.Prompt(PSGame.getString("Spaceport_People_Cop"), PSGame.getYesNo()) === 1) {
       if (PSGame.getParty().hasQuestItem(PSGame.getItem(OriginalItem.Quest_Passport))) {
         await PSMenu.StextLast(PSGame.getString("Spaceport_People_Cop_Yes"));
-
+        PSGame.EntFinish();
+        await ScriptEngine.fadeout(30, true);
         // Warp player to restricted area (7, 11 in tiles = 7*16, 11*16 in pixels)
         const player = MainEngine.getPlayer();
         if (player) {
@@ -167,6 +165,7 @@ export class Spaceport1 {
           MainEngine.setCameraTracking(1);
           MainEngine.setupCamera();
           await ScriptEngine.fadein(30, true);
+          return;
         }
       } else {
         await PSMenu.StextLast(PSGame.getString("Spaceport_People_Cop_YesLie"));
@@ -184,7 +183,8 @@ export class Spaceport1 {
   public static async robot_out(): Promise<void> {
     PSGame.EntStart();
     await PSMenu.Stext(PSGame.getString("Spaceport_People_Cop_Yes"));
-
+    PSGame.EntFinish();
+    await ScriptEngine.fadeout(30, true);
     // Warp player back to main area (5, 12 in tiles = 5*16, 12*16 in pixels)
     const player = MainEngine.getPlayer();
     if (player) {
@@ -196,8 +196,6 @@ export class Spaceport1 {
       MainEngine.setupCamera();
       await ScriptEngine.fadein(30, true);
     }
-
-    PSGame.EntFinish();
   }
 
   /**
@@ -216,7 +214,6 @@ export class Spaceport1 {
     PSGame.EntStart();
     await PSMenu.Stext(PSGame.getString("Spaceport_People_Ent1"));
     PSGame.EntFinish();
-    console.log("Spaceport1: Random citizen 1");
   }
 
   /**
@@ -226,7 +223,6 @@ export class Spaceport1 {
     PSGame.EntStart();
     await PSMenu.Stext(PSGame.getString("Spaceport_People_Ent2"));
     PSGame.EntFinish();
-    console.log("Spaceport1: Random citizen 2");
   }
 
   /**
@@ -236,6 +232,5 @@ export class Spaceport1 {
     PSGame.EntStart();
     await PSMenu.Stext(PSGame.getString("Spaceport_People_Ent3"));
     PSGame.EntFinish();
-    console.log("Spaceport1: Random citizen 3");
   }
 }
