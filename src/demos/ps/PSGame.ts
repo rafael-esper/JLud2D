@@ -177,36 +177,63 @@ export class PSGame {
   }
 
   /**
-   * Regroup party members - direct port of Java PSGame.regroup()
-   * Positions the player at adjusted coordinates and faces south
+   * Regroup party members - enhanced version that positions player based on facing direction
+   * Instead of always going south, positions player in opposite direction of where they're facing
    */
   public static regroup(xAdjust: number, yAdjust: number): void {
     console.log(`PSGame: Regrouping party with adjustment (${xAdjust}, ${yAdjust})`);
 
-    // Early exit if no player (equivalent to TEST_SIMULATION or entities == null checks)
+    // Early exit if no player
     const player = MainEngine.getPlayer();
     if (!player) {
       console.log('PSGame.regroup: No player entity found');
       return;
     }
 
-    // Get current position and convert to tile coordinates
-    // Java: int x = (entities.get(player).getx()+16*xAdjust)/16;
-    // Java: int y = (entities.get(player).gety()+16*yAdjust)/16;
     const currentX = player.getx();
     const currentY = player.gety();
-    const tileX = Math.floor((currentX + 16 * xAdjust) / 16);
-    const tileY = Math.floor((currentY + 16 * yAdjust) / 16);
+    const playerFace = player.getFace();
 
-    // Set player to exact tile position (removes sub-pixel positioning)
-    // Java: entities.get(player).setxy(x*16, y*16);
+    // Calculate adjustment based on opposite direction of player facing
+    let finalXAdjust = xAdjust;
+    let finalYAdjust = yAdjust;
+
+    // If this is the default scene exit call regroup(0, 1), adjust based on player direction
+    if (xAdjust === 0 && yAdjust === 1) {
+      switch (playerFace) {
+        case EntityDirection.NORTH:
+          finalXAdjust = 0;
+          finalYAdjust = 1; // Exit to the south (opposite of north)
+          break;
+        case EntityDirection.SOUTH:
+          finalXAdjust = 0;
+          finalYAdjust = -1; // Exit to the north (opposite of south)
+          break;
+        case EntityDirection.WEST:
+          finalXAdjust = 1; // Exit to the east (opposite of west)
+          finalYAdjust = 0;
+          break;
+        case EntityDirection.EAST:
+          finalXAdjust = -1; // Exit to the west (opposite of east)
+          finalYAdjust = 0;
+          break;
+        default:
+          // Keep original values for any other case
+          break;
+      }
+    }
+
+    // Apply the calculated adjustments
+    const tileX = Math.floor((currentX + 16 * finalXAdjust) / 16);
+    const tileY = Math.floor((currentY + 16 * finalYAdjust) / 16);
+
+    // Set player to exact tile position
     player.setxy(tileX * 16, tileY * 16);
 
-    // Force player to face south
-    // Java: entities.get(player).setFace(Entity.SOUTH);
+    // Always face south after regrouping (matching Java behavior)
     player.setFace(EntityDirection.SOUTH);
 
-    console.log(`PSGame.regroup: Player moved from (${currentX}, ${currentY}) to tile (${tileX}, ${tileY}) = (${tileX * 16}, ${tileY * 16}) pixels, facing south`);
+    console.log(`PSGame.regroup: Player moved from (${currentX}, ${currentY}) to tile (${tileX}, ${tileY}) = (${tileX * 16}, ${tileY * 16}) pixels, now facing south, adjustments: (${finalXAdjust}, ${finalYAdjust})`);
   }
 
   /**
