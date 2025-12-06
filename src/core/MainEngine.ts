@@ -376,6 +376,9 @@ export class MainEngine {
               targetEntity.setFace(EntityDirection.WEST);
               break;
           }
+
+          // Update entity sprite immediately after facing change
+          targetEntity.draw();
         }
 
         // Execute entity's activation script

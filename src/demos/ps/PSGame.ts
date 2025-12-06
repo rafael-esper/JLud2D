@@ -239,6 +239,8 @@ export class PSGame {
           return PS1Image.SHOP_HAND;
         case 8: // PSSceneType.SHOP_WEAPON
           return PS1Image.SHOP_WEAPON;
+        case 16: // PSSceneType.SPACESHIP
+          return PS1Image.SPACESHIP;
         default:
           return PS1Image.BLUE_HOUSE; // Default fallback
       }

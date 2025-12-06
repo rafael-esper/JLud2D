@@ -137,6 +137,9 @@ export class Party {
     // Set initial mesetas
     this.mst = 259;
 
+    // DEBUG: Add passport for testing spaceport functionality
+    this.addQuestItem(PSGame.getItem(OriginalItem.Quest_Passport));
+
     console.log(`Party constructor completed: ${this.members.length} members, order: [${this.order}], ${this.mst} MST`);
   }
 

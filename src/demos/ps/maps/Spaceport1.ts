@@ -10,6 +10,9 @@ import { OriginalItem } from '../game/PSLibItem';
 import { PSSceneType, EntityType, EntityClothes, PSMenu } from '../PSMenu';
 import { PSMenuShop } from '../PSMenuShop';
 import { Dungeon } from '../game/Dungeon';
+import { MainEngine } from '../../../core/MainEngine';
+import { ScriptEngine } from '../../../core/ScriptEngine';
+import { EntityDirection } from '../../../domain/Entity';
 
 export class Spaceport1 {
 
@@ -37,24 +40,16 @@ export class Spaceport1 {
    * Interactive spaceship service between Camineet and Paseo
    */
   public static async spaceship(): Promise<void> {
-    // TODO: Implement spaceship scene when available
-    await PSMenu.startScene(PSSceneType.BLUE_HOUSE, EntityType.CITY_MAN_BLOND, EntityClothes.BLUE);
+    await PSMenu.startScene(PSSceneType.SPACESHIP, EntityType.CITY_MAN_BLOND, EntityClothes.BLUE);
 
-    const choice = await PSMenu.Prompt(PSGame.getString("Spaceport_Spaceship_Destination"), [
-      PSGame.getString("Spaceport_Spaceship_Camineet"),
-      PSGame.getString("Spaceport_Spaceship_Paseo")
-    ]);
-
-    if (choice === 0) { // Camineet
-      await PSMenu.StextLast(PSGame.getString("Spaceport_Spaceship_ToCamineet"));
-      // TODO: Implement spaceship routine to Camineet
-      console.log("Spaceport1: Spaceship service to Camineet");
-    } else if (choice === 1) { // Paseo
-      await PSMenu.StextLast(PSGame.getString("Spaceport_Spaceship_ToPaseo"));
-      // TODO: Implement spaceship routine to Paseo
-      console.log("Spaceport1: Spaceship service to Paseo");
+    if (await PSMenu.Prompt(PSGame.getString("Spaceport_Shuttle"), PSGame.getYesNo()) === 1) {
+      // TODO: Implement spaceshipRoutineStart
+      // PSGame.spaceshipRoutineStart(City.CAMINEET, City.PASEO);
+      console.log("Spaceport1: Starting spaceship routine");
     }
 
+    // TODO: Implement proper scene ending with fade
+    // PSMenu.endScene(Outcome.FADE_HOUSE);
     await PSMenu.endScene();
   }
 
@@ -79,48 +74,48 @@ export class Spaceport1 {
 
     // Stage 1: Want a passport?
     const wantPassport = await PSMenu.Prompt(
-      PSGame.getString("Spaceport_Passport_Question1"),
+      PSGame.getString("Spaceport_Passport_Intro"),
       PSGame.getYesNo()
     );
 
     if (wantPassport !== 1) { // Not "Yes"
-      await PSMenu.StextLast(PSGame.getString("Spaceport_Passport_Goodbye"));
+      await PSMenu.StextLast(PSGame.getString("Spaceport_Passport_No"));
       await PSMenu.endScene();
       return;
     }
 
     // Stage 2: Illegal activities?
     const illegalActivities = await PSMenu.PromptNext(
-      PSGame.getString("Spaceport_Passport_Question2"),
+      PSGame.getString("Spaceport_Passport_Yes"),
       PSGame.getYesNo()
     );
 
     if (illegalActivities === 1) { // "Yes" to illegal activities
-      await PSMenu.StextLast(PSGame.getString("Spaceport_Passport_Illegal"));
+      await PSMenu.StextLast(PSGame.getString("Spaceport_Passport_IllegalYes"));
       await PSMenu.endScene();
       return;
     }
 
     // Stage 3: Any illness?
     const illness = await PSMenu.PromptNext(
-      PSGame.getString("Spaceport_Passport_Question3"),
+      PSGame.getString("Spaceport_Passport_IllegalNo"),
       PSGame.getYesNo()
     );
 
     if (illness === 1) { // "Yes" to illness
-      await PSMenu.StextLast(PSGame.getString("Spaceport_Passport_Illness"));
+      await PSMenu.StextLast(PSGame.getString("Spaceport_Passport_IllnessYes"));
       await PSMenu.endScene();
       return;
     }
 
     // Stage 4: Payment (100 mesetas)
     const payment = await PSMenu.PromptNext(
-      PSGame.getString("Spaceport_Passport_Question4"),
+      PSGame.getString("Spaceport_Passport_IllnessNo"),
       PSGame.getYesNo()
     );
 
     if (payment !== 1) { // Not "Yes" to payment
-      await PSMenu.StextLast(PSGame.getString("Spaceport_Passport_NoPayment"));
+      await PSMenu.StextLast(PSGame.getString("Spaceport_Passport_PayNo"));
       await PSMenu.endScene();
       return;
     }
@@ -128,7 +123,7 @@ export class Spaceport1 {
     // Check if player has enough money
     const party = PSGame.getParty();
     if (party.getMesetas() < 100) {
-      await PSMenu.StextLast(PSGame.getString("Shop_Not_Enough_Money"));
+      await PSMenu.StextLast(PSGame.getString("Spaceport_Passport_PayNoMesetas"));
       await PSMenu.endScene();
       return;
     }
@@ -136,7 +131,7 @@ export class Spaceport1 {
     // All conditions met - issue passport
     party.removeMesetas(100);
     party.addQuestItem(PSGame.getItem(OriginalItem.Quest_Passport));
-    await PSMenu.StextLast(PSGame.getString("Spaceport_Passport_Success"));
+    await PSMenu.StextLast(PSGame.getString("Spaceport_Passport_PayYes"));
 
     await PSMenu.endScene();
     console.log("Spaceport1: Passport issued for 100 mesetas");
@@ -148,24 +143,36 @@ export class Spaceport1 {
   public static async robot_in(): Promise<void> {
     PSGame.EntStart();
 
-    const party = PSGame.getParty();
-    const hasPassport = party.hasQuestItem(PSGame.getItem(OriginalItem.Quest_Passport));
-
-    if (!hasPassport) {
-      await PSMenu.Stext(PSGame.getString("Spaceport_Robot_NoPassport"));
-    } else {
-      await PSMenu.Stext(PSGame.getString("Spaceport_Robot_PassportOK"));
-
-      // Check for GOT_HAPSBY flag - confiscate passport if set
-      if (PSGame.hasFlag(Flags.GOT_HAPSBY)) {
-        party.removeItem(PSGame.getItem(OriginalItem.Quest_Passport));
-        await PSMenu.StextNext(PSGame.getString("Spaceport_Robot_Confiscate"));
-        console.log("Spaceport1: Passport confiscated due to GOT_HAPSBY flag");
+    if (PSGame.hasFlag(Flags.GOT_HAPSBY)) {
+      await PSMenu.Stext(PSGame.getString("Spaceport_People_Cop_Closed"));
+      if (PSGame.getParty().hasQuestItem(PSGame.getItem(OriginalItem.Quest_Passport))) {
+        await PSMenu.StextLast(PSGame.getString("Spaceport_People_Cop_TakePassport"));
+        PSGame.getParty().removeItem(PSGame.getItem(OriginalItem.Quest_Passport));
       }
+      PSGame.EntFinish();
+      return;
+    }
 
-      // TODO: Implement warp functionality for area transition
-      // Original: PSGame.warp(17, 6, true);
-      console.log("Spaceport1: Entering restricted area (warp functionality needed)");
+    if (await PSMenu.Prompt(PSGame.getString("Spaceport_People_Cop"), PSGame.getYesNo()) === 1) {
+      if (PSGame.getParty().hasQuestItem(PSGame.getItem(OriginalItem.Quest_Passport))) {
+        await PSMenu.StextLast(PSGame.getString("Spaceport_People_Cop_Yes"));
+
+        // Warp player to restricted area (7, 11 in tiles = 7*16, 11*16 in pixels)
+        const player = MainEngine.getPlayer();
+        if (player) {
+          player.setxy(7 * 16, 11 * 16);
+          player.setFace(EntityDirection.SOUTH);
+
+          // Set up camera and fade in
+          MainEngine.setCameraTracking(1);
+          MainEngine.setupCamera();
+          await ScriptEngine.fadein(30, true);
+        }
+      } else {
+        await PSMenu.StextLast(PSGame.getString("Spaceport_People_Cop_YesLie"));
+      }
+    } else {
+      await PSMenu.StextLast(PSGame.getString("Spaceport_People_Cop_No"));
     }
 
     PSGame.EntFinish();
@@ -176,11 +183,19 @@ export class Spaceport1 {
    */
   public static async robot_out(): Promise<void> {
     PSGame.EntStart();
-    await PSMenu.Stext(PSGame.getString("Spaceport_Robot_Exit"));
+    await PSMenu.Stext(PSGame.getString("Spaceport_People_Cop_Yes"));
 
-    // TODO: Implement warp functionality for area transition
-    // Original: PSGame.warp(28, 12, true);
-    console.log("Spaceport1: Exiting restricted area (warp functionality needed)");
+    // Warp player back to main area (5, 12 in tiles = 5*16, 12*16 in pixels)
+    const player = MainEngine.getPlayer();
+    if (player) {
+      player.setxy(5 * 16, 12 * 16);
+      player.setFace(EntityDirection.SOUTH);
+
+      // Set up camera and fade in
+      MainEngine.setCameraTracking(1);
+      MainEngine.setupCamera();
+      await ScriptEngine.fadein(30, true);
+    }
 
     PSGame.EntFinish();
   }
@@ -189,18 +204,9 @@ export class Spaceport1 {
    * Secret entrance to Gothic Passageway (requires GOT_NOAH flag)
    */
   public static async manhole(): Promise<void> {
-    PSGame.EntStart();
-
     if (PSGame.hasFlag(Flags.GOT_NOAH)) {
-      await PSMenu.Stext(PSGame.getString("Spaceport_Manhole_Open"));
       await PSGame.mapswitch(Dungeon.GOTHIC_PASSAGEWAY_IN);
-      console.log("Spaceport1: Secret access to Gothic Passageway granted");
-    } else {
-      await PSMenu.Stext(PSGame.getString("Spaceport_Manhole_Closed"));
-      console.log("Spaceport1: Manhole access denied - GOT_NOAH flag not set");
     }
-
-    PSGame.EntFinish();
   }
 
   /**
