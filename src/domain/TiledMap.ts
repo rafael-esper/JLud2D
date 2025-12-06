@@ -929,7 +929,7 @@ export class TiledMap {
   }
 
   public getMethodZone(zone: number): number {
-    const tileId = this.zoneToTile(zone);
+    const tileId = this.zoneToTile(zone+1);
     return this.getTileProperty(tileId, "isObstruction") ? 1 : 0;
   }
 

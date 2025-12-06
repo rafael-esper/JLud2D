@@ -397,15 +397,17 @@ export class MainEngine {
 
           const zone = MainEngine.current_map.getzone(tileX, tileY);
           if (zone > 0) {
-            const script = MainEngine.current_map.getScriptZone(zone);
-            if (script && script.trim() !== '') {
-              console.log(`MainEngine: Activating map zone ${zone} with script: ${script}`);
-              MainEngine.callScriptFunction(script);
-            } else {
-              console.log(`MainEngine: Zone ${zone} has no script`);
+            // Only activate zones marked as obstruction (method 1)
+            const method = MainEngine.current_map.getMethodZone(zone);
+            if (method === 1) {
+              const script = MainEngine.current_map.getScriptZone(zone);
+              if (script && script.trim() !== '') {
+                console.log(`MainEngine: Activating obstruction zone ${zone} with script: ${script}`);
+                MainEngine.callScriptFunction(script);
+              } else {
+                console.log(`MainEngine: Obstruction zone ${zone} has no script`);
+              }
             }
-          } else {
-            console.log('MainEngine: No entity or zone found at activation position');
           }
         } else {
           console.log('MainEngine: No entity found and no map available for zone checking');
