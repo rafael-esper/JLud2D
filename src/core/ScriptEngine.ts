@@ -276,6 +276,28 @@ export class ScriptEngine {
     return str.substring(0, length);
   }
 
+  /**
+   * Clear all input states to prevent unwanted player movement
+   * Attempts to access the current scene's InputManager to call clearInputs
+   */
+  public static clearInputs(): void {
+    const currentScene = MainEngine.getCurrentScene();
+    if (!currentScene) {
+      console.warn("ScriptEngine: No current scene available for clearing inputs");
+      return;
+    }
+
+    // Try to access the inputManager from the current scene
+    // Cast to any to access the inputManager property
+    const sceneWithInput = currentScene as any;
+    if (sceneWithInput.inputManager && typeof sceneWithInput.inputManager.clearInputs === 'function') {
+      sceneWithInput.inputManager.clearInputs();
+      console.log("ScriptEngine: Input states cleared to prevent unwanted movement");
+    } else {
+      console.warn("ScriptEngine: Could not access inputManager.clearInputs() on current scene");
+    }
+  }
+
   // ============================================================================
   // ENTITY SYSTEM
   // ============================================================================
@@ -303,6 +325,9 @@ export class ScriptEngine {
   public static async fadein(duration: number, renderMap: boolean): Promise<void> {
     console.log(`ScriptEngine: Fading in over ${duration} frames, renderMap: ${renderMap}`);
 
+    // Clear inputs at start of fade to prevent unwanted movement
+    ScriptEngine.clearInputs();
+
     const currentScene = MainEngine.getCurrentScene();
     if (!currentScene) {
       console.error("ScriptEngine: No current scene for fade in");
@@ -327,6 +352,9 @@ export class ScriptEngine {
         MainEngine.setEntitiesPaused(false);
         console.log("ScriptEngine: Entities unpaused after fade in");
 
+        // Clear inputs at end of fade to prevent unwanted movement
+        ScriptEngine.clearInputs();
+
         resolve();
       });
     });
@@ -338,11 +366,16 @@ export class ScriptEngine {
   public static async fadeout(duration: number, renderMap: boolean): Promise<void> {
     console.log(`ScriptEngine: Fading out over ${duration} frames, renderMap: ${renderMap}`);
 
+    // Clear inputs at start of fade to prevent unwanted movement
+    ScriptEngine.clearInputs();
+
     const currentScene = MainEngine.getCurrentScene();
     if (!currentScene) {
       console.error("ScriptEngine: No current scene for fade out");
       return;
     }
+
+    MainEngine.setEntitiesPaused(true);
 
     // Convert frame duration to milliseconds (assuming 60fps: 16ms per frame)
     const durationMs = duration * 16;
@@ -353,6 +386,10 @@ export class ScriptEngine {
 
       currentScene.cameras.main.once('camerafadeoutcomplete', () => {
         console.log("ScriptEngine: Fade out complete");
+
+        // Clear inputs at end of fade to prevent unwanted movement
+        ScriptEngine.clearInputs();
+
         resolve();
       });
     });

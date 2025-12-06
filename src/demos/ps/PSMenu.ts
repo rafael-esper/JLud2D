@@ -334,10 +334,8 @@ export class PSMenu {
    * Internal scene start logic - direct port of Java startScene(Scene)
    */
   private static async startSceneInternal(scene: Scene): Promise<void> {
-    // Clear button press state
-    // unpress(9);
-
-    // Pause entities and disable menu first
+    // Clear button press state, pause entities and disable menu
+    ScriptEngine.clearInputs();
     ScriptEngine.setEntitiesPaused(true);
     PSMenu.menuOff();
 
@@ -489,7 +487,6 @@ export class PSMenu {
         PSMenu.instance.setBackground('');
         PSGame.regroup(0, 1);
         await ScriptEngine.fadein(25, false);
-        // TODO: Script.unpauseplayerinput();
       }
 
       if (outcome === PSOutcome.FADE) {
@@ -501,7 +498,6 @@ export class PSMenu {
           PSGame.regroup(0, 0);
         }
         await ScriptEngine.fadein(50, false);
-        // TODO: Script.unpauseplayerinput();
       }
 
       ScriptEngine.setEntitiesPaused(false);
