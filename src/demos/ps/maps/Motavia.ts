@@ -38,9 +38,6 @@ export class Motavia {
     }
 
     // PSGame.planetAllocate(); // TODO: Not implemented yet
-
-    await ScriptEngine.fadein(30, true);
-
     // PSGame.transportOn(); // TODO: Not implemented yet
 
     console.log("Motavia::mapinit");

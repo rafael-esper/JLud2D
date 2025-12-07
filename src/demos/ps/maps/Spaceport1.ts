@@ -43,11 +43,12 @@ export class Spaceport1 {
     await PSMenu.startScene(PSSceneType.SPACESHIP, EntityType.CITY_MAN_BLOND, EntityClothes.BLUE);
 
     if (await PSMenu.Prompt(PSGame.getString("Spaceport_Shuttle"), PSGame.getYesNo()) === 1) {
+      await PSMenu.endScene();
       // Travel to Spaceport2 on Motavia
       await PSGame.mapswitchToCity(City.SPACEPORT2, 17, 18);
+    } else {
+      await PSMenu.endScene();
     }
-
-    await PSMenu.endScene();
   }
 
   /**
