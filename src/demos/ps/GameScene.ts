@@ -4,17 +4,12 @@
  */
 
 import { PSGame } from './PSGame';
-import { PS1Music } from './game/PSLibMusic';
-import { PS1CHR } from './game/PSLibCHR';
 import { City, CityHelper } from './game/City';
 import { ScreenSize } from './game/GameData';
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
-import { Camineet } from './maps/Camineet';
-import { Parolit } from './maps/Parolit';
-import { Scion } from './maps/Scion';
 import { MenuStack } from './menu/MenuStack';
 import { PSMenu } from './PSMenu';
 

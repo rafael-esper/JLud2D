@@ -111,7 +111,7 @@ export class Motavia {
   }
 
   public static async casba_cave(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.CASBA_CAVE_IN);
+    await PSGame.mapswitchToDungeon(Dungeon.CASBA_CAVE_IN);
   }
 
   public static async casba(): Promise<void> {
@@ -123,11 +123,11 @@ export class Motavia {
   }
 
   public static async tajima(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.TAJIMA_CAVE);
+    await PSGame.mapswitchToDungeon(Dungeon.TAJIMA_CAVE);
   }
 
   public static async naharu(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.NAHARU);
+    await PSGame.mapswitchToDungeon(Dungeon.NAHARU);
   }
 
   public static async gas(): Promise<void> {

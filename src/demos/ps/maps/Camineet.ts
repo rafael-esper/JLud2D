@@ -6,6 +6,7 @@
 import { PSGame } from '../PSGame';
 import { GameType, Flags } from '../game/GameData';
 import { Planet, City } from '../game/City';
+import { Dungeon } from '../game/Dungeon';
 import { PS1Sound } from '../game/PSLibSound';
 import { PS1Image } from '../game/PSLibImage';
 import { Item } from '../game/Item';
@@ -28,9 +29,8 @@ export class Camineet {
     }
   }
 
-  public static warehouse(): void {
-    // PSGame.mapswitch(Dungeon.WAREHOUSE);
-    console.log("Camineet: Entering warehouse");
+  public static async warehouse(): Promise<void> {
+    await PSGame.mapswitchToDungeon(Dungeon.WAREHOUSE);
   }
 
   public static async church(): Promise<void> {

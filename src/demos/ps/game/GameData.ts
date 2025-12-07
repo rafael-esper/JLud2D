@@ -75,6 +75,14 @@ export enum Trap {
   // Note: This enum likely has more entries in the full Java file
 }
 
+// Trapped chest types
+export enum Trapped {
+  NO_TRAP,
+  EXPLOSION,
+  FLASH,
+  ARROW
+}
+
 export class GameData {
   // Options
   public musicVolume: number = 30; // 0-100
@@ -109,7 +117,7 @@ export class GameData {
   // Position and dungeon state
   public gotox: number = 0;
   public gotoy: number = 0;
-  public dungeonFace: number = 0;
+  public dungeonFace: number = 1;
   public dungeonFloor: number = 0;
 
   // Debug options

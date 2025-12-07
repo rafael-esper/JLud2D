@@ -204,7 +204,7 @@ export class Spaceport1 {
    */
   public static async manhole(): Promise<void> {
     if (PSGame.hasFlag(Flags.GOT_NOAH)) {
-      await PSGame.mapswitch(Dungeon.GOTHIC_PASSAGEWAY_IN);
+      await PSGame.mapswitchToDungeon(Dungeon.GOTHIC_PASSAGEWAY_IN);
     }
   }
 

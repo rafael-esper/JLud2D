@@ -31,6 +31,8 @@ export class PSGame {
   private static currentCity: any = null; // Current city for music and location
   private static currentMusic: PS1Music | null = null; // Track currently playing music
   private static i18nManager: I18nManager = I18nManager.getInstance();
+  public static currentDungeon: any = null; // Current dungeon instance
+  private static readonly PS_DEMO_BASE_PATH = 'src/demos/ps'; // Base path for PS demo
 
   // Sound library cache (equivalent to Java soundLIB HashMap)
   private static soundLIB: Map<PS1Sound, string> = new Map();
@@ -398,7 +400,7 @@ export class PSGame {
   /**
    * Map switch with string path - base implementation
    */
-  public static async mapswitch(mapname: string, x: number, y: number, fade: boolean = true): Promise<void> {
+  public static async mapswitch(mapname: string, x: number, y: number, fade: boolean = true, basePath?: string): Promise<void> {
     console.log(`PSGame.mapswitch: Loading map ${mapname} at (${x}, ${y})`);
 
     // Block all input during map transition
@@ -412,7 +414,7 @@ export class PSGame {
     }
 
     //MainEngine.setEntitiesPaused(false);
-    await ScriptEngine.map(mapname);
+    await MainEngine.startEngine(mapname, basePath);
   }
 
   /**
@@ -462,6 +464,51 @@ export class PSGame {
   }
 
   /**
+   * Switch to dungeon map - handles dungeon entrance/exit with proper coordinates
+   */
+  public static async mapswitchToDungeon(dungeon: Dungeon): Promise<void> {
+    console.log(`PSGame.mapswitchToDungeon: ${Dungeon[dungeon]}`);
+
+    // Import Dungeon helpers
+    const { DungeonHelper } = await import('./game/Dungeon');
+
+    // Set dungeon as current location
+    this.gameData.onGroundVehicle = false;
+    this.gameData.current_dungeon = dungeon;
+    this.gameData.current_city = null;
+
+    // Get dungeon coordinates and direction
+    const dungeonX = DungeonHelper.getX(dungeon);
+    const dungeonY = DungeonHelper.getY(dungeon);
+    const dungeonDir = DungeonHelper.getDir(dungeon);
+
+    // Set goto coordinates for dungeon spawn
+    this.setgotoxy(dungeonX, dungeonY);
+
+    // Get dungeon map path
+    const mapPath = DungeonHelper.getPath(dungeon);
+    if (!mapPath) {
+      console.error(`PSGame.mapswitchToDungeon: No map path for dungeon ${Dungeon[dungeon]}`);
+      return;
+    }
+
+    // Call base mapswitch with dungeon path - basePath should point to the dungeons directory
+    await this.mapswitch(mapPath, dungeonX, dungeonY, true, `${this.PS_DEMO_BASE_PATH}/dungeons`);
+
+    // Play dungeon music
+    const dungeonMusic = DungeonHelper.getMusic(dungeon);
+    if (dungeonMusic) {
+      this.playMusic(dungeonMusic);
+    }
+
+    // Initialize dungeon system
+    const { PSDungeon } = await import('./PSDungeon');
+    this.currentDungeon = new PSDungeon();
+    this.currentDungeon.setAlreadyInside(false);
+    await this.currentDungeon.startDungeon();
+  }
+
+  /**
    * Set goto coordinates
    */
   public static setgotoxy(x: number, y: number): void {
@@ -474,6 +521,27 @@ export class PSGame {
    */
   public static getCurrentCity(): any {
     return this.currentCity;
+  }
+
+  /**
+   * Get current dungeon
+   */
+  public static getCurrentDungeon(): Dungeon | null {
+    return this.gameData.current_dungeon;
+  }
+
+  /**
+   * Get dungeon face direction (for dungeon re-entry)
+   */
+  public static getDungeonFace(): EntityDirection {
+    return this.gameData.dungeonFace || EntityDirection.NORTH;
+  }
+
+  /**
+   * Set dungeon face direction
+   */
+  public static setDungeonFace(direction: EntityDirection): void {
+    this.gameData.dungeonFace = direction;
   }
 
   /**
@@ -956,5 +1024,66 @@ export class PSGame {
     MainEngine.setScriptActive(false);
     this.menuOn();
     await this.mapswitchToCity(destiny, gotox, gotoy);
+  }
+
+  /**
+   * Fixed battle - battle with predetermined enemies
+   */
+  public static fixedBattle(scene: any, enemies: any[]): void {
+    console.log(`PSGame.fixedBattle: Starting fixed battle in ${scene} with ${enemies.length} enemies`);
+    // TODO: Implement battle system
+    // This would integrate with PSBattle class when implemented
+  }
+
+  /**
+   * Random battle - battle with random selection from enemy array
+   */
+  public static randomBattle(scene: any, enemies: any[]): void {
+    console.log(`PSGame.randomBattle: Starting random battle in ${scene} with enemy pool of ${enemies.length}`);
+    // TODO: Implement battle system
+    // This would select random enemy from array and start battle
+  }
+
+  /**
+   * Get dungeon delay for movement animations
+   */
+  public static getDungeonDelay(): number {
+    return 3; // Frame delay for dungeon movement animations
+  }
+
+  /**
+   * Get current dungeon instance
+   */
+  public static getCurrentDungeonInstance(): any {
+    return this.currentDungeon;
+  }
+
+  /**
+   * Chest flag management - direct port from PSGame.java
+   */
+  public static chestFlag(flag: any, mesetas: number, trapped: any, item: any): void {
+    if (this.gameData.chestFlags.has(flag)) {
+      console.log(`PSGame.chestFlag: Chest ${flag} already opened`);
+      return;
+    }
+
+    console.log(`PSGame.chestFlag: Opening chest ${flag}`);
+    this.gameData.chestFlags.add(flag);
+
+    if (mesetas > 0) {
+      this.getParty().addMesetas(mesetas);
+      console.log(`PSGame.chestFlag: Added ${mesetas} mesetas`);
+    }
+
+    if (item) {
+      this.getParty().addItem(item);
+      console.log(`PSGame.chestFlag: Added item ${item}`);
+    }
+
+    // TODO: Handle trap effects
+    if (trapped !== null) {
+      console.log(`PSGame.chestFlag: Chest has trap ${trapped}`);
+      // This would trigger trap effects like explosions, damage, etc.
+    }
   }
 }

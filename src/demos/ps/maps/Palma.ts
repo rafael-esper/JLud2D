@@ -108,31 +108,31 @@ export class Palma {
   }
 
   public static async naula_cave(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.NAULA);
+    await PSGame.mapswitchToDungeon(Dungeon.NAULA);
   }
 
   public static async iala_cave(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.IALA);
+    await PSGame.mapswitchToDungeon(Dungeon.IALA);
   }
 
   public static async prison_in(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.PRISON_IN);
+    await PSGame.mapswitchToDungeon(Dungeon.PRISON_IN);
   }
 
   public static async prison_out(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.PRISON_OUT);
+    await PSGame.mapswitchToDungeon(Dungeon.PRISON_OUT);
   }
 
   public static async cave_baya_in(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.CAVE_BAYA_IN);
+    await PSGame.mapswitchToDungeon(Dungeon.CAVE_BAYA_IN);
   }
 
   public static async cave_baya_out(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.CAVE_BAYA_OUT);
+    await PSGame.mapswitchToDungeon(Dungeon.CAVE_BAYA_OUT);
   }
 
   public static async baya_malay_tower(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.BAYA_MALAY);
+    await PSGame.mapswitchToDungeon(Dungeon.BAYA_MALAY);
   }
 
   public static async abion(): Promise<void> {
@@ -144,27 +144,27 @@ export class Palma {
   }
 
   public static async triada(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.TRIADA);
+    await PSGame.mapswitchToDungeon(Dungeon.TRIADA);
   }
 
   public static async odin_cave(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.ODIN_CAVE);
+    await PSGame.mapswitchToDungeon(Dungeon.ODIN_CAVE);
   }
 
   public static async cave_bortevo_south(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.BORTEVO_IN);
+    await PSGame.mapswitchToDungeon(Dungeon.BORTEVO_IN);
   }
 
   public static async cave_bortevo_north(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.BORTEVO_OUT);
+    await PSGame.mapswitchToDungeon(Dungeon.BORTEVO_OUT);
   }
 
   public static async medusa_tower(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.MEDUSA_TOWER);
+    await PSGame.mapswitchToDungeon(Dungeon.MEDUSA_TOWER);
   }
 
   public static async lost_island(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.LOST_ISLAND);
+    await PSGame.mapswitchToDungeon(Dungeon.LOST_ISLAND);
   }
 
   // *********************** BATTLE AREAS **********************************
