@@ -401,6 +401,8 @@ export class PSGame {
   public static async mapswitch(mapname: string, x: number, y: number, fade: boolean = true): Promise<void> {
     console.log(`PSGame.mapswitch: Loading map ${mapname} at (${x}, ${y})`);
 
+    // Block all input during map transition
+    MainEngine.setScriptActive(true);
     MainEngine.setEntitiesPaused(true);
     this.setgotoxy(x, y);
     this.transportOff();
@@ -857,8 +859,7 @@ export class PSGame {
    * Animates party movement in specified direction until reaching stop point, then switches to destination
    */
   public static async spaceportTransition(direction: number, whenStop: number, destiny: City, gotox: number, gotoy: number): Promise<void> {
-    MainEngine.setEntitiesPaused(true);
-    MainEngine.setScriptActive(true);
+
     this.menuOff();
     this.transportOff();
 
@@ -874,6 +875,7 @@ export class PSGame {
 
     // Ensure entities remain paused and controls disabled for the animation
     MainEngine.setEntitiesPaused(true);
+    MainEngine.setScriptActive(true);
 
     let count = 0;
     const party = this.getParty();

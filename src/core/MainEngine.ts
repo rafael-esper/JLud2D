@@ -207,6 +207,11 @@ export class MainEngine {
   }
 
   public static ProcessControls(inputManager: any): void {
+
+    if (MainEngine.isScriptActive()) {
+      return;
+    }
+
     // Update input state from input manager
     MainEngine.up = inputManager.up;
     MainEngine.down = inputManager.down;
@@ -1085,7 +1090,6 @@ export class MainEngine {
    */
   public static TimedProcessEntities(): void {
     if (MainEngine.entitiespaused) {
-      console.log('TimedProcessEntities: Entities are paused');
       return;
     }
 

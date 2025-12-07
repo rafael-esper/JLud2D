@@ -325,7 +325,8 @@ export class ScriptEngine {
   public static async fadein(duration: number, renderMap: boolean): Promise<void> {
     console.log(`ScriptEngine: Fading in over ${duration} frames, renderMap: ${renderMap}`);
 
-    // Clear inputs at start of fade to prevent unwanted movement
+    // Block controls during fade to prevent double-triggering events
+    MainEngine.setScriptActive(true);
     ScriptEngine.clearInputs();
 
     const currentScene = MainEngine.getCurrentScene();
@@ -355,6 +356,9 @@ export class ScriptEngine {
         // Clear inputs at end of fade to prevent unwanted movement
         ScriptEngine.clearInputs();
 
+        // Re-enable controls after fade completes
+        MainEngine.setScriptActive(false);
+
         resolve();
       });
     });
@@ -365,6 +369,9 @@ export class ScriptEngine {
    */
   public static async fadeout(duration: number, renderMap: boolean): Promise<void> {
     console.log(`ScriptEngine: Fading out over ${duration} frames, renderMap: ${renderMap}`);
+
+    // Block controls during fade to prevent double-triggering events
+    MainEngine.setScriptActive(true);
 
     // Clear inputs at start of fade to prevent unwanted movement
     ScriptEngine.clearInputs();
@@ -389,6 +396,9 @@ export class ScriptEngine {
 
         // Clear inputs at end of fade to prevent unwanted movement
         ScriptEngine.clearInputs();
+
+        // Re-enable controls after fade completes
+        MainEngine.setScriptActive(false);
 
         resolve();
       });
