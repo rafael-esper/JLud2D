@@ -1,6 +1,6 @@
 /**
  * PSDungeon - Phantasy Star Dungeon System
- * TypeScript port of PSDungeon.java - Handles 3D dungeon navigation, rendering, and interactions
+ * Proper implementation with full screen image plotting and Java input logic
  */
 
 import { MainEngine } from '../../core/MainEngine';
@@ -13,6 +13,7 @@ import { OriginalItem } from './game/PSLibItem';
 import { EntityDirection } from '../../domain/Entity';
 import { Entity } from '../../domain/Entity';
 
+// Tile constants
 const WALL = 0;
 const FLOOR = 1;
 const STAIRS_UP = 2;
@@ -25,25 +26,80 @@ const OPEN_MAGIC_DOOR = 8;
 const ROOM = 10;
 
 export class PSDungeon {
-  // Enemy arrays for battle system
-  private enemyRandomArray: Map<number, any[]> = new Map();
-  private enemyFixedArray: Map<number, any[]> = new Map();
-
-  // Dungeon rendering state
+  // Core state
+  private isDark: boolean = true;
   private showDungeon: boolean = true;
   private walkingBack: boolean = false;
-  private isDark: boolean = true;
-  private openEffect: boolean = false;
-  private trapEffect: boolean = false;
   private alreadyInside: boolean = false;
   private zoneCheck: boolean = true;
 
-  // Image management
-  private TOTAL_XSIZE: number = 0;
-  private TOTAL_YSIZE: number = 0;
+  // Java-style input state
+  private up: boolean = false;
+  private down: boolean = false;
+  private left: boolean = false;
+  private right: boolean = false;
+  private b1: boolean = false;
+  private b2: boolean = false;
+  private b3: boolean = false;
 
-  // Dungeon images - simplified for TypeScript implementation
-  private dungeonImages: Map<string, any> = new Map();
+  // Previous frame states for edge detection
+  private prevUp: boolean = false;
+  private prevDown: boolean = false;
+  private prevLeft: boolean = false;
+  private prevRight: boolean = false;
+  private prevB1: boolean = false;
+  private prevB2: boolean = false;
+  private prevB3: boolean = false;
+
+  // Rendering system
+  private currentScene: any = null;
+  private dungeonRenderTexture: Phaser.GameObjects.RenderTexture | null = null;
+  private backBuffer: Phaser.GameObjects.Graphics | null = null;
+  private hiddenTilemapLayers: any[] = [];
+  private backColor: number = 0x000080;
+  private TOTAL_XSIZE: number = 320;
+  private TOTAL_YSIZE: number = 240;
+
+
+  // Dungeon images - following Java structure
+  private dungeonPath: string = '';
+  private preloadedImages: Map<string, Phaser.GameObjects.Image> = new Map();
+
+  // Core dungeon images (Java equivalent)
+  private img_dungeon_door!: Phaser.GameObjects.Image;
+  private img_dungeon_ldoor!: Phaser.GameObjects.Image;
+  private img_dungeon_doorAnim!: Phaser.GameObjects.Image;
+  private img_dungeon_odoor!: Phaser.GameObjects.Image;
+  private img_dungeon_mdoor!: Phaser.GameObjects.Image;
+  private img_dungeon_mdoorAnim!: Phaser.GameObjects.Image;
+  private img_dungeon_modoor!: Phaser.GameObjects.Image;
+
+  private img_dungeon_wall1!: Phaser.GameObjects.Image;
+  private img_dungeon_wall2!: Phaser.GameObjects.Image;
+  private img_dungeon_room!: Phaser.GameObjects.Image;
+  private img_dungeon_stup!: Phaser.GameObjects.Image;
+  private img_dungeon_stdn!: Phaser.GameObjects.Image;
+
+  // Image arrays
+  private img_dungeon_back: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_curve: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_corner: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_curl: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_walla: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_wallb: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_wallc: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_enca: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_encb: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_encc: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_enda: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_endb: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_endc: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_doora: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_doorb: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_doorc: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_lena: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_lenb: Phaser.GameObjects.Image[] = [];
+  private img_dungeon_lenc: Phaser.GameObjects.Image[] = [];
 
   public async startDungeon(): Promise<void> {
     const currentDungeon = PSGame.getCurrentDungeon();
@@ -52,20 +108,17 @@ export class PSDungeon {
       return;
     }
 
-    // Show loading message
-    await PSMenu.startScene(PSSceneType.BLUE_HOUSE, SpecialEntity.NONE);
-    await PSMenu.Stext(PSGame.getString("Dungeon_Loading"));
-    await PSMenu.endScene();
 
-    console.log("PSDungeon: Initializing dungeon");
+    this.currentScene = MainEngine.getCurrentScene();
 
     // Initialize dungeon images
     const dungeonType = DungeonHelper.getType(currentDungeon);
     if (dungeonType) {
-      this.initDungeonImages(DungeonTypeHelper.getImagePath(dungeonType));
+      this.dungeonPath = DungeonTypeHelper.getImagePath(dungeonType);
+      await this.preloadDungeonImages();
     }
 
-    // Spawn player at dungeon entrance
+    // Spawn player
     const spawnX = PSGame.getgotox();
     const spawnY = PSGame.getgotoy();
     const dungeonDir = DungeonHelper.getDir(currentDungeon);
@@ -76,12 +129,12 @@ export class PSDungeon {
       player.setFace(dungeonDir);
     }
 
-    // Set up camera and initial fade
+    // Set up camera and fade
     MainEngine.setCameraTracking(1);
     MainEngine.setupCamera();
     await ScriptEngine.fadein(5, false);
 
-    // Check if entering dark dungeon
+    // Check dark dungeon
     if (this.getAlreadyInside()) {
       player?.setFace(PSGame.getDungeonFace());
       this.isDark = false;
@@ -89,7 +142,6 @@ export class PSDungeon {
       const hasLightPendant = PSGame.getParty().hasQuestItem(PSGame.getItem(OriginalItem.Inventory_Light_Pendant));
       this.isDark = DungeonHelper.isDark(currentDungeon) && !hasLightPendant;
 
-      // Handle dark dungeon entrance
       if (this.isDark) {
         await PSMenu.startScene(PSSceneType.BLACK, SpecialEntity.NONE);
         await PSMenu.Stext(PSGame.getString("Dungeon_Black"));
@@ -98,151 +150,741 @@ export class PSDungeon {
       }
     }
 
-    // Main dungeon loop
-    console.log("PSDungeon: Starting dungeon main loop");
+    // Prevent MainEngine from processing input AFTER fade (ScriptEngine.fadein resets this)
+    MainEngine.setScriptActive(true);
+
+    // Start main loop
     await this.dungeonMainLoop();
   }
 
+  /**
+   * Main dungeon loop - Java translation
+   */
   private async dungeonMainLoop(): Promise<void> {
-    const currentScene = MainEngine.getCurrentScene();
-    if (!currentScene) return;
+    // Initialize rendering system
+    this.initBackBuffer();
+    this.hideTilemapLayers();
 
-    let running = true;
 
-    while (running) {
+    const player = MainEngine.getPlayer();
+    const currentMap = MainEngine.getCurrentMap();
+    let die = false;
+
+    if (!player || !currentMap) {
+      console.error("PSDungeon: No player or map");
+      return;
+    }
+
+    // Java main loop (lines 146-262)
+    while (!die) {
       MainEngine.setEntitiesPaused(true);
 
-      // Render dungeon or black screen
-      if (this.showDungeon && !this.isDark) {
-        await this.drawDungeon(0);
+      // Update input state
+      this.updateInput();
+
+      // Render based on current mode
+      if (this.showDungeon) {
+        if (!this.isDark) {
+          this.drawDungeon(player, 0);
+          this.drawImageToScreen();
+        } else {
+          this.paintBlack();
+        }
+        this.hideTilemapLayers();
       } else {
-        // Paint black screen for dark dungeons
-        ScriptEngine.rectfill(0, 0, 320, 240, { r: 0, g: 0, b: 0 });
-      }
-
-      // Zone checking for events and battles
-      if (this.zoneCheck) {
-        this.zoneCheck = false;
-        const player = MainEngine.getPlayer();
-        if (player) {
-          this.callZone(player, 1);
-          this.callZone(player, 0);
-
-          // Check for random battles on floor tiles
-          if (this.getfronttile(player, 1) === FLOOR) {
-            this.enemyBattle();
-          }
+        // Show map view
+        this.showTilemapLayers();
+        // Hide dungeon graphics when showing tilemap
+        if (this.dungeonRenderTexture) {
+          this.dungeonRenderTexture.setVisible(false);
         }
       }
 
-      // Handle input - simplified for TypeScript
-      await this.processDungeonInput();
+      // Zone checking
+      if (this.zoneCheck) {
+        this.zoneCheck = false;
+        this.callZone(player, 1);
+        this.callZone(player, 0);
 
-      // Small delay for frame timing
-      await this.delay(16); // ~60fps
+        if (this.getfronttile(player, 1) === FLOOR) {
+          this.enemyBattle();
+        }
+      }
+
+      // Dungeon Controls - dark dungeon exit
+      if (this.isDark && (this.up || this.left || this.right || this.down)) {
+        const zone = this.getfrontzone(player, -1);
+        const scriptName = currentMap.getScriptZone(zone);
+        if (scriptName) {
+          MainEngine.callScriptFunction(scriptName);
+        }
+        die = true;
+      }
+
+      // First entry
+      if (!this.isDark && !this.getAlreadyInside()) {
+        this.setAlreadyInside(true);
+      }
+
+      // B2 toggle (K or X key)
+      else if (this.justPressed('b2')) {
+        this.showDungeon = !this.showDungeon;
+
+        if (this.showDungeon) {
+          this.drawDungeon(player, 0);
+          this.drawImageToScreen();
+        } else {
+          this.drawImageToScreen(); // Hide dungeon view
+        }
+      }
+
+      // B1 action
+      else if (this.b1) {
+        this.handleOpenAction(player);
+        this.b1 = false;
+      }
+
+      // Turn left/right (use justPressed to prevent continuous turning)
+      else if (this.justPressed('left') || this.justPressed('right')) {
+        this.turnRoutine(player, this.justPressed('right'));
+        this.zoneCheck = true;
+      }
+
+      // UP movement (forward) - use justPressed to prevent continuous movement
+      else if (this.justPressed('up')) {
+        const tile = this.getfronttile(player, 1);
+
+        // Java logic: animate first if FLOOR and showDungeon
+        if (this.showDungeon && tile === FLOOR) {
+          // Forward animation (0 to 5)
+          for (let i = 0; i <= 5; i++) {
+            this.drawDungeon(player, i);
+            this.drawImageToScreen();
+            await this.delayScreen();
+          }
+        }
+
+        // Always do the movement (Java doesn't validate before walkup)
+        await this.walkup(player, 1);
+        this.walkingBack = false;
+
+        // Handle stairs AFTER movement
+        switch (tile) {
+          case STAIRS_DOWN:
+            PSGame.gameData.dungeonFloor--;
+            this.callZone(player, 0);
+            break;
+          case STAIRS_UP:
+            PSGame.gameData.dungeonFloor++;
+            this.callZone(player, 0);
+            break;
+        }
+        this.zoneCheck = true;
+      }
+
+      // DOWN movement (backward) - use justPressed to prevent continuous movement
+      else if (this.justPressed('down')) {
+        let tile = this.getfronttile(player, -1);
+
+        if (tile === FLOOR) {
+          await this.walkup(player, -1);
+        } else if (tile === WALL && this.getlefttile(player, 0) === FLOOR) {
+          this.turnRoutine(player, true);
+          tile = FLOOR;
+          await this.walkup(player, -1);
+        } else if (tile === WALL && this.getrighttile(player, 0) === FLOOR) {
+          this.turnRoutine(player, false);
+          tile = FLOOR;
+          await this.walkup(player, -1);
+        } else {
+          await this.delayScreen();
+          // Don't return here - Java continues to set walkingBack = true
+        }
+
+        // Always set walkingBack = true (Java logic)
+        this.walkingBack = true;
+
+        if (this.showDungeon && tile === FLOOR) {
+          // Backward animation (5 to 0)
+          for (let i = 5; i >= 0; i--) {
+            this.drawDungeon(player, i);
+            this.drawImageToScreen();
+            await this.delayScreen();
+          }
+        }
+        this.zoneCheck = true;
+      }
+
+      // Draw to screen
+      this.drawImageToScreen();
+
+      // Frame delay
+      await this.delay(50);
+
+      // ESC to exit
+      if (this.justPressed('b3')) {
+        die = true;
+      }
     }
 
+    // Cleanup
+    this.restoreTilemapLayers();
     MainEngine.setEntitiesPaused(false);
+
+    // Re-enable MainEngine input processing
+    MainEngine.setScriptActive(false);
+
+
   }
 
-  private async processDungeonInput(): Promise<void> {
-    const player = MainEngine.getPlayer();
-    if (!player) return;
+  /**
+   * Update input state - bypasses MainEngine
+   */
+  private updateInput(): void {
+    if (!this.currentScene?.input?.keyboard?.keys) return;
 
-    const currentScene = MainEngine.getCurrentScene();
-    if (!currentScene) return;
+    const keys = this.currentScene.input.keyboard.keys;
 
-    // Check for basic input - this is simplified
-    // In a full implementation, you'd integrate with the input system
+    // Store previous states for edge detection
+    this.prevUp = this.up;
+    this.prevDown = this.down;
+    this.prevLeft = this.left;
+    this.prevRight = this.right;
+    this.prevB1 = this.b1;
+    this.prevB2 = this.b2;
+    this.prevB3 = this.b3;
 
-    // For now, this is a placeholder that would integrate with Controls.ts
-    // The actual input handling would be done through MainEngine.ProcessControls()
+    // Read raw keyboard state
+    this.up = keys[Phaser.Input.Keyboard.KeyCodes.UP]?.isDown || keys[Phaser.Input.Keyboard.KeyCodes.W]?.isDown || false;
+    this.down = keys[Phaser.Input.Keyboard.KeyCodes.DOWN]?.isDown || keys[Phaser.Input.Keyboard.KeyCodes.S]?.isDown || false;
+    this.left = keys[Phaser.Input.Keyboard.KeyCodes.LEFT]?.isDown || keys[Phaser.Input.Keyboard.KeyCodes.A]?.isDown || false;
+    this.right = keys[Phaser.Input.Keyboard.KeyCodes.RIGHT]?.isDown || keys[Phaser.Input.Keyboard.KeyCodes.D]?.isDown || false;
+    this.b1 = keys[Phaser.Input.Keyboard.KeyCodes.J]?.isDown || keys[Phaser.Input.Keyboard.KeyCodes.Z]?.isDown || false; // b1 = 'J,Z'
+    this.b2 = keys[Phaser.Input.Keyboard.KeyCodes.K]?.isDown || keys[Phaser.Input.Keyboard.KeyCodes.X]?.isDown || false; // b2 = 'K,X'
+    this.b3 = keys[Phaser.Input.Keyboard.KeyCodes.ESC]?.isDown || false;
 
-    // This is where movement, turning, and door opening would be handled
-    // following the patterns from the Java implementation
   }
 
-  private drawDungeon(pos: number): void {
-    const player = MainEngine.getPlayer();
-    if (!player) return;
-
-    // Simplified dungeon rendering - in full implementation this would
-    // render the 3D dungeon view based on player position and facing direction
-    console.log(`PSDungeon: Drawing dungeon view at position ${pos}`);
-
-    // The actual implementation would follow the complex Java drawDungeon logic
-    // with proper wall, floor, door, and stair rendering
+  private justPressed(key: string): boolean {
+    switch (key) {
+      case 'up': return this.up && !this.prevUp;
+      case 'down': return this.down && !this.prevDown;
+      case 'left': return this.left && !this.prevLeft;
+      case 'right': return this.right && !this.prevRight;
+      case 'b1': return this.b1 && !this.prevB1;
+      case 'b2': return this.b2 && !this.prevB2;
+      case 'b3': return this.b3 && !this.prevB3;
+      default: return false;
+    }
   }
 
-  private callZone(entity: Entity, distance: number): void {
-    const curTile = this.getfronttile(entity, distance);
-
-    if (distance > 0 && curTile !== FLOOR) {
+  /**
+   * Draw dungeon - Java drawDungeon equivalent with pos parameter
+   */
+  private drawDungeon(entity: Entity, pos: number): void {
+    if (!entity || !this.dungeonRenderTexture) {
       return;
-    } else if (distance === 0 && curTile === ROOM) {
-      // Render room image
-      console.log("PSDungeon: Player entered room");
     }
 
-    const zone = this.getfrontzone(entity, distance);
-    const currentMap = MainEngine.getCurrentMap();
+    // Clear render texture with background color
+    this.dungeonRenderTexture.clear();
+    this.dungeonRenderTexture.fill(this.backColor);
 
-    if (zone !== 0 && currentMap) {
-      // Call zone script if conditions are met
-      const scriptName = currentMap.getScriptZone(zone);
-      if (scriptName && distance === currentMap.getMethodZone(zone)) {
-        MainEngine.callScriptFunction(scriptName);
+    // JUST IN FRONT (Java switch statement)
+    switch (this.getfronttile(entity, 1)) {
+      case WALL:
+        this.putwallimage(this.img_dungeon_wall2);
+        break;
+      case DOOR:
+        this.putwallimage(this.img_dungeon_door);
+        break;
+      case OPEN_DOOR:
+        this.putwallimage(this.img_dungeon_odoor);
+        break;
+      case STAIRS_UP:
+        this.putwallimage(this.img_dungeon_stup);
+        break;
+      case STAIRS_DOWN:
+        this.putwallimage(this.img_dungeon_stdn);
+        break;
+      case MAGIC_DOOR:
+        this.putwallimage(this.img_dungeon_mdoor);
+        break;
+      case OPEN_MAGIC_DOOR:
+        this.putwallimage(this.img_dungeon_modoor);
+        break;
+      case LOCKED_DOOR:
+        this.putwallimage(this.img_dungeon_ldoor);
+        break;
+      case FLOOR:
+        // Finds floor front depth to nearest wall
+        let depth = 0;
+        while (depth < 5 && this.getfronttile(entity, 2 + depth++) === FLOOR);
+
+        for (let flipped = 0; flipped <= 1; flipped++) { // one time for each side
+
+          if (depth === 1) {
+            let offset = pos < 3 ? this.putimage(this.img_dungeon_wallc[pos], 0, flipped) : 0;
+            if (this.getfronttile(entity, 2) === WALL) {
+              this.putimage(this.getsidetile(entity, 1, flipped) === FLOOR ? this.img_dungeon_encc[pos] : this.img_dungeon_endc[pos], offset, flipped);
+            } else {
+              // TODO: For the future: scaled images of doors/stairs
+              this.putimage(this.img_dungeon_doorc[pos], offset, flipped);
+            }
+          } else if (depth === 2) {
+            let offset = 0;
+            if (this.getsidetile(entity, 1, flipped) === FLOOR) {
+              offset = pos < 3 ? this.putimage(this.img_dungeon_wallc[pos], 0, flipped) : 0;
+              offset = this.putimage(this.img_dungeon_lenc[pos], offset, flipped);
+            } else {
+              offset = this.putimage(this.img_dungeon_wallb[pos], 0, flipped);
+            }
+            if (this.getsidetile(entity, 2, flipped) === FLOOR) {
+              this.putimage(this.img_dungeon_encb[pos], offset, flipped);
+            } else {
+              this.putimage(this.getfronttile(entity, 3) === WALL ? this.img_dungeon_endb[pos] : this.img_dungeon_doorb[pos], offset, flipped);
+            }
+          } else {
+            // depth > 2
+            let offset = 0;
+            if (this.getsidetile(entity, 1, flipped) === FLOOR) {
+              offset = this.putimage(this.img_dungeon_walla[pos], 0, flipped);
+              this.putimage(this.img_dungeon_lenc[pos], pos < 3 ? this.putimage(this.img_dungeon_wallc[pos], 0, flipped) : 0, flipped);
+            } else if (this.getsidetile(entity, 2, flipped) === FLOOR) {
+              offset = this.putimage(this.img_dungeon_wallb[pos], 0, flipped);
+              offset = this.putimage(this.img_dungeon_lenb[pos], offset, flipped);
+            } else {
+              offset = this.putimage(this.img_dungeon_walla[pos], 0, flipped);
+            }
+
+            if (depth === 3) {
+              if (this.getsidetile(entity, 3, flipped) === FLOOR) {
+                this.putimage(this.img_dungeon_enca[pos], offset, flipped);
+              } else {
+                this.putimage(this.getfronttile(entity, 4) === WALL ? this.img_dungeon_enda[pos] : this.img_dungeon_doora[pos], offset, flipped);
+              }
+            } else {
+              // depth > 3
+              if (this.getsidetile(entity, 3, flipped) === FLOOR) {
+                this.putimage(this.img_dungeon_lena[pos], offset, flipped);
+              } else {
+                this.putimage(this.img_dungeon_back[pos], offset, flipped);
+              }
+            }
+          }
+        }
+        break;
+    }
+  }
+
+
+  /**
+   * Put wall image - Java putwallimage equivalent
+   */
+  private putwallimage(img: Phaser.GameObjects.Image): void {
+    // Java: int offset = putimage(img_dungeon_wall1, 0, 0);
+    let offset = this.putimage(this.img_dungeon_wall1, 0, 0);
+    // Java: offset = putimage(img, offset, 0);
+    offset = this.putimage(img, offset, 0);
+    // Java: putimage(img, img_dungeon_wall1.width, 1);
+    this.putimage(img, this.img_dungeon_wall1.displayWidth, 1);
+    // Java: putimage(img_dungeon_wall1, 0, 1);
+    this.putimage(this.img_dungeon_wall1, 0, 1);
+  }
+
+  /**
+   * Put image to render texture - Java putimage equivalent
+   */
+  private putimage(img: Phaser.GameObjects.Image, offset: number, flipped: number): number {
+    if (!img || !this.dungeonRenderTexture) {
+      return offset + 64; // Default width
+    }
+
+    const imageWidth = img.displayWidth;
+
+    if (flipped === 0) {
+      // Normal blit (Java: backDungeon.blit(offset, 0, img))
+      this.dungeonRenderTexture.draw(img, offset, 0);
+    } else {
+      // Flipped blit (Java: backDungeon.flipBlit(TOTAL_XSIZE - offset - img.width, 0, FlipType.FLIP_HORIZONTALLY, img))
+      const flippedX = this.TOTAL_XSIZE - offset - imageWidth;
+      const tempImage = img.scene.add.image(0, 0, img.texture.key);
+      tempImage.setOrigin(0, 0);
+      tempImage.setScale(img.scaleX, img.scaleY);
+      tempImage.setFlipX(true);
+      tempImage.setVisible(false);
+
+      this.dungeonRenderTexture.draw(tempImage, flippedX, 0);
+      tempImage.destroy();
+    }
+
+    return offset + imageWidth;
+  }
+
+  /**
+   * Put image with default offset (Java equivalent overload)
+   */
+  private putimageAtZero(img: Phaser.GameObjects.Image, flipped: number): number {
+    return this.putimage(img, 0, flipped);
+  }
+
+  private getsidetile(entity: Entity, distance: number, flipped: number): number {
+    if (flipped === 1) {
+      return this.getrighttile(entity, distance);
+    }
+    return this.getlefttile(entity, distance);
+  }
+
+  /**
+   * Initialize back buffer system
+   */
+  private initBackBuffer(): void {
+    if (!this.currentScene) return;
+
+    this.backBuffer = this.currentScene.add.graphics();
+    this.backBuffer.setDepth(2000);
+    this.backBuffer.setScrollFactor(0);
+
+    this.dungeonRenderTexture = this.currentScene.add.renderTexture(0, 0, this.TOTAL_XSIZE, this.TOTAL_YSIZE);
+    this.dungeonRenderTexture.setDepth(5000); // Very high depth to ensure visibility above everything
+    this.dungeonRenderTexture.setScrollFactor(0);
+    this.dungeonRenderTexture.setOrigin(0, 0); // Important: set origin to top-left
+
+  }
+
+  /**
+   * Draw image to screen - Java equivalent
+   */
+  private drawImageToScreen(): void {
+    if (!this.backBuffer || !this.dungeonRenderTexture) {
+      return;
+    }
+
+    if (this.showDungeon) {
+      // Clear back buffer with dungeon background
+      this.backBuffer.clear();
+      this.backBuffer.fillStyle(this.backColor, 1);
+      this.backBuffer.fillRect(0, 0, 320, 240);
+
+      // Show dungeon view - make sure it's positioned correctly and visible
+      this.dungeonRenderTexture.setPosition(0, 0);
+      this.dungeonRenderTexture.setVisible(true);
+      this.dungeonRenderTexture.setDepth(5000); // Very high depth to ensure visibility
+
+    } else {
+      // Hide dungeon graphics for map view
+      this.dungeonRenderTexture.setVisible(false);
+      this.backBuffer.clear();
+    }
+  }
+
+  private paintBlack(): void {
+    if (this.backBuffer) {
+      this.backBuffer.clear();
+      this.backBuffer.fillStyle(0x000000, 1);
+      this.backBuffer.fillRect(0, 0, 320, 240);
+    }
+  }
+
+  /**
+   * Initialize dungeon images - Java initDungeonImages equivalent
+   */
+  private async preloadDungeonImages(): Promise<void> {
+    const scene = PSGame.getCurrentScene();
+    if (!scene) return;
+
+    // Complete list of all 121 images (Java equivalent)
+    const imageNames = [
+      // 7 door types
+      'DOOR1.PNG', 'DOOR2.PNG', 'DOOR3.PNG', 'DOOR4.PNG', 'DOOR5.PNG', 'DOOR6.PNG', 'DOOR7.PNG',
+
+      // Walls and special
+      'WALL1.PNG', 'WALL2.PNG', 'ROOM.PNG', 'STAIRSUP.PNG', 'STAIRSDN.PNG',
+
+      // Curves (4)
+      'CURVE1.PNG', 'CURVE2.PNG', 'CURVE3.PNG', 'CURVE4.PNG',
+
+      // Corners (4)
+      'CORNER1.PNG', 'CORNER2.PNG', 'CORNER3.PNG', 'CORNER4.PNG',
+
+      // Curls (7)
+      'CURL1.PNG', 'CURL2.PNG', 'CURL3.PNG', 'CURL4.PNG', 'CURL5.PNG', 'CURL6.PNG', 'CURL7.PNG',
+
+      // Arrays of 6
+      'BACK1.PNG', 'BACK2.PNG', 'BACK3.PNG', 'BACK4.PNG', 'BACK5.PNG', 'BACK6.PNG',
+      'WALLA1.PNG', 'WALLA2.PNG', 'WALLA3.PNG', 'WALLA4.PNG', 'WALLA5.PNG', 'WALLA6.PNG',
+      'WALLB1.PNG', 'WALLB2.PNG', 'WALLB3.PNG', 'WALLB4.PNG', 'WALLB5.PNG', 'WALLB6.PNG',
+      'ENCA1.PNG', 'ENCA2.PNG', 'ENCA3.PNG', 'ENCA4.PNG', 'ENCA5.PNG', 'ENCA6.PNG',
+      'ENCB1.PNG', 'ENCB2.PNG', 'ENCB3.PNG', 'ENCB4.PNG', 'ENCB5.PNG', 'ENCB6.PNG',
+      'ENCC1.PNG', 'ENCC2.PNG', 'ENCC3.PNG', 'ENCC4.PNG', 'ENCC5.PNG', 'ENCC6.PNG',
+      'ENDA1.PNG', 'ENDA2.PNG', 'ENDA3.PNG', 'ENDA4.PNG', 'ENDA5.PNG', 'ENDA6.PNG',
+      'ENDB1.PNG', 'ENDB2.PNG', 'ENDB3.PNG', 'ENDB4.PNG', 'ENDB5.PNG', 'ENDB6.PNG',
+      'ENDC1.PNG', 'ENDC2.PNG', 'ENDC3.PNG', 'ENDC4.PNG', 'ENDC5.PNG', 'ENDC6.PNG',
+      'DOORA1.PNG', 'DOORA2.PNG', 'DOORA3.PNG', 'DOORA4.PNG', 'DOORA5.PNG', 'DOORA6.PNG',
+      'DOORB1.PNG', 'DOORB2.PNG', 'DOORB3.PNG', 'DOORB4.PNG', 'DOORB5.PNG', 'DOORB6.PNG',
+      'DOORC1.PNG', 'DOORC2.PNG', 'DOORC3.PNG', 'DOORC4.PNG', 'DOORC5.PNG', 'DOORC6.PNG',
+      'LENA1.PNG', 'LENA2.PNG', 'LENA3.PNG', 'LENA4.PNG', 'LENA5.PNG', 'LENA6.PNG',
+      'LENB1.PNG', 'LENB2.PNG', 'LENB3.PNG', 'LENB4.PNG', 'LENB5.PNG', 'LENB6.PNG',
+      'LENC1.PNG', 'LENC2.PNG', 'LENC3.PNG', 'LENC4.PNG', 'LENC5.PNG', 'LENC6.PNG',
+
+      // WALLC (3)
+      'WALLC1.PNG', 'WALLC2.PNG', 'WALLC3.PNG'
+    ];
+
+    // Check which images need to be loaded
+    const imagesToLoad: string[] = [];
+    for (const imageName of imageNames) {
+      const imagePath = `${this.dungeonPath}${imageName}`;
+      const imageKey = imagePath.replace(/[^\w]/g, '_');
+
+      if (!(scene as any).textures.exists(imageKey)) {
+        (scene as any).load.image(imageKey, imagePath);
+        imagesToLoad.push(imageName);
+      }
+    }
+
+    return new Promise((resolve) => {
+      const createImageObjects = () => {
+        // Create individual image objects (Java equivalent assignments)
+        this.img_dungeon_door = this.createImageObject('DOOR1.PNG');
+        this.img_dungeon_ldoor = this.createImageObject('DOOR2.PNG');
+        this.img_dungeon_doorAnim = this.createImageObject('DOOR3.PNG');
+        this.img_dungeon_odoor = this.createImageObject('DOOR4.PNG');
+        this.img_dungeon_mdoor = this.createImageObject('DOOR5.PNG');
+        this.img_dungeon_mdoorAnim = this.createImageObject('DOOR6.PNG');
+        this.img_dungeon_modoor = this.createImageObject('DOOR7.PNG');
+
+        this.img_dungeon_wall1 = this.createImageObject('WALL1.PNG');
+        this.img_dungeon_wall2 = this.createImageObject('WALL2.PNG');
+        this.img_dungeon_room = this.createImageObject('ROOM.PNG');
+        this.img_dungeon_stup = this.createImageObject('STAIRSUP.PNG');
+        this.img_dungeon_stdn = this.createImageObject('STAIRSDN.PNG');
+
+        // Create arrays (Java equivalent loops)
+        for (let i = 0; i < 4; i++) {
+          this.img_dungeon_curve[i] = this.createImageObject(`CURVE${i + 1}.PNG`);
+          this.img_dungeon_corner[i] = this.createImageObject(`CORNER${i + 1}.PNG`);
+        }
+
+        for (let i = 0; i < 7; i++) {
+          this.img_dungeon_curl[i] = this.createImageObject(`CURL${i + 1}.PNG`);
+        }
+
+        for (let i = 0; i < 6; i++) {
+          this.img_dungeon_back[i] = this.createImageObject(`BACK${i + 1}.PNG`);
+          this.img_dungeon_walla[i] = this.createImageObject(`WALLA${i + 1}.PNG`);
+          this.img_dungeon_wallb[i] = this.createImageObject(`WALLB${i + 1}.PNG`);
+
+          if (i < 3) {
+            this.img_dungeon_wallc[i] = this.createImageObject(`WALLC${i + 1}.PNG`);
+          }
+
+          this.img_dungeon_enca[i] = this.createImageObject(`ENCA${i + 1}.PNG`);
+          this.img_dungeon_encb[i] = this.createImageObject(`ENCB${i + 1}.PNG`);
+          this.img_dungeon_encc[i] = this.createImageObject(`ENCC${i + 1}.PNG`);
+
+          this.img_dungeon_enda[i] = this.createImageObject(`ENDA${i + 1}.PNG`);
+          this.img_dungeon_endb[i] = this.createImageObject(`ENDB${i + 1}.PNG`);
+          this.img_dungeon_endc[i] = this.createImageObject(`ENDC${i + 1}.PNG`);
+
+          this.img_dungeon_doora[i] = this.createImageObject(`DOORA${i + 1}.PNG`);
+          this.img_dungeon_doorb[i] = this.createImageObject(`DOORB${i + 1}.PNG`);
+          this.img_dungeon_doorc[i] = this.createImageObject(`DOORC${i + 1}.PNG`);
+
+          this.img_dungeon_lena[i] = this.createImageObject(`LENA${i + 1}.PNG`);
+          this.img_dungeon_lenb[i] = this.createImageObject(`LENB${i + 1}.PNG`);
+          this.img_dungeon_lenc[i] = this.createImageObject(`LENC${i + 1}.PNG`);
+        }
+
+        // Set total size from room image (Java equivalent)
+        if (this.img_dungeon_room) {
+          this.TOTAL_XSIZE = this.img_dungeon_room.displayWidth;
+          this.TOTAL_YSIZE = this.img_dungeon_room.displayHeight;
+        }
+
+        resolve();
+      };
+
+      if (imagesToLoad.length > 0) {
+        // Need to load new images
+        (scene as any).load.once('complete', createImageObjects);
+        (scene as any).load.start();
+      } else {
+        // All images already loaded
+        createImageObjects();
+      }
+    });
+  }
+
+  private createImageObject(imageName: string): Phaser.GameObjects.Image {
+    const scene = PSGame.getCurrentScene();
+    if (!scene) throw new Error("No scene available");
+
+    const imagePath = `${this.dungeonPath}${imageName}`;
+    const imageKey = imagePath.replace(/[^\w]/g, '_');
+
+    const image = (scene as any).add.image(-1000, -1000, imageKey);
+    image.setVisible(false);
+    image.setOrigin(0, 0);
+
+    // Scale for 240px viewport
+    const texture = (scene as any).textures.get(imageKey);
+    if (texture && texture.source && texture.source[0]) {
+      const imageHeight = texture.source[0].height;
+      const scaleY = 240 / imageHeight;
+      image.setScale(scaleY, scaleY);
+    }
+
+    // Add to preloaded images map for legacy putimage method
+    this.preloadedImages.set(imagePath, image);
+
+    return image;
+  }
+
+  // Tilemap management
+  private hideTilemapLayers(): void {
+    if (!this.currentScene) return;
+
+    this.currentScene.children.list.forEach((child: any) => {
+      if (child.type === 'TilemapLayer' && child.visible) {
+        child.setVisible(false);
+        if (!this.hiddenTilemapLayers.includes(child)) {
+          this.hiddenTilemapLayers.push(child);
+        }
+      }
+    });
+  }
+
+  private showTilemapLayers(): void {
+    this.hiddenTilemapLayers.forEach(layer => {
+      layer.setVisible(true);
+    });
+  }
+
+  private restoreTilemapLayers(): void {
+    this.hiddenTilemapLayers.forEach(layer => {
+      layer.setVisible(true);
+    });
+    this.hiddenTilemapLayers = [];
+  }
+
+  // Movement and utility methods
+  private async turnRoutine(entity: Entity, clockwise: boolean): Promise<void> {
+    const directions = [EntityDirection.NORTH, EntityDirection.EAST, EntityDirection.SOUTH, EntityDirection.WEST];
+    const currentDir = entity.getFace();
+
+    let pos = directions.indexOf(currentDir);
+    if (pos === -1) pos = 0;
+
+    if (clockwise) {
+      pos = (pos + 1) % 4;
+    } else {
+      pos = (pos + 3) % 4;
+    }
+
+    entity.setFace(directions[pos]);
+  }
+
+  private async walkup(entity: Entity, distance: number): Promise<void> {
+    const inc = 16 * distance;
+    const currentX = entity.getx();
+    const currentY = entity.gety();
+
+    let newX = currentX;
+    let newY = currentY;
+
+    switch (entity.getFace()) {
+      case EntityDirection.NORTH: newY = currentY - inc; break;
+      case EntityDirection.WEST: newX = currentX - inc; break;
+      case EntityDirection.SOUTH: newY = currentY + inc; break;
+      case EntityDirection.EAST: newX = currentX + inc; break;
+    }
+
+    // Java doesn't do boundary checking - just move like Java walkTo
+    await this.walkTo(entity, newX, newY, distance < 0);
+  }
+
+  private async walkTo(entity: Entity, xpos: number, ypos: number, walkbackwards: boolean): Promise<void> {
+    const tile = this.gettile(xpos, ypos);
+
+    if (tile !== WALL) {
+      // Can't traverse stairs or doors when walking backwards (Java logic)
+      if (walkbackwards && tile !== FLOOR) {
+        return;
+      }
+      // Can't traverse a locked door (Java: tile > 4 && tile < 8)
+      if (tile > 4 && tile < 8) {
+        return;
+      }
+
+      entity.setxy(xpos, ypos);
+
+      // If it's over an open door, advance one tile (Java logic)
+      if (tile === OPEN_DOOR || tile === OPEN_MAGIC_DOOR) {
+        if (this.showDungeon) {
+          // TODO: Add fadeOut equivalent
+        }
+        await this.walkup(entity, 1);
+
+        // And after if the current tile is a stairs up/down, call its zone (EXIT) or room
+        const currentTile = this.gettile(entity.getx(), entity.gety());
+        if (currentTile === STAIRS_UP || currentTile === STAIRS_DOWN || currentTile === ROOM) {
+          this.callZone(entity, 0);
+        }
       }
     }
   }
 
-  private enemyBattle(): void {
-    // Random battle system
-    const chance = Math.floor(Math.random() * 256);
-    const currentFloor = PSGame.gameData.dungeonFloor;
-
-    // Small chance of fixed battle (multiple enemies)
-    if (chance < 4) {
-      const fixedEnemies = this.enemyFixedArray.get(currentFloor);
-      if (fixedEnemies && fixedEnemies.length > 0) {
-        PSGame.fixedBattle(PSSceneType.CORRIDOR, fixedEnemies);
-      }
-    }
-    // Greater chance of random battle (single enemy)
-    else if (chance < 20) {
-      const randomEnemies = this.enemyRandomArray.get(currentFloor);
-      if (randomEnemies && randomEnemies.length > 0) {
-        PSGame.randomBattle(PSSceneType.CORRIDOR, randomEnemies);
-      }
-    }
+  private handleOpenAction(player: Entity): void {
+    // TODO: Implement door opening logic
   }
 
   private gettile(x: number, y: number): number {
     const currentMap = MainEngine.getCurrentMap();
-    if (!currentMap) return 0;
+    if (!currentMap) return WALL;
 
     const tileX = Math.floor(x / 16);
     const tileY = Math.floor(y / 16);
     const tile = currentMap.gettile(tileX, tileY, 0);
-    return tile === 0 ? 0 : tile - 1;
+    return tile === 0 ? WALL : tile - 1;
   }
 
   private getfronttile(entity: Entity, pos: number): number {
     const x = entity.getx();
     const y = entity.gety();
-    const face = entity.getFace();
 
-    switch (face) {
-      case EntityDirection.NORTH:
-        return this.gettile(x, y - 16 * pos);
-      case EntityDirection.WEST:
-        return this.gettile(x - 16 * pos, y);
-      case EntityDirection.SOUTH:
-        return this.gettile(x, y + 16 * pos);
-      case EntityDirection.EAST:
-        return this.gettile(x + 16 * pos, y);
-      default:
-        return 0;
+    switch (entity.getFace()) {
+      case EntityDirection.NORTH: return this.gettile(x, y - 16 * pos);
+      case EntityDirection.WEST: return this.gettile(x - 16 * pos, y);
+      case EntityDirection.SOUTH: return this.gettile(x, y + 16 * pos);
+      case EntityDirection.EAST: return this.gettile(x + 16 * pos, y);
+      default: return WALL;
+    }
+  }
+
+  private getlefttile(entity: Entity, pos: number): number {
+    const x = entity.getx();
+    const y = entity.gety();
+
+    switch (entity.getFace()) {
+      case EntityDirection.NORTH: return this.gettile(x - 16, y - 16 * pos);
+      case EntityDirection.WEST: return this.gettile(x - 16 * pos, y + 16);
+      case EntityDirection.SOUTH: return this.gettile(x + 16, y + 16 * pos);
+      case EntityDirection.EAST: return this.gettile(x + 16 * pos, y - 16);
+      default: return WALL;
+    }
+  }
+
+  private getrighttile(entity: Entity, pos: number): number {
+    const x = entity.getx();
+    const y = entity.gety();
+
+    switch (entity.getFace()) {
+      case EntityDirection.NORTH: return this.gettile(x + 16, y - 16 * pos);
+      case EntityDirection.WEST: return this.gettile(x - 16 * pos, y - 16);
+      case EntityDirection.SOUTH: return this.gettile(x - 16, y + 16 * pos);
+      case EntityDirection.EAST: return this.gettile(x + 16 * pos, y + 16);
+      default: return WALL;
     }
   }
 
@@ -252,48 +894,70 @@ export class PSDungeon {
 
     const tileX = Math.floor(entity.getx() / 16);
     const tileY = Math.floor(entity.gety() / 16);
-    const face = entity.getFace();
 
-    switch (face) {
-      case EntityDirection.NORTH:
-        return currentMap.getzone(tileX, tileY - pos);
-      case EntityDirection.WEST:
-        return currentMap.getzone(tileX - pos, tileY);
-      case EntityDirection.SOUTH:
-        return currentMap.getzone(tileX, tileY + pos);
-      case EntityDirection.EAST:
-        return currentMap.getzone(tileX + pos, tileY);
-      default:
-        return 0;
+    switch (entity.getFace()) {
+      case EntityDirection.NORTH: return currentMap.getzone(tileX, tileY - pos);
+      case EntityDirection.WEST: return currentMap.getzone(tileX - pos, tileY);
+      case EntityDirection.SOUTH: return currentMap.getzone(tileX, tileY + pos);
+      case EntityDirection.EAST: return currentMap.getzone(tileX + pos, tileY);
+      default: return 0;
     }
   }
 
-  private initDungeonImages(dungeonPath: string): void {
-    console.log(`PSDungeon: Loading dungeon images from ${dungeonPath}`);
+  private callZone(entity: Entity, distance: number): void {
+    const curTile = this.getfronttile(entity, distance);
 
-    // In a full implementation, this would load all the dungeon tile images
-    // For now, we'll just set the total size
-    this.TOTAL_XSIZE = 320;
-    this.TOTAL_YSIZE = 240;
+    if (distance > 0 && curTile !== FLOOR) return;
+    if (distance === 0 && curTile === ROOM) {
+    }
 
-    // The Java implementation loads dozens of image files for:
-    // - Walls, doors, stairs
-    // - Animation frames for door opening
-    // - Perspective wall pieces for 3D effect
-    // - Corner and curve animations for turning
+    const zone = this.getfrontzone(entity, distance);
+    const currentMap = MainEngine.getCurrentMap();
+
+    if (zone !== 0 && currentMap) {
+      const scriptName = currentMap.getScriptZone(zone);
+      if (scriptName && distance === currentMap.getMethodZone(zone)) {
+        MainEngine.callScriptFunction(scriptName);
+      }
+    }
+  }
+
+  private enemyBattle(): void {
+    // TODO: Implement enemy battle logic
+  }
+
+  private getFacingName(direction: EntityDirection): string {
+    switch (direction) {
+      case EntityDirection.NORTH: return "NORTH";
+      case EntityDirection.SOUTH: return "SOUTH";
+      case EntityDirection.EAST: return "EAST";
+      case EntityDirection.WEST: return "WEST";
+      default: return `UNKNOWN(${direction})`;
+    }
+  }
+
+  private getTileName(tile: number): string {
+    switch (tile) {
+      case WALL: return `WALL(${tile})`;
+      case FLOOR: return `FLOOR(${tile})`;
+      case STAIRS_UP: return `STAIRS_UP(${tile})`;
+      case STAIRS_DOWN: return `STAIRS_DOWN(${tile})`;
+      case OPEN_DOOR: return `OPEN_DOOR(${tile})`;
+      case DOOR: return `DOOR(${tile})`;
+      case LOCKED_DOOR: return `LOCKED_DOOR(${tile})`;
+      case MAGIC_DOOR: return `MAGIC_DOOR(${tile})`;
+      case OPEN_MAGIC_DOOR: return `OPEN_MAGIC_DOOR(${tile})`;
+      case ROOM: return `ROOM(${tile})`;
+      default: return `UNKNOWN_TILE(${tile})`;
+    }
+  }
+
+  private async delayScreen(): Promise<void> {
+    await this.delay(100);
   }
 
   private async delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  // Utility methods for enemy setup
-  public setRandomEnemies(floor: number, enemies: any[]): void {
-    this.enemyRandomArray.set(floor, enemies);
-  }
-
-  public setFixedEnemies(floor: number, enemies: any[]): void {
-    this.enemyFixedArray.set(floor, enemies);
   }
 
   // State management
@@ -303,118 +967,5 @@ export class PSDungeon {
 
   public setAlreadyInside(value: boolean): void {
     this.alreadyInside = value;
-  }
-
-  public setZoneCheck(): void {
-    this.zoneCheck = true;
-  }
-
-  public getTrapEffect(): boolean {
-    return this.trapEffect;
-  }
-
-  public setTrapEffect(value: boolean): void {
-    this.trapEffect = value;
-  }
-
-  public setLight(): void {
-    this.isDark = false;
-  }
-
-  public setOpen(): void {
-    this.openEffect = true;
-  }
-
-  public deadEnd(): boolean {
-    const player = MainEngine.getPlayer();
-    if (!player) return false;
-
-    return (
-      this.getfronttile(player, -1) !== FLOOR &&
-      this.getlefttile(player, 0) !== FLOOR &&
-      this.getrighttile(player, 0) !== FLOOR
-    );
-  }
-
-  private getlefttile(entity: Entity, pos: number): number {
-    const x = entity.getx();
-    const y = entity.gety();
-    const face = entity.getFace();
-
-    switch (face) {
-      case EntityDirection.NORTH:
-        return this.gettile(x - 16, y - 16 * pos);
-      case EntityDirection.WEST:
-        return this.gettile(x - 16 * pos, y + 16);
-      case EntityDirection.SOUTH:
-        return this.gettile(x + 16, y + 16 * pos);
-      case EntityDirection.EAST:
-        return this.gettile(x + 16 * pos, y - 16);
-      default:
-        return 0;
-    }
-  }
-
-  private getrighttile(entity: Entity, pos: number): number {
-    const x = entity.getx();
-    const y = entity.gety();
-    const face = entity.getFace();
-
-    switch (face) {
-      case EntityDirection.NORTH:
-        return this.gettile(x + 16, y - 16 * pos);
-      case EntityDirection.WEST:
-        return this.gettile(x - 16 * pos, y - 16);
-      case EntityDirection.SOUTH:
-        return this.gettile(x - 16, y + 16 * pos);
-      case EntityDirection.EAST:
-        return this.gettile(x + 16 * pos, y + 16);
-      default:
-        return 0;
-    }
-  }
-
-  public checkTrapEffect(): boolean {
-    const player = MainEngine.getPlayer();
-    if (!player) return false;
-
-    const currentMap = MainEngine.getCurrentMap();
-    if (!currentMap) return false;
-
-    const zone = this.getfrontzone(player, 1);
-    this.trapEffect = true;
-
-    const scriptName = currentMap.getScriptZone(zone);
-    if (scriptName && scriptName.startsWith("trap")) {
-      MainEngine.callScriptFunction(scriptName);
-      return !this.trapEffect;
-    }
-
-    this.trapEffect = false;
-    return false;
-  }
-
-  public static warpBack(shift: number): void {
-    const player = MainEngine.getPlayer();
-    if (!player) return;
-
-    const face = player.getFace();
-    const currentX = player.getx();
-    const currentY = player.gety();
-
-    switch (face) {
-      case EntityDirection.NORTH:
-        player.setxy(currentX, currentY + shift * 16);
-        break;
-      case EntityDirection.WEST:
-        player.setxy(currentX + shift * 16, currentY);
-        break;
-      case EntityDirection.SOUTH:
-        player.setxy(currentX, currentY - shift * 16);
-        break;
-      case EntityDirection.EAST:
-        player.setxy(currentX - shift * 16, currentY);
-        break;
-    }
   }
 }
