@@ -33,6 +33,7 @@ export class PSDungeon {
   private walkingBack: boolean = false;
   private alreadyInside: boolean = false;
   private zoneCheck: boolean = true;
+  private isAnimating: boolean = false;
 
   // Input manager
   private inputManager: InputManager | null = null;
@@ -71,6 +72,9 @@ export class PSDungeon {
   private img_dungeon_curve: Phaser.GameObjects.Image[] = [];
   private img_dungeon_corner: Phaser.GameObjects.Image[] = [];
   private img_dungeon_curl: Phaser.GameObjects.Image[] = [];
+
+  // Flipped image cache - stores horizontally flipped versions of all images
+  private flippedImageCache: Map<Phaser.GameObjects.Image, Phaser.GameObjects.Image> = new Map();
   private img_dungeon_walla: Phaser.GameObjects.Image[] = [];
   private img_dungeon_wallb: Phaser.GameObjects.Image[] = [];
   private img_dungeon_wallc: Phaser.GameObjects.Image[] = [];
@@ -186,7 +190,6 @@ export class PSDungeon {
 
       // Dungeon Controls - dark dungeon exit
       if (this.isDark && (this.inputManager!.up || this.inputManager!.left || this.inputManager!.right || this.inputManager!.down)) {
-        console.log("PSDungeon: Dark dungeon exit triggered");
         const zone = this.getfrontzone(player, -1);
         const scriptName = currentMap.getScriptZone(zone);
         if (scriptName) {
@@ -197,32 +200,27 @@ export class PSDungeon {
 
       // First entry
       if (!this.isDark && !this.getAlreadyInside()) {
-        console.log("PSDungeon: First entry triggered - setting alreadyInside");
         this.setAlreadyInside(true);
       }
 
       // B2 toggle (K or X key)
       if (this.inputManager!.b2) {
-        console.log("PSDungeon: B2 toggle triggered");
         this.showDungeon = !this.showDungeon;
       }
 
       // B1 action
       if (this.inputManager!.b1) {
-        console.log("PSDungeon: B1 action triggered");
         this.handleOpenAction(player);
       }
 
       // Turn left/right (use justPressed to prevent continuous turning)
       if (this.inputManager!.left || this.inputManager!.right) {
-        console.log("PSDungeon: Turn triggered - right:", this.inputManager!.justPressed('right'));
-        this.turnRoutine(player, this.inputManager!.justPressed('right'));
+        await this.turnRoutine(player, this.inputManager!.right); // right = counter-clockwise = true (inverted from expected)
         this.zoneCheck = true;
       }
 
       // UP movement (forward) - use justPressed to prevent continuous movement
       if (this.inputManager!.up) {
-        console.log("PSDungeon: UP movement triggered");
         const tile = this.getfronttile(player, 1);
 
         // Java logic: animate first if FLOOR and showDungeon
@@ -286,21 +284,23 @@ export class PSDungeon {
         this.zoneCheck = true;
       }
 
-      // Render based on current mode
-      if (this.showDungeon) {
-        if (!this.isDark) {
-          this.drawDungeon(player, 0);
-          this.drawImageToScreen();
+      // Render based on current mode (skip if animating)
+      if (!this.isAnimating) {
+        if (this.showDungeon) {
+          if (!this.isDark) {
+            this.drawDungeon(player, 0);
+            this.drawImageToScreen();
+          } else {
+            this.paintBlack();
+          }
+          this.hideTilemapLayers();
         } else {
-          this.paintBlack();
-        }
-        this.hideTilemapLayers();
-      } else {
-        // Show map view
-        this.showTilemapLayers();
-        // Hide dungeon graphics when showing tilemap
-        if (this.dungeonRenderTexture) {
-          this.dungeonRenderTexture.setVisible(false);
+          // Show map view
+          this.showTilemapLayers();
+          // Hide dungeon graphics when showing tilemap
+          if (this.dungeonRenderTexture) {
+            this.dungeonRenderTexture.setVisible(false);
+          }
         }
       }
 
@@ -315,6 +315,7 @@ export class PSDungeon {
 
     // Cleanup
     this.restoreTilemapLayers();
+    this.cleanupFlippedImages();
     MainEngine.setEntitiesPaused(false);
 
     // Re-enable MainEngine input processing
@@ -447,19 +448,35 @@ export class PSDungeon {
       // Normal blit (Java: backDungeon.blit(offset, 0, img))
       this.dungeonRenderTexture.draw(img, offset, 0);
     } else {
+      // Use cached flipped image
+      let flippedImg = this.flippedImageCache.get(img);
+
+      if (!flippedImg) {
+        // Create and cache the flipped image if it doesn't exist
+        flippedImg = this.createFlippedImage(img);
+        this.flippedImageCache.set(img, flippedImg);
+      }
+
       // Flipped blit (Java: backDungeon.flipBlit(TOTAL_XSIZE - offset - img.width, 0, FlipType.FLIP_HORIZONTALLY, img))
       const flippedX = this.TOTAL_XSIZE - offset - imageWidth;
-      const tempImage = img.scene.add.image(0, 0, img.texture.key);
-      tempImage.setOrigin(0, 0);
-      tempImage.setScale(img.scaleX, img.scaleY);
-      tempImage.setFlipX(true);
-      tempImage.setVisible(false);
-
-      this.dungeonRenderTexture.draw(tempImage, flippedX, 0);
-      tempImage.destroy();
+      this.dungeonRenderTexture.draw(flippedImg, flippedX, 0);
     }
 
     return offset + imageWidth;
+  }
+
+  /**
+   * Create a flipped version of an image
+   */
+  private createFlippedImage(originalImg: Phaser.GameObjects.Image): Phaser.GameObjects.Image {
+    const scene = originalImg.scene;
+    const flippedImg = scene.add.image(-1000, -1000, originalImg.texture.key, originalImg.frame.name);
+    flippedImg.setOrigin(0, 0);
+    flippedImg.setScale(originalImg.scaleX, originalImg.scaleY);
+    flippedImg.setFlipX(true);
+    flippedImg.setVisible(false);
+
+    return flippedImg;
   }
 
   private getsidetile(entity: Entity, distance: number, flipped: number): number {
@@ -702,20 +719,76 @@ export class PSDungeon {
     this.hiddenTilemapLayers = [];
   }
 
-  // Movement and utility methods
-  private async turnRoutine(entity: Entity, clockwise: boolean): Promise<void> {
-    const directions = [EntityDirection.NORTH, EntityDirection.EAST, EntityDirection.SOUTH, EntityDirection.WEST];
-    const currentDir = entity.getFace();
-    let pos = directions.indexOf(currentDir);
-    if (pos === -1) pos = 0;
+  /**
+   * Clean up all cached flipped images
+   */
+  private cleanupFlippedImages(): void {
+    this.flippedImageCache.forEach((flippedImg) => {
+      if (flippedImg && !flippedImg.scene?.scene?.isDestroyed) {
+        flippedImg.destroy();
+      }
+    });
+    this.flippedImageCache.clear();
+  }
 
-    if (clockwise) {
-      pos = (pos + 1) % 4;
-    } else {
-      pos = (pos + 3) % 4;
+  // Movement and utility methods
+  private async turnRoutine(entity: Entity, counter: boolean): Promise<void> {
+    // Prevent concurrent turn animations
+    if (this.isAnimating) {
+      console.log("Turn routine: Already animating, skipping");
+      return;
     }
 
-    entity.setFace(directions[pos]);
+    this.isAnimating = true;
+
+    const fromTile = this.getfronttile(entity, 1);
+    entity.setFace(this.nextDirection(entity.getFace(), counter));
+    const destTile = this.getfronttile(entity, 1);
+
+    console.log(`=== TURN ROUTINE ${counter ? 'LEFT' : 'RIGHT'} ===`);
+    console.log(`fromTile: ${fromTile}, destTile: ${destTile}, FLOOR=${FLOOR}`);
+
+    if (this.showDungeon) {
+      if (fromTile !== FLOOR && destTile !== FLOOR) {
+        console.log(`Animation choice: img_dungeon_curve (${this.img_dungeon_curve.length} images), goBack=true, flipped=${counter}`);
+        await this.doAnimation(this.img_dungeon_curve, true, counter);
+      }
+      else if (fromTile === FLOOR && destTile !== FLOOR) {
+        console.log(`Animation choice: img_dungeon_curl (${this.img_dungeon_curl.length} images), goBack=false, flipped=${counter}`);
+        await this.doAnimation(this.img_dungeon_curl, false, counter);
+      }
+      else if (fromTile !== FLOOR && destTile === FLOOR) {
+        console.log(`Animation choice: img_dungeon_curl reverse (${this.img_dungeon_curl.length} images), flipped=${!counter}`);
+        await this.doReverseAnimation(this.img_dungeon_curl, !counter);
+      }
+      else if (fromTile === FLOOR && destTile === FLOOR) {
+        console.log(`Animation choice: img_dungeon_corner (${this.img_dungeon_corner.length} images), goBack=true, flipped=${counter}`);
+        await this.doAnimation(this.img_dungeon_corner, true, counter);
+      }
+    } else {
+      console.log("Turn routine: showDungeon is false, no animation");
+    }
+
+    this.isAnimating = false;
+    console.log("=== TURN ROUTINE COMPLETED ===");
+  }
+
+  /**
+   * Calculate next direction based on current direction and counter flag
+   * Java equivalent: nextDirection method
+   */
+  private nextDirection(currentDirection: number, counter: boolean): number {
+    const directions = [EntityDirection.NORTH, EntityDirection.EAST, EntityDirection.SOUTH, EntityDirection.WEST];
+    let pos = directions.indexOf(currentDirection);
+    if (pos === -1) pos = 0;
+
+    if (counter) {
+      pos = (pos + 3) % 4; // Turn left (counter-clockwise)
+    } else {
+      pos = (pos + 1) % 4; // Turn right (clockwise)
+    }
+
+    return directions[pos];
   }
 
   private async walkup(entity: Entity, distance: number): Promise<void> {
@@ -875,6 +948,80 @@ export class PSDungeon {
 
   private async delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Animation method ported from Java PSDungeon.doAnimation
+   * Handles both normal animation and "flip back" animation
+   */
+  private async doAnimation(images: Phaser.GameObjects.Image[], goBack: boolean, flipped: boolean): Promise<void> {
+    if (!images || images.length === 0) {
+      console.log("doAnimation: No images provided");
+      return;
+    }
+
+    console.log(`doAnimation: Starting animation with ${images.length} images, goBack=${goBack}, flipped=${flipped}`);
+
+    // Normal animation
+    if (!goBack) {
+      for (let i = 0; i < images.length; i++) {
+        console.log(`doAnimation frame ${i}: image at index ${i}, flipped=${flipped ? 1 : 0}`);
+        this.putimage(images[i], 0, flipped ? 1 : 0);
+        this.drawImageToScreen();
+        await this.delayScreen();
+      }
+    }
+    // Flip back algorithm
+    else {
+      console.log("doAnimation: Starting flip back algorithm");
+
+      // Forward sequence (all but last)
+      for (let i = 0; i < images.length - 1; i++) {
+        console.log(`doAnimation forward ${i}: image at index ${i}, flipped=${flipped ? 1 : 0}`);
+        this.putimage(images[i], 0, flipped ? 1 : 0);
+        this.drawImageToScreen();
+        await this.delayScreen();
+      }
+
+      // Show last image on both sides
+      const lastImage = images[images.length - 1];
+      console.log(`doAnimation center: [image at index ${images.length - 1} normal, image at index ${images.length - 1} flipped]`);
+      this.putimage(lastImage, 0, 0);
+      this.putimage(lastImage, lastImage.displayWidth, 1);
+      this.drawImageToScreen();
+      await this.delayScreen();
+
+      // Reverse sequence with opposite flip
+      for (let i = images.length - 2; i >= 0; i--) {
+        console.log(`doAnimation reverse ${i}: image at index ${i}, flipped=${!flipped ? 1 : 0}`);
+        this.putimage(images[i], 0, !flipped ? 1 : 0);
+        this.drawImageToScreen();
+        await this.delayScreen();
+      }
+    }
+
+    console.log("doAnimation: Animation completed");
+  }
+
+  /**
+   * Reverse animation method - plays animation sequence in reverse
+   */
+  private async doReverseAnimation(images: Phaser.GameObjects.Image[], flipped: boolean): Promise<void> {
+    if (!images || images.length === 0) {
+      console.log("doReverseAnimation: No images provided");
+      return;
+    }
+
+    console.log(`doReverseAnimation: Starting reverse animation with ${images.length} images, flipped=${flipped}`);
+
+    for (let i = images.length - 1; i >= 0; i--) {
+      console.log(`doReverseAnimation frame ${images.length - 1 - i}: image at index ${i}, flipped=${flipped ? 1 : 0}`);
+      this.putimage(images[i], 0, flipped ? 1 : 0);
+      this.drawImageToScreen();
+      await this.delayScreen();
+    }
+
+    console.log("doReverseAnimation: Animation completed");
   }
 
   // State management
