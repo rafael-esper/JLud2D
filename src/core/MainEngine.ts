@@ -1,8 +1,4 @@
-/**
- * Main Engine
- * Manages entities, player controls, and core game systems
- */
-
+// Main Engine: Manages entities, player controls, and core game systems
 import { Entity, EntityDirection } from '../domain/Entity';
 
 export class MainEngine {
@@ -218,17 +214,6 @@ export class MainEngine {
     MainEngine.left = inputManager.left;
     MainEngine.right = inputManager.right;
 
-    // Debug movement blocking
-    if (MainEngine.myself === null) {
-      return;
-    }
-    if (!MainEngine.myself.ready()) {
-      return;
-    }
-    if (MainEngine.invc !== 0) {
-      return;
-    }
-
     // No player movement can be done if there's no ready player, or if there's a script active
     if (MainEngine.myself === null || !MainEngine.myself.ready() || MainEngine.invc !== 0) {
       return;
@@ -253,10 +238,8 @@ export class MainEngine {
 
     // Apply movement with Java-style facing and obstruction checking
     if (moveX !== 0 || moveY !== 0) {
-      // ALWAYS set facing direction FIRST (like Java setFace)
       let newDirection: number = EntityDirection.SOUTH;
       if (moveX !== 0) {
-        // Prioritize horizontal movement for facing direction (like Java diagonal handling)
         newDirection = moveX > 0 ? EntityDirection.EAST : EntityDirection.WEST;
       } else if (moveY !== 0) {
         newDirection = moveY > 0 ? EntityDirection.SOUTH : EntityDirection.NORTH;
@@ -458,16 +441,10 @@ export class MainEngine {
     return MainEngine.current_map;
   }
 
-  /**
-   * Check if there's an entity obstruction at the given pixel coordinates
-   * This is used only for demos that have entities with obstruction flags
-   */
   private static isEntityObstruction(x: number, y: number): boolean {
     if (!MainEngine.entities || MainEngine.entities.length === 0) {
       return false;
     }
-
-    // Quick check: if no entities have obstruction enabled, skip the expensive checking
     const hasObstructionEntities = MainEngine.entities.some(entity => {
       try {
         return entity &&
@@ -606,58 +583,34 @@ export class MainEngine {
     MainEngine.screenTransitioning = false;
   }
 
-  /**
-   * Set script/cutscene active state
-   */
   public static setScriptActive(active: boolean): void {
     MainEngine.invc = active ? 1 : 0;
   }
 
-  /**
-   * Check if script/cutscene is active
-   */
   public static isScriptActive(): boolean {
     return MainEngine.invc !== 0;
   }
 
-  /**
-   * Set player step size
-   */
   public static setPlayerStep(step: number): void {
     MainEngine.playerstep = step;
   }
 
-  /**
-   * Get player step size
-   */
   public static getPlayerStep(): number {
     return MainEngine.playerstep;
   }
 
-  /**
-   * Get player diagonal movement setting
-   */
   public static getPlayerDiagonals(): boolean {
     return MainEngine.playerdiagonals;
   }
 
-  /**
-   * Set player diagonal movement setting
-   */
   public static setPlayerDiagonals(enabled: boolean): void {
     MainEngine.playerdiagonals = enabled;
   }
 
-  /**
-   * Get smooth diagonal movement setting
-   */
   public static getSmoothDiagonals(): boolean {
     return MainEngine.smoothdiagonals;
   }
 
-  /**
-   * Set smooth diagonal movement setting
-   */
   public static setSmoothDiagonals(enabled: boolean): void {
     MainEngine.smoothdiagonals = enabled;
   }
@@ -714,7 +667,6 @@ export class MainEngine {
     if (!MainEngine.current_map || !MainEngine.current_scene || !MainEngine.current_config) return;
 
     const scene = MainEngine.current_scene;
-    const config = MainEngine.current_config;
 
     // Calculate map bounds in pixels
     const mapWidth = MainEngine.current_map.getWidth() * MainEngine.current_map.getTileWidth();
@@ -1302,23 +1254,12 @@ export class MainEngine {
 
       // Load the map (equivalent to MapTiledJSON.loadMap(mapname))
       let scene = MainEngine.current_scene as any;
-      const mapBasePath = basePath || (scene?.mapBasePath) || 'src/demos/ps/maps'; // Use scene's basePath if available, with null check
+      const mapBasePath = basePath || (scene?.mapBasePath);
 
       console.log(`MainEngine: Scene available: ${!!scene}`);
       if (!scene) {
         console.error(`MainEngine: No scene available for loading map ${mapname}`);
-        console.error(`MainEngine: current_scene is ${MainEngine.current_scene}`);
-
-        // Try to get scene from Phaser's scene manager as fallback
-        const gameScene = (globalThis as any).game?.scene?.getScene('PSGameScene');
-        if (gameScene) {
-          console.log(`MainEngine: Using fallback scene from Phaser scene manager`);
-          scene = gameScene;
-          MainEngine.current_scene = gameScene; // Restore the scene reference
-        } else {
-          console.error(`MainEngine: No fallback scene available, cannot load map`);
-          return;
-        }
+        return;
       }
 
       const current_map = await TiledMap.loadMap(scene, mapname, mapBasePath);
@@ -1364,17 +1305,6 @@ export class MainEngine {
     MainEngine.lastentitythink = MainEngine.systemtime;
 
     // Note: setEntitiesPaused(false) is called after map loads and entities are spawned
-
-    // Debug: Log player state after map load
-    console.log('MainEngine: After map load - player index:', MainEngine.player);
-    console.log('MainEngine: After map load - myself:', MainEngine.myself);
-    console.log('MainEngine: After map load - entities count:', MainEngine.entities.length);
-    console.log('MainEngine: After map load - entitiespaused:', MainEngine.entitiespaused);
-    console.log('MainEngine: After map load - done flag:', MainEngine.done);
-    console.log('MainEngine: After map load - invc:', MainEngine.invc);
-    if (MainEngine.myself) {
-      console.log('MainEngine: After map load - player ready:', MainEngine.myself.ready());
-    }
   }
 }
 

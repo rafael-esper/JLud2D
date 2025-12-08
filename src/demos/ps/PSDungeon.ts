@@ -108,7 +108,6 @@ export class PSDungeon {
       return;
     }
 
-
     this.currentScene = MainEngine.getCurrentScene();
 
     // Initialize dungeon images
@@ -125,9 +124,7 @@ export class PSDungeon {
 
     await PSGame.getParty().allocate(spawnX, spawnY);
     const player = MainEngine.getPlayer();
-    if (player) {
-      player.setFace(dungeonDir);
-    }
+    player?.setFace(dungeonDir);
 
     // Set up camera and fade
     MainEngine.setCameraTracking(1);
@@ -154,29 +151,28 @@ export class PSDungeon {
     MainEngine.setScriptActive(true);
 
     // Start main loop
-    await this.dungeonMainLoop();
+    await this.dungeonMainLoop(player);
   }
 
   /**
    * Main dungeon loop - Java translation
    */
-  private async dungeonMainLoop(): Promise<void> {
+  private async dungeonMainLoop(player: Entity | null): Promise<void> {
     // Initialize rendering system
     this.initBackBuffer();
     this.hideTilemapLayers();
 
-
-    const player = MainEngine.getPlayer();
-    const currentMap = MainEngine.getCurrentMap();
+    const initialMap = MainEngine.getCurrentMap();
     let die = false;
 
-    if (!player || !currentMap) {
+    if (!player || !initialMap) {
       console.error("PSDungeon: No player or map");
       return;
     }
-
+    const currentMap = MainEngine.getCurrentMap();
     // Java main loop (lines 146-262)
     while (!die) {
+
       MainEngine.setEntitiesPaused(true);
 
       // Update input state
@@ -333,8 +329,6 @@ export class PSDungeon {
 
     // Re-enable MainEngine input processing
     MainEngine.setScriptActive(false);
-
-
   }
 
   /**
@@ -482,13 +476,9 @@ export class PSDungeon {
    * Put wall image - Java putwallimage equivalent
    */
   private putwallimage(img: Phaser.GameObjects.Image): void {
-    // Java: int offset = putimage(img_dungeon_wall1, 0, 0);
     let offset = this.putimage(this.img_dungeon_wall1, 0, 0);
-    // Java: offset = putimage(img, offset, 0);
     offset = this.putimage(img, offset, 0);
-    // Java: putimage(img, img_dungeon_wall1.width, 1);
     this.putimage(img, this.img_dungeon_wall1.displayWidth, 1);
-    // Java: putimage(img_dungeon_wall1, 0, 1);
     this.putimage(this.img_dungeon_wall1, 0, 1);
   }
 
@@ -519,13 +509,6 @@ export class PSDungeon {
     }
 
     return offset + imageWidth;
-  }
-
-  /**
-   * Put image with default offset (Java equivalent overload)
-   */
-  private putimageAtZero(img: Phaser.GameObjects.Image, flipped: number): number {
-    return this.putimage(img, 0, flipped);
   }
 
   private getsidetile(entity: Entity, distance: number, flipped: number): number {
@@ -772,7 +755,6 @@ export class PSDungeon {
   private async turnRoutine(entity: Entity, clockwise: boolean): Promise<void> {
     const directions = [EntityDirection.NORTH, EntityDirection.EAST, EntityDirection.SOUTH, EntityDirection.WEST];
     const currentDir = entity.getFace();
-
     let pos = directions.indexOf(currentDir);
     if (pos === -1) pos = 0;
 
@@ -933,22 +915,6 @@ export class PSDungeon {
       case EntityDirection.EAST: return "EAST";
       case EntityDirection.WEST: return "WEST";
       default: return `UNKNOWN(${direction})`;
-    }
-  }
-
-  private getTileName(tile: number): string {
-    switch (tile) {
-      case WALL: return `WALL(${tile})`;
-      case FLOOR: return `FLOOR(${tile})`;
-      case STAIRS_UP: return `STAIRS_UP(${tile})`;
-      case STAIRS_DOWN: return `STAIRS_DOWN(${tile})`;
-      case OPEN_DOOR: return `OPEN_DOOR(${tile})`;
-      case DOOR: return `DOOR(${tile})`;
-      case LOCKED_DOOR: return `LOCKED_DOOR(${tile})`;
-      case MAGIC_DOOR: return `MAGIC_DOOR(${tile})`;
-      case OPEN_MAGIC_DOOR: return `OPEN_MAGIC_DOOR(${tile})`;
-      case ROOM: return `ROOM(${tile})`;
-      default: return `UNKNOWN_TILE(${tile})`;
     }
   }
 
