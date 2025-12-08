@@ -12,6 +12,7 @@ import { Dungeon, DungeonHelper, DungeonTypeHelper } from './game/Dungeon';
 import { OriginalItem } from './game/PSLibItem';
 import { EntityDirection } from '../../domain/Entity';
 import { Entity } from '../../domain/Entity';
+import { InputManager } from '../../config/Controls';
 
 // Tile constants
 const WALL = 0;
@@ -33,23 +34,8 @@ export class PSDungeon {
   private alreadyInside: boolean = false;
   private zoneCheck: boolean = true;
 
-  // Java-style input state
-  private up: boolean = false;
-  private down: boolean = false;
-  private left: boolean = false;
-  private right: boolean = false;
-  private b1: boolean = false;
-  private b2: boolean = false;
-  private b3: boolean = false;
-
-  // Previous frame states for edge detection
-  private prevUp: boolean = false;
-  private prevDown: boolean = false;
-  private prevLeft: boolean = false;
-  private prevRight: boolean = false;
-  private prevB1: boolean = false;
-  private prevB2: boolean = false;
-  private prevB3: boolean = false;
+  // Input manager
+  private inputManager: InputManager | null = null;
 
   // Rendering system
   private currentScene: any = null;
@@ -109,6 +95,13 @@ export class PSDungeon {
     }
 
     this.currentScene = MainEngine.getCurrentScene();
+
+    // Get input manager from current scene
+    this.inputManager = (this.currentScene as any).inputManager;
+    if (!this.inputManager) {
+      console.error("PSDungeon: No input manager found in current scene");
+      return;
+    }
 
     // Initialize dungeon images
     const dungeonType = DungeonHelper.getType(currentDungeon);
@@ -176,24 +169,8 @@ export class PSDungeon {
       MainEngine.setEntitiesPaused(true);
 
       // Update input state
-      this.updateInput();
-
-      // Render based on current mode
-      if (this.showDungeon) {
-        if (!this.isDark) {
-          this.drawDungeon(player, 0);
-          this.drawImageToScreen();
-        } else {
-          this.paintBlack();
-        }
-        this.hideTilemapLayers();
-      } else {
-        // Show map view
-        this.showTilemapLayers();
-        // Hide dungeon graphics when showing tilemap
-        if (this.dungeonRenderTexture) {
-          this.dungeonRenderTexture.setVisible(false);
-        }
+      if (this.inputManager) {
+        this.inputManager.updateControls();
       }
 
       // Zone checking
@@ -208,7 +185,8 @@ export class PSDungeon {
       }
 
       // Dungeon Controls - dark dungeon exit
-      if (this.isDark && (this.up || this.left || this.right || this.down)) {
+      if (this.isDark && (this.inputManager!.up || this.inputManager!.left || this.inputManager!.right || this.inputManager!.down)) {
+        console.log("PSDungeon: Dark dungeon exit triggered");
         const zone = this.getfrontzone(player, -1);
         const scriptName = currentMap.getScriptZone(zone);
         if (scriptName) {
@@ -219,35 +197,32 @@ export class PSDungeon {
 
       // First entry
       if (!this.isDark && !this.getAlreadyInside()) {
+        console.log("PSDungeon: First entry triggered - setting alreadyInside");
         this.setAlreadyInside(true);
       }
 
       // B2 toggle (K or X key)
-      else if (this.justPressed('b2')) {
+      if (this.inputManager!.b2) {
+        console.log("PSDungeon: B2 toggle triggered");
         this.showDungeon = !this.showDungeon;
-
-        if (this.showDungeon) {
-          this.drawDungeon(player, 0);
-          this.drawImageToScreen();
-        } else {
-          this.drawImageToScreen(); // Hide dungeon view
-        }
       }
 
       // B1 action
-      else if (this.b1) {
+      if (this.inputManager!.b1) {
+        console.log("PSDungeon: B1 action triggered");
         this.handleOpenAction(player);
-        this.b1 = false;
       }
 
       // Turn left/right (use justPressed to prevent continuous turning)
-      else if (this.justPressed('left') || this.justPressed('right')) {
-        this.turnRoutine(player, this.justPressed('right'));
+      if (this.inputManager!.left || this.inputManager!.right) {
+        console.log("PSDungeon: Turn triggered - right:", this.inputManager!.justPressed('right'));
+        this.turnRoutine(player, this.inputManager!.justPressed('right'));
         this.zoneCheck = true;
       }
 
       // UP movement (forward) - use justPressed to prevent continuous movement
-      else if (this.justPressed('up')) {
+      if (this.inputManager!.up) {
+        console.log("PSDungeon: UP movement triggered");
         const tile = this.getfronttile(player, 1);
 
         // Java logic: animate first if FLOOR and showDungeon
@@ -279,7 +254,7 @@ export class PSDungeon {
       }
 
       // DOWN movement (backward) - use justPressed to prevent continuous movement
-      else if (this.justPressed('down')) {
+      if (this.inputManager!.down) {
         let tile = this.getfronttile(player, -1);
 
         if (tile === FLOOR) {
@@ -311,14 +286,29 @@ export class PSDungeon {
         this.zoneCheck = true;
       }
 
-      // Draw to screen
-      this.drawImageToScreen();
+      // Render based on current mode
+      if (this.showDungeon) {
+        if (!this.isDark) {
+          this.drawDungeon(player, 0);
+          this.drawImageToScreen();
+        } else {
+          this.paintBlack();
+        }
+        this.hideTilemapLayers();
+      } else {
+        // Show map view
+        this.showTilemapLayers();
+        // Hide dungeon graphics when showing tilemap
+        if (this.dungeonRenderTexture) {
+          this.dungeonRenderTexture.setVisible(false);
+        }
+      }
 
       // Frame delay
       await this.delay(50);
 
       // ESC to exit
-      if (this.justPressed('b3')) {
+      if (this.inputManager!.justPressed('b3')) {
         die = true;
       }
     }
@@ -331,46 +321,7 @@ export class PSDungeon {
     MainEngine.setScriptActive(false);
   }
 
-  /**
-   * Update input state - bypasses MainEngine
-   */
-  private updateInput(): void {
-    if (!this.currentScene?.input?.keyboard?.keys) return;
 
-    const keys = this.currentScene.input.keyboard.keys;
-
-    // Store previous states for edge detection
-    this.prevUp = this.up;
-    this.prevDown = this.down;
-    this.prevLeft = this.left;
-    this.prevRight = this.right;
-    this.prevB1 = this.b1;
-    this.prevB2 = this.b2;
-    this.prevB3 = this.b3;
-
-    // Read raw keyboard state
-    this.up = keys[Phaser.Input.Keyboard.KeyCodes.UP]?.isDown || keys[Phaser.Input.Keyboard.KeyCodes.W]?.isDown || false;
-    this.down = keys[Phaser.Input.Keyboard.KeyCodes.DOWN]?.isDown || keys[Phaser.Input.Keyboard.KeyCodes.S]?.isDown || false;
-    this.left = keys[Phaser.Input.Keyboard.KeyCodes.LEFT]?.isDown || keys[Phaser.Input.Keyboard.KeyCodes.A]?.isDown || false;
-    this.right = keys[Phaser.Input.Keyboard.KeyCodes.RIGHT]?.isDown || keys[Phaser.Input.Keyboard.KeyCodes.D]?.isDown || false;
-    this.b1 = keys[Phaser.Input.Keyboard.KeyCodes.J]?.isDown || keys[Phaser.Input.Keyboard.KeyCodes.Z]?.isDown || false; // b1 = 'J,Z'
-    this.b2 = keys[Phaser.Input.Keyboard.KeyCodes.K]?.isDown || keys[Phaser.Input.Keyboard.KeyCodes.X]?.isDown || false; // b2 = 'K,X'
-    this.b3 = keys[Phaser.Input.Keyboard.KeyCodes.ESC]?.isDown || false;
-
-  }
-
-  private justPressed(key: string): boolean {
-    switch (key) {
-      case 'up': return this.up && !this.prevUp;
-      case 'down': return this.down && !this.prevDown;
-      case 'left': return this.left && !this.prevLeft;
-      case 'right': return this.right && !this.prevRight;
-      case 'b1': return this.b1 && !this.prevB1;
-      case 'b2': return this.b2 && !this.prevB2;
-      case 'b3': return this.b3 && !this.prevB3;
-      default: return false;
-    }
-  }
 
   /**
    * Draw dungeon - Java drawDungeon equivalent with pos parameter
