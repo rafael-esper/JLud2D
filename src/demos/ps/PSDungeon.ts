@@ -91,6 +91,9 @@ export class PSDungeon {
   private img_dungeon_lenb: Phaser.GameObjects.Image[] = [];
   private img_dungeon_lenc: Phaser.GameObjects.Image[] = [];
 
+  // Direction array matching Java: NORTH -> EAST -> SOUTH -> WEST
+  private directions = [EntityDirection.NORTH, EntityDirection.EAST, EntityDirection.SOUTH, EntityDirection.WEST];
+
   public async startDungeon(): Promise<void> {
     const currentDungeon = PSGame.getCurrentDungeon();
     if (!currentDungeon) {
@@ -146,14 +149,13 @@ export class PSDungeon {
 
     // Prevent MainEngine from processing input AFTER fade (ScriptEngine.fadein resets this)
     MainEngine.setScriptActive(true);
+    MainEngine.setEntitiesPaused(true);
 
     // Start main loop
     await this.dungeonMainLoop(player);
   }
 
-  /**
-   * Main dungeon loop - Java translation
-   */
+  // Main dungeon loop
   private async dungeonMainLoop(player: Entity | null): Promise<void> {
     // Initialize rendering system
     this.initBackBuffer();
@@ -167,10 +169,8 @@ export class PSDungeon {
       return;
     }
     const currentMap = MainEngine.getCurrentMap();
-    // Java main loop (lines 146-262)
-    while (!die) {
 
-      MainEngine.setEntitiesPaused(true);
+    while (!die) {
 
       // Update input state
       if (this.inputManager) {
@@ -213,17 +213,16 @@ export class PSDungeon {
         this.handleOpenAction(player);
       }
 
-      // Turn left/right (use justPressed to prevent continuous turning)
+      // Turn left/right (matching Java: turnRoutine(e, right) where right=true means LEFT turn)
       if (this.inputManager!.left || this.inputManager!.right) {
-        await this.turnRoutine(player, this.inputManager!.right); // right = counter-clockwise = true (inverted from expected)
+        await this.turnRoutine(player, this.inputManager!.right); // Java: right key = counter = true = LEFT turn
         this.zoneCheck = true;
       }
 
-      // UP movement (forward) - use justPressed to prevent continuous movement
+      // UP movement (forward)
       if (this.inputManager!.up) {
         const tile = this.getfronttile(player, 1);
 
-        // Java logic: animate first if FLOOR and showDungeon
         if (this.showDungeon && tile === FLOOR) {
           // Forward animation (0 to 5)
           for (let i = 0; i <= 5; i++) {
@@ -233,7 +232,6 @@ export class PSDungeon {
           }
         }
 
-        // Always do the movement (Java doesn't validate before walkup)
         await this.walkup(player, 1);
         this.walkingBack = false;
 
@@ -251,7 +249,7 @@ export class PSDungeon {
         this.zoneCheck = true;
       }
 
-      // DOWN movement (backward) - use justPressed to prevent continuous movement
+      // DOWN movement (backward)
       if (this.inputManager!.down) {
         let tile = this.getfronttile(player, -1);
 
@@ -267,10 +265,8 @@ export class PSDungeon {
           await this.walkup(player, -1);
         } else {
           await this.delayScreen();
-          // Don't return here - Java continues to set walkingBack = true
         }
 
-        // Always set walkingBack = true (Java logic)
         this.walkingBack = true;
 
         if (this.showDungeon && tile === FLOOR) {
@@ -317,11 +313,8 @@ export class PSDungeon {
     this.restoreTilemapLayers();
     this.cleanupFlippedImages();
     MainEngine.setEntitiesPaused(false);
-
-    // Re-enable MainEngine input processing
     MainEngine.setScriptActive(false);
   }
-
 
 
   /**
@@ -424,9 +417,6 @@ export class PSDungeon {
   }
 
 
-  /**
-   * Put wall image - Java putwallimage equivalent
-   */
   private putwallimage(img: Phaser.GameObjects.Image): void {
     let offset = this.putimage(this.img_dungeon_wall1, 0, 0);
     offset = this.putimage(img, offset, 0);
@@ -434,9 +424,6 @@ export class PSDungeon {
     this.putimage(this.img_dungeon_wall1, 0, 1);
   }
 
-  /**
-   * Put image to render texture - Java putimage equivalent
-   */
   private putimage(img: Phaser.GameObjects.Image, offset: number, flipped: number): number {
     if (!img || !this.dungeonRenderTexture) {
       return offset + 64; // Default width
@@ -745,50 +732,40 @@ export class PSDungeon {
     entity.setFace(this.nextDirection(entity.getFace(), counter));
     const destTile = this.getfronttile(entity, 1);
 
-    console.log(`=== TURN ROUTINE ${counter ? 'LEFT' : 'RIGHT'} ===`);
-    console.log(`fromTile: ${fromTile}, destTile: ${destTile}, FLOOR=${FLOOR}`);
-
     if (this.showDungeon) {
       if (fromTile !== FLOOR && destTile !== FLOOR) {
-        console.log(`Animation choice: img_dungeon_curve (${this.img_dungeon_curve.length} images), goBack=true, flipped=${counter}`);
         await this.doAnimation(this.img_dungeon_curve, true, counter);
       }
       else if (fromTile === FLOOR && destTile !== FLOOR) {
-        console.log(`Animation choice: img_dungeon_curl (${this.img_dungeon_curl.length} images), goBack=false, flipped=${counter}`);
         await this.doAnimation(this.img_dungeon_curl, false, counter);
       }
       else if (fromTile !== FLOOR && destTile === FLOOR) {
-        console.log(`Animation choice: img_dungeon_curl reverse (${this.img_dungeon_curl.length} images), flipped=${!counter}`);
         await this.doReverseAnimation(this.img_dungeon_curl, !counter);
       }
       else if (fromTile === FLOOR && destTile === FLOOR) {
-        console.log(`Animation choice: img_dungeon_corner (${this.img_dungeon_corner.length} images), goBack=true, flipped=${counter}`);
-        await this.doAnimation(this.img_dungeon_corner, true, counter);
+        await this.doAnimation(this.img_dungeon_corner, true, !counter);
       }
-    } else {
-      console.log("Turn routine: showDungeon is false, no animation");
     }
 
     this.isAnimating = false;
-    console.log("=== TURN ROUTINE COMPLETED ===");
   }
 
   /**
    * Calculate next direction based on current direction and counter flag
    * Java equivalent: nextDirection method
+   * Fixed to properly handle EntityDirection enum values
    */
   private nextDirection(currentDirection: number, counter: boolean): number {
-    const directions = [EntityDirection.NORTH, EntityDirection.EAST, EntityDirection.SOUTH, EntityDirection.WEST];
-    let pos = directions.indexOf(currentDirection);
+    let pos = this.directions.indexOf(currentDirection);
     if (pos === -1) pos = 0;
 
     if (counter) {
-      pos = (pos + 3) % 4; // Turn left (counter-clockwise)
+      pos = (pos + 1) % 4; // Java: clockwise = true = RIGHT turn
     } else {
-      pos = (pos + 1) % 4; // Turn right (clockwise)
+      pos = (pos + 3) % 4; // Java: clockwise = false = LEFT turn
     }
 
-    return directions[pos];
+    return this.directions[pos];
   }
 
   private async walkup(entity: Entity, distance: number): Promise<void> {
@@ -930,16 +907,6 @@ export class PSDungeon {
 
   private enemyBattle(): void {
     // TODO: Implement enemy battle logic
-  }
-
-  private getFacingName(direction: EntityDirection): string {
-    switch (direction) {
-      case EntityDirection.NORTH: return "NORTH";
-      case EntityDirection.SOUTH: return "SOUTH";
-      case EntityDirection.EAST: return "EAST";
-      case EntityDirection.WEST: return "WEST";
-      default: return `UNKNOWN(${direction})`;
-    }
   }
 
   private async delayScreen(): Promise<void> {
