@@ -954,7 +954,7 @@ export class PSDungeon {
       const lastImage = images[images.length - 1];
       console.log(`doAnimation center: [image at index ${images.length - 1} normal, image at index ${images.length - 1} flipped]`);
       this.putimage(lastImage, 0, 0);
-      this.putimage(lastImage, lastImage.displayWidth, 1);
+      this.putimage(lastImage, 0, 1);
       this.drawImageToScreen();
       await this.delayScreen();
 
