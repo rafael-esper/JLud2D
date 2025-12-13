@@ -423,6 +423,10 @@ export class PSGame {
   public static async mapswitchToPlanet(planet: Planet, x: number, y: number): Promise<void> {
     console.log(`PSGame.mapswitchToPlanet: ${Planet[planet]} at (${x}, ${y})`);
 
+    // Set player as leaving dungeon (entering planet)
+    const { PSDungeon } = await import('./PSDungeon');
+    PSDungeon.setIsInsideDungeon(false);
+
     this.gameData.onGroundVehicle = false;
     this.gameData.current_dungeon = Dungeon.NONE;
     this.gameData.current_planet = planet;
@@ -442,6 +446,10 @@ export class PSGame {
    */
   public static async mapswitchToCity(city: City, x: number, y: number): Promise<void> {
     console.log(`PSGame.mapswitchToCity: ${City[city]} at (${x}, ${y})`);
+
+    // Set player as leaving dungeon (entering city)
+    const { PSDungeon } = await import('./PSDungeon');
+    PSDungeon.setIsInsideDungeon(false);
 
     // Import City helpers
     const { CityHelper } = await import('./game/City');
@@ -492,6 +500,10 @@ export class PSGame {
       return;
     }
 
+    // Set player as entering a dungeon
+    const { PSDungeon } = await import('./PSDungeon');
+    PSDungeon.setIsInsideDungeon(true);
+
     // Call base mapswitch with dungeon path - basePath should point to the dungeons directory
     await this.mapswitch(mapPath, dungeonX, dungeonY, true, `${this.PS_DEMO_BASE_PATH}/dungeons`);
 
@@ -502,7 +514,6 @@ export class PSGame {
     }
 
     // Initialize dungeon system
-    const { PSDungeon } = await import('./PSDungeon');
     this.currentDungeon = new PSDungeon();
     this.currentDungeon.setAlreadyInside(false);
     await this.currentDungeon.startDungeon();

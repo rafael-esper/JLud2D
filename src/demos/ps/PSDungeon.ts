@@ -24,6 +24,9 @@ const OPEN_MAGIC_DOOR = 8;
 const ROOM = 10;
 
 export class PSDungeon {
+  // Static flag to track if player is inside a dungeon
+  private static isInsideDungeon: boolean = false;
+
   private isDark: boolean = true;
   private showDungeon: boolean = true;
   private walkingBack: boolean = false;
@@ -74,6 +77,21 @@ export class PSDungeon {
   private img_dungeon_lenb: Phaser.GameObjects.Image[] = [];
   private img_dungeon_lenc: Phaser.GameObjects.Image[] = [];
   private directions = [EntityDirection.NORTH, EntityDirection.EAST, EntityDirection.SOUTH, EntityDirection.WEST];
+
+  /**
+   * Get whether player is inside a dungeon
+   */
+  public static getIsInsideDungeon(): boolean {
+    return PSDungeon.isInsideDungeon;
+  }
+
+  /**
+   * Set whether player is inside a dungeon
+   */
+  public static setIsInsideDungeon(value: boolean): void {
+    PSDungeon.isInsideDungeon = value;
+    console.log(`PSDungeon: isInsideDungeon set to ${value}`);
+  }
 
   public async startDungeon(): Promise<void> {
     const currentDungeon = PSGame.getCurrentDungeon();
@@ -129,11 +147,10 @@ export class PSDungeon {
     this.initBackBuffer();
     this.hideTilemapLayers();
     const initialMap = MainEngine.getCurrentMap();
-    let die = false;
     if (!player || !initialMap) return;
     const currentMap = MainEngine.getCurrentMap();
 
-    while (!die) {
+    while (PSDungeon.getIsInsideDungeon()) {
 
       if (this.inputManager) this.inputManager.updateControls();
       if (this.zoneCheck) {
@@ -152,7 +169,7 @@ export class PSDungeon {
         if (scriptName) {
           MainEngine.callScriptFunction(scriptName);
         }
-        die = true;
+        PSDungeon.setIsInsideDungeon(false);
       }
 
       if (!this.isDark && !this.getAlreadyInside()) {
@@ -249,12 +266,13 @@ export class PSDungeon {
       await this.delay(50);
 
       if (this.inputManager!.justPressed('b3')) {
-        die = true;
+        PSDungeon.setIsInsideDungeon(false);
       }
     }
 
     this.restoreTilemapLayers();
     this.cleanupFlippedImages();
+    this.cleanupDungeonGraphics();
     MainEngine.setEntitiesPaused(false);
     MainEngine.setScriptActive(false);
   }
@@ -648,6 +666,25 @@ export class PSDungeon {
       }
     });
     this.flippedImageCache.clear();
+  }
+
+  /**
+   * Clean up dungeon rendering graphics when exiting dungeon
+   */
+  private cleanupDungeonGraphics(): void {
+    // Hide/destroy dungeon render texture
+    if (this.dungeonRenderTexture) {
+      this.dungeonRenderTexture.setVisible(false);
+      this.dungeonRenderTexture.clear();
+    }
+
+    // Hide/destroy back buffer
+    if (this.backBuffer) {
+      this.backBuffer.setVisible(false);
+      this.backBuffer.clear();
+    }
+
+    console.log("PSDungeon: Dungeon graphics cleaned up for map transition");
   }
 
   // Movement and utility methods
