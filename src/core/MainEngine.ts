@@ -42,6 +42,7 @@ export class MainEngine {
   protected static lastentitythink: number = 0; // Last entity think time
   protected static systemtime: number = 0; // Current system time
   protected static done: boolean = false; // Game done flag
+  protected static isLoadingMap: boolean = false; // Flag to prevent concurrent map loading
 
   // System path for resource loading (like Java systemclass)
   protected static systemPath: string = '';
@@ -1206,8 +1207,18 @@ export class MainEngine {
    * Engine restart with new map - port of Java engine_start()
    */
   public static async startEngine(mapname: string, basePath?: string): Promise<void> {
-    // Clear entities (equivalent to numentities = 0; entities.clear();)
-    MainEngine.clearEntities();
+    // Prevent concurrent map loading to make mapswitch idempotent
+    if (MainEngine.isLoadingMap) {
+      console.log(`MainEngine.startEngine: Already loading a map, ignoring duplicate call for ${mapname}`);
+      return;
+    }
+
+    console.log(`MainEngine.startEngine: Starting map load for ${mapname}`);
+    MainEngine.isLoadingMap = true;
+
+    try {
+      // Clear entities (equivalent to numentities = 0; entities.clear();)
+      MainEngine.clearEntities();
 
     // Destroy previous map completely before loading new one
     if (MainEngine.current_map) {
@@ -1246,23 +1257,22 @@ export class MainEngine {
     }
 
     // Load and start the new map
-    try {
       console.log(`MainEngine: Loading map ${mapname}`);
 
       // Import TiledMap here to avoid circular dependencies
       const { TiledMap } = await import('../domain/TiledMap');
 
       // Load the map (equivalent to MapTiledJSON.loadMap(mapname))
-      let scene = MainEngine.current_scene as any;
-      const mapBasePath = basePath || (scene?.mapBasePath);
+      let gameScene = MainEngine.current_scene as any;
+      const mapBasePath = basePath || (gameScene?.mapBasePath);
 
-      console.log(`MainEngine: Scene available: ${!!scene}`);
-      if (!scene) {
+      console.log(`MainEngine: Scene available: ${!!gameScene}`);
+      if (!gameScene) {
         console.error(`MainEngine: No scene available for loading map ${mapname}`);
         return;
       }
 
-      const current_map = await TiledMap.loadMap(scene, mapname, mapBasePath);
+      const current_map = await TiledMap.loadMap(gameScene, mapname, mapBasePath);
 
       if (current_map) {
         // Start the map (equivalent to current_map.startMap())
@@ -1292,19 +1302,23 @@ export class MainEngine {
           // Fallback: For non-PS scenes, unpause entities
           MainEngine.setEntitiesPaused(false);
         }
+
+        // Reset timer (equivalent to timer = 0;)
+        MainEngine.timer = 0;
+
+        // Reset entity timing (equivalent to lastentitythink = systemtime;)
+        MainEngine.lastentitythink = MainEngine.systemtime;
+
+        // Note: setEntitiesPaused(false) is called after map loads and entities are spawned
       }
 
     } catch (error) {
       console.error(`MainEngine: Failed to load map ${mapname}:`, error);
+    } finally {
+      // Reset loading flag to allow future map loads
+      MainEngine.isLoadingMap = false;
+      console.log(`MainEngine.startEngine: Map loading completed for ${mapname}`);
     }
-
-    // Reset timer (equivalent to timer = 0;)
-    MainEngine.timer = 0;
-
-    // Reset entity timing (equivalent to lastentitythink = systemtime;)
-    MainEngine.lastentitythink = MainEngine.systemtime;
-
-    // Note: setEntitiesPaused(false) is called after map loads and entities are spawned
   }
 }
 
