@@ -68,6 +68,7 @@ export class Motavia {
 
       // Enable normal gameplay after fade-in
       MainEngine.setEntitiesPaused(false);
+      MainEngine.setScriptActive(false);
       PSGame.menuOn();
       PSGame.transportOff();
     }

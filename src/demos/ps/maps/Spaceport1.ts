@@ -166,7 +166,6 @@ export class Spaceport1 {
           MainEngine.setCameraTracking(1);
           MainEngine.setupCamera();
           await ScriptEngine.fadein(30, true);
-          return;
         }
       } else {
         await PSMenu.StextLast(PSGame.getString("Spaceport_People_Cop_YesLie"));
@@ -184,7 +183,6 @@ export class Spaceport1 {
   public static async robot_out(): Promise<void> {
     PSGame.EntStart();
     await PSMenu.Stext(PSGame.getString("Spaceport_People_Cop_Yes"));
-    PSGame.EntFinish();
     await ScriptEngine.fadeout(30, true);
     // Warp player back to main area (5, 12 in tiles = 5*16, 12*16 in pixels)
     const player = MainEngine.getPlayer();
@@ -197,6 +195,7 @@ export class Spaceport1 {
       MainEngine.setupCamera();
       await ScriptEngine.fadein(30, true);
     }
+    PSGame.EntFinish();
   }
 
   /**

@@ -11,9 +11,9 @@ import { MenuCHR } from './menu/MenuCHR';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { PSGame } from './PSGame';
 import { CHR } from '../../domain/CHR';
-import { VImage } from '../../domain/VImage';
 import { ScreenSize } from './game/GameData';
 import { PS1CHR } from './game/PSLibCHR';
+import { MainEngine } from '@/core/MainEngine';
 
 export enum PSSceneType {
   BLACK, BLUE_HOUSE, YELLOW_HOUSE, HOSPITAL, CHURCH, SHOP_CENTRAL, SHOP_FOOD, SHOP_HAND, SHOP_WEAPON,
@@ -501,6 +501,7 @@ export class PSMenu {
       }
 
       ScriptEngine.setEntitiesPaused(false);
+      MainEngine.setScriptActive(false);
     } else if (outcome === PSOutcome.FADE_DUNGEON) {
       await ScriptEngine.fadeout(25, false);
       // TODO: PSDungeon.warpBack(2);

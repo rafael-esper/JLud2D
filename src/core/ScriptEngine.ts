@@ -356,9 +356,6 @@ export class ScriptEngine {
         // Clear inputs at end of fade to prevent unwanted movement
         ScriptEngine.clearInputs();
 
-        // Re-enable controls after fade completes
-        MainEngine.setScriptActive(false);
-
         resolve();
       });
     });

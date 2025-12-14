@@ -720,6 +720,9 @@ export class PSGame {
     PSMenu.instance.pop();
     PSMenu.instance.clearGraphics();
 
+    MainEngine.setScriptActive(false);
+    MainEngine.setEntitiesPaused(false);
+
     // TODO: In the original Java, this would also:
     // 1. Resume entity movement patterns
     // 2. Clear interaction state

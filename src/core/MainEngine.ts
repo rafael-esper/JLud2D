@@ -1290,6 +1290,9 @@ export class MainEngine {
           currentScene.tiledMap = current_map;
         }
 
+        // Reset loading flag before calling startmap to allow nested map transitions
+        MainEngine.isLoadingMap = false;
+
         // Call script context's startmap method if available (for PS map scripts like Palma.ts)
         const scriptContext = MainEngine.getScriptContext();
         if (scriptContext && 'startmap' in scriptContext && typeof scriptContext.startmap === 'function') {
@@ -1299,8 +1302,9 @@ export class MainEngine {
           // Fallback: Call scene's post-map-load initialization if available
           await currentScene.startmap();
         } else {
-          // Fallback: For non-PS scenes, unpause entities
+          // Fallback: For non-PS scenes, unpause entities and re-enable controls
           MainEngine.setEntitiesPaused(false);
+          MainEngine.setScriptActive(false);
         }
 
         // Reset timer (equivalent to timer = 0;)
@@ -1315,9 +1319,11 @@ export class MainEngine {
     } catch (error) {
       console.error(`MainEngine: Failed to load map ${mapname}:`, error);
     } finally {
-      // Reset loading flag to allow future map loads
-      MainEngine.isLoadingMap = false;
-      console.log(`MainEngine.startEngine: Map loading completed for ${mapname}`);
+      // Ensure loading flag is reset in case of errors (normal case resets earlier)
+      if (MainEngine.isLoadingMap) {
+        MainEngine.isLoadingMap = false;
+        console.log(`MainEngine.startEngine: Map loading flag reset after error for ${mapname}`);
+      }
     }
   }
 }

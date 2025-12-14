@@ -131,6 +131,8 @@ export class GameScene extends Phaser.Scene {
     // Fade in screen (equivalent to Java screen.fadeIn(30, true))
     await ScriptEngine.fadein(30, true);
 
+    MainEngine.setScriptActive(false);
+
     // Turn menu on (equivalent to Java PSMenu.menuOn())
     PSGame.menuOn();
 
