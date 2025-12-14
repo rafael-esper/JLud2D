@@ -21,6 +21,12 @@ import { OriginalItem, PSLibItem } from './game/PSLibItem';
 import { I18nManager } from './game/I18nManager';
 import { PS_MUSIC_MANIFEST } from './music-manifest';
 
+// Battle system imports
+import { Enemy } from './battle/Enemy';
+import { BattleOutcome } from './battle/PSBattle';
+import { PSSceneType } from './PSMenu';
+import { Trapped } from './game/GameData';
+
 
 export class PSGame {
   public static gameData: GameData = new GameData();
@@ -270,6 +276,8 @@ export class PSGame {
           return PS1Image.SHOP_WEAPON;
         case 16: // PSSceneType.SPACESHIP
           return PS1Image.SPACESHIP;
+        case 29: // PSSceneType.FIELDS
+          return PS1Image.FIELDS;
         default:
           return PS1Image.BLUE_HOUSE; // Default fallback
       }
@@ -1043,19 +1051,164 @@ export class PSGame {
   /**
    * Fixed battle - battle with predetermined enemies
    */
-  public static fixedBattle(scene: any, enemies: any[]): void {
+  public static async fixedBattle(scene: PSSceneType, enemies: any[]): Promise<BattleOutcome> {
     console.log(`PSGame.fixedBattle: Starting fixed battle in ${scene} with ${enemies.length} enemies`);
-    // TODO: Implement battle system
-    // This would integrate with PSBattle class when implemented
+
+    // Convert enemy enums to Enemy instances
+    const { PSLibEnemy } = await import('./game/PSLibEnemy');
+    const enemyInstances: any[] = [];
+
+    for (const enemyEnum of enemies) {
+      const enemyInstance = PSLibEnemy.getEnemyByEnum(enemyEnum);
+      if (enemyInstance) {
+        enemyInstances.push(enemyInstance);
+      } else {
+        console.error(`PSGame.fixedBattle: Could not find enemy for enum ${enemyEnum}`);
+      }
+    }
+
+    const { PSBattle } = await import('./battle/PSBattle');
+    const { BattleOutcome } = await import('./battle/PSBattle');
+
+    const battle = new PSBattle();
+    return await battle.battleSceneWithEnemies(scene, enemyInstances);
   }
 
   /**
    * Random battle - battle with random selection from enemy array
    */
-  public static randomBattle(scene: any, enemies: any[]): void {
-    console.log(`PSGame.randomBattle: Starting random battle in ${scene} with enemy pool of ${enemies.length}`);
-    // TODO: Implement battle system
-    // This would select random enemy from array and start battle
+  public static async randomBattle(scene: PSSceneType, enemyPool: any[]): Promise<BattleOutcome> {
+    console.log(`PSGame.randomBattle: Starting random battle in ${scene} with enemy pool of ${enemyPool.length}`);
+
+    if (enemyPool.length === 0) {
+      throw new Error("Enemy pool cannot be empty for random battle");
+    }
+
+    // Select random enemy from pool
+    const randomIndex = Math.floor(Math.random() * enemyPool.length);
+    const selectedEnemyEnum = enemyPool[randomIndex];
+
+    // Convert enemy enum to Enemy instance
+    const { PSLibEnemy } = await import('./game/PSLibEnemy');
+    const selectedEnemy = PSLibEnemy.getEnemyByEnum(selectedEnemyEnum);
+
+    if (!selectedEnemy) {
+      throw new Error(`Could not find enemy for enum ${selectedEnemyEnum}`);
+    }
+
+    // Determine random quantity (1-4 enemies typical)
+    const quantity = Math.floor(Math.random() * 4) + 1;
+
+    const { PSBattle } = await import('./battle/PSBattle');
+    const { BattleOutcome } = await import('./battle/PSBattle');
+
+    const battle = new PSBattle();
+    return await battle.battleScene(scene, selectedEnemy, quantity);
+  }
+
+  /**
+   * Start battle with specific enemy and quantity
+   */
+  public static async startBattle(scene: PSSceneType, enemy: Enemy, quantity: number = 1): Promise<BattleOutcome> {
+    console.log(`PSGame.startBattle: Starting battle with ${quantity} ${enemy.getName()}(s)`);
+
+    const { PSBattle } = await import('./battle/PSBattle');
+    const { BattleOutcome } = await import('./battle/PSBattle');
+
+    const battle = new PSBattle();
+    return await battle.battleScene(scene, enemy, quantity);
+  }
+
+  /**
+   * Game over routine - called when party is defeated
+   */
+  public static async gameOverRoutine(): Promise<void> {
+    console.log("PSGame: Game Over routine started");
+
+    ScriptEngine.stopmusic();
+
+    // Show game over message
+    await PSMenu.Stext(this.getString("Battle_GameOver"));
+
+    // TODO: Implement proper game over handling
+    // This could include:
+    // - Save game state
+    // - Return to title screen
+    // - Resurrection options
+    // - Party member revival mechanics
+
+    console.log("PSGame: Game Over routine completed");
+  }
+
+  /**
+   * Check if party can transport (for battle system)
+   */
+  public static get canTransport(): boolean {
+    // TODO: Implement transport availability check
+    return false;
+  }
+
+  /**
+   * Transport on - enable transport mode
+   */
+  public static transportOn(): void {
+    console.log("PSGame: Transport activated");
+    // TODO: Implement transport mode activation
+  }
+
+  /**
+   * Find and play appropriate music for current context
+   */
+  public static findAndPlayMusic(): void {
+    console.log("PSGame: Finding appropriate music for current context");
+
+    // Determine appropriate music based on current location
+    if (this.gameData.current_city) {
+      const { CityHelper } = require('./game/City');
+      const cityMusic = CityHelper.getMusic(this.gameData.current_city);
+      this.playMusic(cityMusic);
+    } else if (this.gameData.current_planet) {
+      const { PlanetHelper } = require('./game/City');
+      const planetMusic = PlanetHelper.getMusic(this.gameData.current_planet);
+      this.playMusic(planetMusic);
+    } else if (this.gameData.current_dungeon) {
+      const { DungeonHelper } = require('./game/Dungeon');
+      const dungeonMusic = DungeonHelper.getMusic(this.gameData.current_dungeon);
+      if (dungeonMusic) {
+        this.playMusic(dungeonMusic);
+      }
+    }
+  }
+
+  /**
+   * Get display messages setting for battle system
+   */
+  public static getDisplayMessages(): boolean {
+    // TODO: Implement setting for battle message display
+    return true;
+  }
+
+  /**
+   * Open chest with trap and item handling
+   */
+  public static async chest(mesetas: number, trapped: Trapped, item?: Item): Promise<void> {
+    console.log(`PSGame.chest: Opening chest with ${mesetas} mesetas, trap: ${trapped}`);
+
+    if (mesetas > 0) {
+      this.getParty().addMesetas(mesetas);
+      await PSMenu.Stext(this.getString("Chest_Mesetas", "<number>", mesetas.toString()));
+    }
+
+    if (item) {
+      this.getParty().addItem(item);
+      await PSMenu.Stext(this.getString("Chest_Item", "<item>", item.getName()));
+    }
+
+    // TODO: Handle trap effects
+    if (trapped !== Trapped.NO_TRAP) {
+      console.log(`PSGame.chest: Processing trap ${trapped}`);
+      // This would trigger trap effects like damage, status effects, etc.
+    }
   }
 
   /**

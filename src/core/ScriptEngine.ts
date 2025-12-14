@@ -277,6 +277,16 @@ export class ScriptEngine {
   }
 
   /**
+   * Generate random integer between min and max (inclusive)
+   * Port of Java Script.random() method
+   * @param min Minimum value (inclusive)
+   * @param max Maximum value (inclusive)
+   */
+  public static random(min: number, max: number): number {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  /**
    * Clear all input states to prevent unwanted player movement
    * Attempts to access the current scene's InputManager to call clearInputs
    */

@@ -3,7 +3,7 @@
  * Base class for all entities that can participate in battle
  */
 
-import { Action } from './PSBattle';
+import { Action } from '../battle/PSBattle';
 import { PSEffect } from './PSEffect';
 import { Spell } from './PSLibSpell';
 import { Item } from './Item';

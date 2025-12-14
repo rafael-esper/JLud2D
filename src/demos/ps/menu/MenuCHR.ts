@@ -46,6 +46,11 @@ export class MenuCHR extends MenuType {
       return;
     }
 
+    // Safety check for undefined CHR
+    if (!this.chr || !this.chr.getFrame) {
+      return;
+    }
+
     switch (this.state) {
       case MenuState.READY:
         ScriptEngine.blitEntityFrame(this.x, this.y, this.chr, this.chr.getFrame(MenuStateHelper.getAnimIndex(this.state), this.framect));

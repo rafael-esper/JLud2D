@@ -184,12 +184,11 @@ export class Palma {
   }
 
   public static async sworm_scorpion(): Promise<void> {
-    // TODO: Battle system not implemented yet
-    // if (ScriptEngine.random(1, 6) <= 4) {
-    //   await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.SWORM, PS1Enemy.SCORPION]);
-    // } else {
-    //   await PSGame.fixedBattle(PSSceneType.FIELDS, [PS1Enemy.SCORPION]);
-    // }
+    if (ScriptEngine.random(1, 6) <= 4) {
+      await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.SWORM, PS1Enemy.SCORPION]);
+    } else {
+      await PSGame.fixedBattle(PSSceneType.FIELDS, [PS1Enemy.SCORPION]);
+    }
   }
 
   public static async sworm_scorpion_maneater(): Promise<void> {

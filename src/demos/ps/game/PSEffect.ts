@@ -11,7 +11,7 @@ import { City } from './City';
 import { Dungeon } from './Dungeon';
 import { PS1Sound } from './PSLibSound';
 import { PSGame } from '../PSGame';
-import { Action } from '../PSBattle';
+import { Action } from '../battle/PSBattle';
 import { PSMenu } from '../PSMenu';
 
 // Forward declarations for types that will be implemented later
