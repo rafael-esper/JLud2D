@@ -293,11 +293,13 @@ export class CHR {
 
     try {
       sprite.setFrame(frameKey);
+      sprite.setVisible(true);
     } catch (error) {
       console.warn(`Could not set frame ${frameKey}, error:`, error);
       console.warn(`Available frames:`, Object.keys(sprite.scene.textures.get(`chr-${this.imageName.replace('.png', '')}`).frames));
       const fallbackKey = `chr-${this.imageName.replace('.png', '')}_frame_0`;
       sprite.setFrame(fallbackKey);
+      sprite.setVisible(true);
     }
   }
 

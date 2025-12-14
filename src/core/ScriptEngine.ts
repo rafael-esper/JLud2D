@@ -200,12 +200,21 @@ export class ScriptEngine {
    */
   public static blitEntityFrame(x: number, y: number, chr: any, frameIndex: number): void {
     const currentScene = MainEngine.getCurrentScene();
-    if (!currentScene) return;
+    if (!currentScene) {
+      return;
+    }
+
+    // Validate frameIndex
+    if (frameIndex === undefined || frameIndex === null || isNaN(frameIndex)) {
+      frameIndex = 0; // Default to frame 0
+    }
 
     // Create a temporary sprite if needed for CHR rendering
     if (!chr._tempSprite) {
-      chr._tempSprite = currentScene.add.sprite(0, 0, '');
-      chr._tempSprite.setDepth(1002); // Above UI elements
+      // Use the correct texture key based on CHR image name
+      const textureKey = `chr-${chr.getImageName().replace('.png', '')}`;
+      chr._tempSprite = currentScene.add.sprite(0, 0, textureKey);
+      chr._tempSprite.setDepth(10000); // Above everything, including background
     }
 
     chr.render(chr._tempSprite, x, y, frameIndex);

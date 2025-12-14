@@ -314,6 +314,9 @@ export class PSBattle {
         }
       }
 
+      // Draw menus including enemy sprites (port of Java PSMenu.instance.drawMenus())
+      PSMenu.instance.drawMenus();
+
       // MENU LOGIC
       if (opt === 0 && this.battleMode !== BattleMode.AUTO_ACTION) {
         PSMenu.instance.push(PSMenu.instance.createPromptBox(10, 10, [
@@ -614,6 +617,12 @@ export class PSBattle {
   private cleanPlayerStatus(battlers: Battler[]): void {
     for (const b of battlers) {
       b.clean();
+
+      // Clean up enemy sprites
+      if (b.sprite && typeof b.sprite.destroy === 'function') {
+        b.sprite.destroy();
+        b.sprite = null;
+      }
     }
     this.wallEffect = 0;
     this.protEffect = false;

@@ -17,6 +17,7 @@ export class MenuCHR extends MenuType {
   private beginDelay: number;
   private loopable: boolean = false;
   private scene: Phaser.Scene;
+  private sprite: Phaser.GameObjects.Sprite | null = null;
 
   constructor(scene: Phaser.Scene, x: number, y: number, chr: CHR);
   constructor(scene: Phaser.Scene, x: number, y: number, loopable: boolean, chr: CHR);
@@ -39,6 +40,25 @@ export class MenuCHR extends MenuType {
     this.state = MenuState.READY;
     this.framect = 0;
     this.beginDelay = Math.floor(MenuType.MAX_DELAY / 2);
+
+    // Don't create sprite in constructor - wait for first draw when CHR is loaded
+  }
+
+  private createSprite(): void {
+    if (!this.sprite && this.chr && this.chr.getImageName) {
+      const textureKey = `chr-${this.chr.getImageName().replace('.png', '')}`;
+
+      // Check if texture exists
+      if (!this.scene.textures.exists(textureKey)) {
+        console.error(`MenuCHR.createSprite: Texture ${textureKey} does not exist!`);
+        return;
+      }
+
+      this.sprite = this.scene.add.sprite(this.x, this.y, textureKey);
+      this.sprite.setDepth(1960); // Same depth as entity sprites
+      this.sprite.setOrigin(0, 0);
+      this.sprite.setVisible(true);
+    }
   }
 
   public draw(active: boolean): void {
@@ -51,15 +71,50 @@ export class MenuCHR extends MenuType {
       return;
     }
 
+    // Force create sprite if needed
+    if (!this.sprite) {
+      this.createSprite();
+    }
+
+    if (!this.sprite) {
+      return;
+    }
+
+    // Ensure sprite is visible and positioned correctly on every frame (like entity sprite)
+    // Position relative to camera since camera may be offset
+    const camera = this.sprite.scene.cameras.main;
+    const worldX = camera.scrollX + this.x;
+    const worldY = camera.scrollY + this.y;
+
+    this.sprite.setPosition(worldX, worldY);
+    this.sprite.setVisible(true);
+    this.sprite.setDepth(1960); // Same depth as entity sprites
+
     switch (this.state) {
       case MenuState.READY:
-        ScriptEngine.blitEntityFrame(this.x, this.y, this.chr, this.chr.getFrame(MenuStateHelper.getAnimIndex(this.state), this.framect));
+        const frameIndex = this.chr.getFrame(MenuStateHelper.getAnimIndex(this.state), this.framect);
+        if (frameIndex !== undefined && frameIndex !== null) {
+          const frameKey = `chr-${this.chr.getImageName().replace('.png', '')}_frame_${frameIndex}`;
+          try {
+            this.sprite.setFrame(frameKey);
+          } catch (error) {
+            console.warn(`MenuCHR: Could not set frame ${frameKey}`, error);
+          }
+        }
         break;
 
       case MenuState.ANIM1:
       case MenuState.ANIM2:
       case MenuState.ANIM3:
-        ScriptEngine.blitEntityFrame(this.x, this.y, this.chr, this.chr.getFrame(MenuStateHelper.getAnimIndex(this.state), this.framect));
+        const animFrameIndex = this.chr.getFrame(MenuStateHelper.getAnimIndex(this.state), this.framect);
+        if (animFrameIndex !== undefined && animFrameIndex !== null) {
+          const animFrameKey = `chr-${this.chr.getImageName().replace('.png', '')}_frame_${animFrameIndex}`;
+          try {
+            this.sprite.setFrame(animFrameKey);
+          } catch (error) {
+            console.warn(`MenuCHR: Could not set frame ${animFrameKey}`);
+          }
+        }
         if (this.framect + 1 >= this.chr.getAnimSize(MenuStateHelper.getAnimIndex(this.state))) {
           if (!this.loopable) {
             this.state = MenuState.CLOSE;
@@ -70,10 +125,15 @@ export class MenuCHR extends MenuType {
         break;
 
       case MenuState.CLOSE:
-        ScriptEngine.blitEntityFrame(this.x, this.y, this.chr, this.chr.getIdle()[MenuCHR.DONE]);
-        break;
-
-      default:
+        const idleFrameIndex = this.chr.getIdle()[MenuCHR.DONE];
+        if (idleFrameIndex !== undefined && idleFrameIndex !== null) {
+          const idleFrameKey = `chr-${this.chr.getImageName().replace('.png', '')}_frame_${idleFrameIndex}`;
+          try {
+            this.sprite.setFrame(idleFrameKey);
+          } catch (error) {
+            console.warn(`MenuCHR: Could not set frame ${idleFrameKey}`);
+          }
+        }
         break;
     }
 
@@ -88,6 +148,16 @@ export class MenuCHR extends MenuType {
   public changePosition(x: number, y: number): void {
     this.x = x;
     this.y = y;
+  }
+
+  /**
+   * Clean up sprite when MenuCHR is destroyed
+   */
+  public destroy(): void {
+    if (this.sprite) {
+      this.sprite.destroy();
+      this.sprite = null;
+    }
   }
 
 }

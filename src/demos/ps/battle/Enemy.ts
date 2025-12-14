@@ -297,7 +297,10 @@ export class Enemy {
     console.log(`Enemy.loadCHR: Loading CHR for ${this.name} with path: ${this.strAnimCHR}`);
 
     const { CHR } = await import('../../../domain/CHR');
-    // Use ps as basePath to match the public folder structure
+    // The strAnimCHR already contains the full path like "battle/enemy_ps1/sworm.anim.json"
+    // We need to prepend with ps/ to get "ps/battle/enemy_ps1/sworm.anim.json"
+    const fullPath = `ps/${this.strAnimCHR}`;
+    console.log(`Enemy.loadCHR: Full path constructed: ${fullPath}`);
     this.animCHR = await CHR.loadChr(scene, this.strAnimCHR, "ps");
   }
 
