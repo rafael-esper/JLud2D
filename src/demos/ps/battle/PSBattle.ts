@@ -230,7 +230,7 @@ export class PSBattle {
     }
 
     this.menuEnemyLabelBox = PSMenu.instance.createLabelBox(
-      200, 5, textEnemies, false
+      160, 5, textEnemies, false
     );
     PSMenu.instance.push(this.menuEnemyLabelBox);
 

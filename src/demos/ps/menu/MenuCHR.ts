@@ -55,7 +55,7 @@ export class MenuCHR extends MenuType {
       }
 
       this.sprite = this.scene.add.sprite(this.x, this.y, textureKey);
-      this.sprite.setDepth(1960); // Same depth as entity sprites
+      this.sprite.setDepth(1960); // Same depth as entity sprites for proper animation
       this.sprite.setOrigin(0, 0);
       this.sprite.setVisible(true);
     }
@@ -88,7 +88,7 @@ export class MenuCHR extends MenuType {
 
     this.sprite.setPosition(worldX, worldY);
     this.sprite.setVisible(true);
-    this.sprite.setDepth(1960); // Same depth as entity sprites
+    this.sprite.setDepth(1960); // Same depth as entity sprites for proper animation
 
     switch (this.state) {
       case MenuState.READY:

@@ -11,6 +11,7 @@ import { Spell } from './PSLibSpell';
 import { EffectPlace } from './Item';
 import { PS1Image } from './PSLibImage';
 import { PSGame } from '../PSGame';
+import { OriginalItem } from './PSLibItem';
 
 // Forward declarations for types that will be implemented later
 export interface MenuLabelBox {
@@ -119,22 +120,21 @@ export class PartyMember extends Battler {
       return;
     }
 
-    // Note: This would need PSGame.getItem implementation and OriginalItem enum
     switch (this.getJob()) {
       case Job.ADVENTURER:
-        // equipItem(PSGame.getItem(OriginalItem.Weapon_Short_Sword));
-        // equipItem(PSGame.getItem(OriginalItem.Armor_Leather_Clothes));
+        this.equipItem(PSGame.getItem(OriginalItem.Weapon_Short_Sword));
+        this.equipItem(PSGame.getItem(OriginalItem.Armor_Leather_Clothes));
         break;
       case Job.FIGHTER:
-        // equipItem(PSGame.getItem(OriginalItem.Weapon_Iron_Axe));
-        // equipItem(PSGame.getItem(OriginalItem.Armor_Iron_Armor));
+        this.equipItem(PSGame.getItem(OriginalItem.Weapon_Iron_Axe));
+        this.equipItem(PSGame.getItem(OriginalItem.Armor_Iron_Armor));
         break;
       case Job.ESPER:
-        // equipItem(PSGame.getItem(OriginalItem.Weapon_Wood_Cane));
-        // equipItem(PSGame.getItem(OriginalItem.Armor_White_Cloak));
+        this.equipItem(PSGame.getItem(OriginalItem.Weapon_Wood_Cane));
+        this.equipItem(PSGame.getItem(OriginalItem.Armor_White_Cloak));
         break;
       case Job.ROBOT:
-        // equipItem(PSGame.getItem(OriginalItem.Weapon_Mini_Cannon));
+        this.equipItem(PSGame.getItem(OriginalItem.Weapon_Mini_Cannon));
         break;
       default:
         break;
