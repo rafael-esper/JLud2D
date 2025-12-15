@@ -214,7 +214,7 @@ export class PSEffect {
 
       case Effect.RUN:
       case Effect.ESCAPE:
-        if (this.targets.length > 0 && this.runRoutine(this.targets, this.effect === Effect.RUN)) {
+        if (this.targets.length > 0 && await this.runRoutine(this.targets, this.effect === Effect.RUN)) {
           return EffectOutcome.SUCCESS;
         } else {
           return EffectOutcome.NONE;
@@ -380,7 +380,7 @@ export class PSEffect {
     }
   }
 
-  private runRoutine(battlers: Battler[], random: boolean): boolean {
+  private async runRoutine(battlers: Battler[], random: boolean): Promise<boolean> {
     let chanceToRun = Number.MAX_SAFE_INTEGER;
     let blocker: Battler | null = null;
 
@@ -410,14 +410,31 @@ export class PSEffect {
 
     const chance = random ? 1 + Math.floor(Math.random() * 255) : 1;
 
-    console.log(`Got ${chance} of ${chanceToRun}`);
+    console.log(`Escape chance: ${chance} of ${chanceToRun}`);
     if (chance <= chanceToRun) {
       PSGame.playSound(PS1Sound.ESCAPE);
-      // Additional logic would need dungeon and display message systems
-      console.log(`Successfully ran from ${blocker?.getName() || 'enemy'}!`);
+
+      // Show success message using proper translation system
+      const blockerName = blocker instanceof EnemyBattler
+        ? blocker.getEnemy().getTranslatedName(PSGame)
+        : blocker?.getName() || 'enemy';
+
+      const escapeMessage = PSGame.getString("Battle_Run_Bye", "<monster>", blockerName);
+      await PSMenu.StextTimeout(escapeMessage);
+
+      // TODO: Handle dungeon-specific logic (Script.down = true for dungeons)
+      console.log(`Successfully escaped from ${blockerName}!`);
       return true; // Escape successful
     } else {
-      console.log(`Failed to run from ${blocker?.getName() || 'enemy'}!`);
+      // Show failure message using proper translation system
+      const blockerName = blocker instanceof EnemyBattler
+        ? blocker.getEnemy().getTranslatedName(PSGame)
+        : blocker?.getName() || 'enemy';
+
+      const failMessage = PSGame.getString("Battle_Run_Fail", "<monster>", blockerName);
+      await PSMenu.StextTimeout(failMessage);
+
+      console.log(`Failed to escape from ${blockerName}!`);
       return false; // Escape failed
     }
   }

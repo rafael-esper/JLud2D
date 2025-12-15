@@ -279,6 +279,10 @@ export class Enemy {
     return this.strAnimCHR;
   }
 
+  public getMaxNum(): number {
+    return this.num;
+  }
+
   public getChr(): CHR {
     if (!this.animCHR) {
       throw new Error(`CHR not loaded for enemy ${this.name}. Call loadCHR() first.`);

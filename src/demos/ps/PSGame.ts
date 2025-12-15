@@ -1096,8 +1096,13 @@ export class PSGame {
       throw new Error(`Could not find enemy for enum ${selectedEnemyEnum}`);
     }
 
-    // Determine random quantity (1-4 enemies typical)
-    const quantity = Math.floor(Math.random() * 4) + 1;
+    // Determine random quantity based on party size (original PS1 rule: party.size * 2)
+    const partySize = PSGame.getParty().getMembers().length;
+    const maxByParty = partySize * 2;
+    const maxByEnemy = selectedEnemy.getMaxNum() || 8; // fallback to 8
+    const absoluteMax = PSGame.getCurrentDungeon() ? 4 : 8; // dungeon limit of 4
+    const effectiveMax = Math.min(maxByParty, maxByEnemy, absoluteMax);
+    const quantity = Math.floor(Math.random() * effectiveMax) + 1;
 
     const { PSBattle } = await import('./battle/PSBattle');
     const { BattleOutcome } = await import('./battle/PSBattle');
@@ -1128,7 +1133,7 @@ export class PSGame {
     ScriptEngine.stopmusic();
 
     // Show game over message
-    await PSMenu.Stext(this.getString("Battle_GameOver"));
+    await PSMenu.Stext(this.getString("Battle_Lost"));
 
     // TODO: Implement proper game over handling
     // This could include:

@@ -187,6 +187,10 @@ export class PSBattle {
 
     this.battlePositions = BattlePosition.distributePositions(maxSize, numOfEnemies, this.sceneType);
 
+    // Allow background to be fully established before creating enemy sprites
+    // This ensures proper stacking order: background first, then enemy sprites with natural delay
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     const textEnemies: string[] = new Array(numOfEnemies);
 
     let pos = 0;
@@ -230,7 +234,7 @@ export class PSBattle {
     }
 
     this.menuEnemyLabelBox = PSMenu.instance.createLabelBox(
-      160, 5, textEnemies, false
+      140, 5, textEnemies, false
     );
     PSMenu.instance.push(this.menuEnemyLabelBox);
 
@@ -404,17 +408,29 @@ export class PSBattle {
     return leftAlign ? str + padding : padding + str;
   }
 
-  // Placeholder methods that need to be implemented
+  /**
+   * Process status effects each turn - port of Java status effect countdown system
+   * @param b The battler to process status effects for
+   * @param battlers All battlers in the battle
+   */
   private async processStatusEffects(b: Battler, battlers: Battler[]): Promise<void> {
-    // Process paralysis
+    // Process paralysis - if paralyzed, skip turn and count down
     if (b.paralyzed > 0) {
       b.paralyzed--;
       if (b.paralyzed > 0) {
-        const message = PSGame.getString("Battle_Paralyzed", "<target>", b.getName());
-        if (PSGame.getDisplayMessages()) {
-          await PSMenu.StextTimeout(message);
-        }
-        return; // Skip turn
+        const battlerName = b instanceof EnemyBattler
+          ? b.getEnemy().getTranslatedName(PSGame)
+          : b.getName();
+        const message = PSGame.getString("Battle_Player_Bound", "<player>", battlerName);
+        console.log(message);
+        return; // Skip turn completely
+      } else {
+        // Paralysis ends
+        const battlerName = b instanceof EnemyBattler
+          ? b.getEnemy().getTranslatedName(PSGame)
+          : b.getName();
+        const message = PSGame.getString("Battle_Player_Unbound", "<player>", battlerName);
+        console.log(message);
       }
     }
 
@@ -422,26 +438,24 @@ export class PSBattle {
     if (b.boost > 0) {
       b.boost--;
       if (b.boost === 0) {
-        const message = PSGame.getString("Battle_Boost_Ends", "<target>", b.getName());
-        if (PSGame.getDisplayMessages()) {
-          await PSMenu.StextTimeout(message);
-        }
+        // Boost effect ends - visual indicator should return to normal
+        console.log(`${b.getName()}'s boost effect ends`);
       }
     }
 
-    // Process weak effect (decreased defense)
+    // Process weak effect (decreased attack/defense)
     if (b.weak > 0) {
       b.weak--;
       if (b.weak === 0) {
-        const message = PSGame.getString("Battle_Weak_Ends", "<target>", b.getName());
-        if (PSGame.getDisplayMessages()) {
-          await PSMenu.StextTimeout(message);
-        }
+        // Weak effect ends - visual indicator should return to normal
+        console.log(`${b.getName()}'s weakness effect ends`);
       }
     }
 
-    // Reset defending status at start of new turn
-    b.defending = false;
+    // Reset defending status at start of new turn (Java implementation)
+    if (b instanceof PartyMember) {
+      (b as any).defending = false;
+    }
   }
 
   private async executeAction(b: Battler, battlers: Battler[]): Promise<void> {
@@ -483,42 +497,70 @@ export class PSBattle {
   }
 
   private async executeAttack(attacker: Battler, target: Battler): Promise<void> {
-    let isCritical = false;
+    // Critical hit check using original Java formula
+    const isCritical = Math.floor(Math.random() * 1000) < (attacker.getStr() - target.getStr());
 
     if (attacker instanceof PartyMember) {
       // Player attack with animation
       const weaponAnimation = attacker.sprite; // Player weapon sprite
       if (weaponAnimation) {
-        isCritical = await this.playerAttackAnimation(attacker, target, weaponAnimation, 0, null);
+        await this.playerAttackAnimation(attacker, target, weaponAnimation, 0, null);
       }
     } else if (attacker instanceof EnemyBattler) {
       // Enemy attack with animation
       await this.enemyAnimationAttack(attacker);
     }
 
-    // Calculate damage based on original PS1 formula
-    let damage = attacker.getAtk() - target.getDef();
+    // Calculate Attack Points (AP) with status modifiers - Java lines 633-641
+    let ap = attacker.getAtk();
+    console.log(`${attacker.getName()} base ATK: ${ap}`);
 
-    // Apply random variance (±25%)
-    const variance = Math.floor(damage * 0.25);
-    damage += Math.floor(Math.random() * (variance * 2 + 1)) - variance;
-
-    // Minimum damage is 1
-    damage = Math.max(1, damage);
-
-    // Apply critical hit damage multiplier if already calculated
-    if (isCritical) {
-      damage *= 2;
+    if (attacker.boost > 0) {
+      ap *= 1.5; // 50% boost
+      console.log(`${attacker.getName()} boosted ATK: ${ap}`);
+    }
+    if (attacker.weak > 0) {
+      ap *= 0.75; // 25% weakness
+      console.log(`${attacker.getName()} weakened ATK: ${ap}`);
     }
 
-    // Apply defending bonus (50% damage reduction)
-    if (target.defending) {
-      damage = Math.floor(damage * 0.5);
-      console.log(`${target.getName()}'s defense reduces damage by 50%!`);
+    // Calculate Defense Points (DP) with defend action bonus - Java lines 643-648
+    let dp = target.getDef();
+    console.log(`${target.getName()} base DEF: ${dp}`);
+
+    if (target.action === Action.DEFEND && target.paralyzed <= 0) {
+      dp *= 1.5; // 50% defense bonus when defending
+      console.log(`${target.getName()} defending DEF: ${dp}`);
     }
 
-    // Apply damage using comprehensive hit system
-    await this.hit(target, damage);
+    // Apply random variance to both AP and DP - Java lines 650-651
+    const apVariance = (1 - 0.25 * Math.random());
+    const dpVariance = (1 - 0.25 * Math.random());
+
+    ap *= apVariance; // reduce AP by up to 25%
+    dp *= dpVariance; // reduce DP by up to 25%
+
+    console.log(`${attacker.getName()} final AP: ${ap} (variance: ${apVariance.toFixed(3)})`);
+    console.log(`${target.getName()} final DP: ${dp} (variance: ${dpVariance.toFixed(3)})`);
+
+    const amount = ap - dp;
+    console.log(`Damage calculation: ${ap.toFixed(1)} - ${dp.toFixed(1)} = ${amount.toFixed(1)}`);
+
+    // Three-tier attack result system - Java lines 704-722
+    if (amount > 0) {
+      // Strong attacker: normal or critical hit
+      await this.hitAttack(target, isCritical ? amount * 2 : amount, isCritical);
+    } else if (amount > -10) {
+      // Moderately weak attacker: weak hit
+      await this.weakHit(target, attacker);
+    } else {
+      // Very weak attacker: 50% chance of weak hit vs miss
+      if (Math.abs(amount) % 2 === 1) {
+        await this.weakHit(target, attacker);
+      } else {
+        await this.miss(target, attacker);
+      }
+    }
   }
 
   private async executeDefend(battler: Battler): Promise<void> {
@@ -641,7 +683,7 @@ export class PSBattle {
     }
 
     // Display victory message
-    await PSMenu.StextNext(PSGame.getString("Battle_Victory"));
+    await PSMenu.StextNext(PSGame.getString("Battle_Won", "<number1>", totalExp.toString(), "<number2>", totalMesetas.toString()));
 
     // Award experience points
     if (totalExp > 0) {
@@ -650,11 +692,11 @@ export class PSBattle {
 
       for (const player of livingPlayers) {
         const oldLevel = player.getLevel();
-        player.addExperience(expPerPlayer);
+        player.giveExp(expPerPlayer);
         const newLevel = player.getLevel();
 
         // Show EXP gain message
-        await PSMenu.StextNext(PSGame.getString("Battle_Exp_Gain", "<player>", player.getName(), "<exp>", expPerPlayer.toString()));
+        await PSMenu.StextNext(PSGame.getString("Battle_Xp_Points", "<number>", expPerPlayer.toString()));
 
         // Check for level up
         if (newLevel > oldLevel) {
@@ -854,7 +896,10 @@ export class PSBattle {
     const newHp = Math.max(0, defender.getHp() - amount);
     defender.setHp(newHp);
 
-    console.log(`${defender.getName()} takes ${amount} damage! (${newHp}/${defender.getMaxHp()} HP remaining)`);
+    const defenderName = defender instanceof EnemyBattler
+      ? defender.getEnemy().getTranslatedName(PSGame)
+      : defender.getName();
+    console.log(`${defenderName} takes ${amount} damage! (${newHp}/${defender.getMaxHp()} HP remaining)`);
 
     // Update text displays for HP changes
     if (defender instanceof PartyMember && defender.textBox) {
@@ -888,6 +933,72 @@ export class PSBattle {
   }
 
   /**
+   * Strong attack hit - port of Java hit method with damage parameter
+   * @param defender The battler taking damage
+   * @param amount Amount of damage to apply (positive value)
+   * @param isCritical Whether this is a critical hit
+   */
+  private async hitAttack(defender: Battler, amount: number, isCritical: boolean = false): Promise<void> {
+    console.log("strong:");
+
+    // Display critical hit message if applicable
+    if (isCritical) {
+      const criticalMessage = PSGame.getString("Battle_Critical_Hit");
+      console.log(criticalMessage);
+
+      // TODO: Display critical hit visual effect like Java implementation
+      // Java creates a centered label box for "Critical!" message
+    }
+
+    // Round damage properly (Java behavior)
+    const finalDamage = Math.round(amount);
+    console.log(`Final damage after rounding: ${amount.toFixed(1)} → ${finalDamage}`);
+    await this.hit(defender, finalDamage);
+  }
+
+  /**
+   * Weak hit - port of Java weakHit method
+   * @param defender The battler taking damage
+   * @param attacker The attacking battler
+   */
+  private async weakHit(defender: Battler, attacker: Battler): Promise<void> {
+    console.log("medium:");
+    // Level-based weak damage: 1 + (0 to attacker.level), max 32
+    const damage = 1 + Math.floor(Math.min(32, attacker.getLevel() + 1) * Math.random());
+    await this.hit(defender, damage);
+  }
+
+  /**
+   * Attack miss - port of Java miss method
+   * @param defender The target that was missed
+   * @param attacker The attacking battler
+   */
+  private async miss(defender: Battler, attacker: Battler): Promise<void> {
+    console.log("weak:");
+
+    // Play miss sound
+    PSGame.playSound(PS1Sound.MISS);
+
+    // Display dodge message based on attacker type
+    const defenderName = defender instanceof EnemyBattler
+      ? defender.getEnemy().getTranslatedName(PSGame)
+      : defender.getName();
+    const attackerName = attacker instanceof EnemyBattler
+      ? attacker.getEnemy().getTranslatedName(PSGame)
+      : attacker.getName();
+
+    if (attacker instanceof PartyMember) {
+      // Enemy dodged player attack
+      const message = PSGame.getString("Battle_Enemy_Dodge", "<monster>", defenderName, "<player>", attackerName);
+      console.log(message);
+    } else {
+      // Player dodged enemy attack
+      const message = PSGame.getString("Battle_Player_Dodge", "<player>", defenderName, "<monster>", attackerName);
+      console.log(message);
+    }
+  }
+
+  /**
    * Screen shake effect when players take damage - port of original earthquakeEffect
    * @param amount Damage amount determining shake intensity
    */
@@ -908,7 +1019,10 @@ export class PSBattle {
    * @param battler The battler that was killed
    */
   private async killed(battler: Battler): Promise<void> {
-    console.log(`${battler.getName()} is killed!`);
+    const battlerName = battler instanceof EnemyBattler
+      ? battler.getEnemy().getTranslatedName(PSGame)
+      : battler.getName();
+    console.log(`${battlerName} is killed!`);
 
     if (battler instanceof PartyMember) {
       // Player death handling
@@ -925,13 +1039,18 @@ export class PSBattle {
 
     } else if (battler instanceof EnemyBattler) {
       // Enemy death handling
+      const enemyName = battler.getEnemy().getTranslatedName(PSGame);
+      console.log(`Enemy ${enemyName} killed - removing sprite`);
+
       if (battler.sprite) {
-        battler.sprite.animate(MenuState.CLOSE);
-        await this.waitForAnimationComplete(battler.sprite);
+        console.log(`Destroying sprite for ${enemyName}`);
+        battler.sprite.destroy();
+        battler.sprite = null;
+        console.log(`Sprite destroyed for ${enemyName}`);
       }
 
-      // Show victory message
-      const victoryMessage = PSGame.getString("Battle_Monster_Killed", "<monster>", battler.getName());
+      // Show victory message with translated enemy name
+      const victoryMessage = PSGame.getString("Battle_Monster_Killed", "<monster>", enemyName);
       await PSMenu.StextTimeout(victoryMessage);
     }
   }
