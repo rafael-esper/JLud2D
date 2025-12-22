@@ -356,7 +356,7 @@ export class PSBattle {
         opt = 0; // Back to main menu
         const runEffect = new PSEffect(Effect.RUN);
         runEffect.setTargets(battlers);
-        if (runEffect.callEffect() === EffectOutcome.SUCCESS) {
+        if (await runEffect.callEffect() === EffectOutcome.SUCCESS) {
           this.cleanPlayerStatus(battlers);
           ScriptEngine.stopmusic();
           return BattleOutcome.ESCAPE;
