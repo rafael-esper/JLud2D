@@ -122,7 +122,7 @@ export class PartyMember extends Battler {
 
     switch (this.getJob()) {
       case Job.ADVENTURER:
-        this.equipItem(PSGame.getItem(OriginalItem.Weapon_Short_Sword));
+        this.equipItem(PSGame.getItem(OriginalItem.Weapon_Iron_Sword));
         this.equipItem(PSGame.getItem(OriginalItem.Armor_Leather_Clothes));
         break;
       case Job.FIGHTER:

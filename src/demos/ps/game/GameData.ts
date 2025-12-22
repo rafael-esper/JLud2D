@@ -104,7 +104,7 @@ export class GameData {
 
   // Current location
   public current_planet: Planet | null = null;
-  public current_dungeon: Dungeon | null = null;
+  public current_dungeon: Dungeon = Dungeon.NONE;
   public current_city: City | null = null;
 
   // Party data

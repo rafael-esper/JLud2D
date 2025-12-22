@@ -545,7 +545,7 @@ export class PSGame {
   /**
    * Get current dungeon
    */
-  public static getCurrentDungeon(): Dungeon | null {
+  public static getCurrentDungeon(): Dungeon {
     return this.gameData.current_dungeon;
   }
 

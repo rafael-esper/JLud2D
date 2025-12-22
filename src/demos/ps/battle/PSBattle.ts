@@ -11,7 +11,7 @@ import { PartyMember } from '../game/PartyMember';
 import { EnemyBattler } from './EnemyBattler';
 import { Enemy } from './Enemy';
 import { BattlePosition, SceneType } from './BattlePosition';
-import { PSMenu, PSSceneType } from '../PSMenu';
+import { PSMenu, PSSceneType, SpecialEntity } from '../PSMenu';
 import { PSCancellable } from '../menu/MenuStack';
 import { MenuCHR } from '../menu/MenuCHR';
 import { MenuLabelBox } from '../menu/MenuLabelBox';
@@ -25,6 +25,7 @@ import { PSLibItem } from '../game/PSLibItem';
 import { Item, EquipPlace, ItemType } from '../game/Item';
 import { OriginalItem } from '../game/PSLibItem';
 import { Trapped } from '../game/GameData';
+import { Dungeon } from '../game/Dungeon';
 
 export enum Action {
   NONE = 'NONE',
@@ -109,7 +110,7 @@ export class PSBattle {
       this.sceneType = SceneType.OPEN;
     }
 
-    PSMenu.startScene(scene, null);
+    PSMenu.startScene(scene, SpecialEntity.NONE);
 
     const outcome = await this.startBattle(enemies, PS1Music.BATTLE);
 
@@ -117,7 +118,7 @@ export class PSBattle {
       await PSGame.gameOverRoutine();
     }
 
-    if (PSGame.getCurrentDungeon() === null && !PSGame.isOnTransport()) {
+    if (PSGame.getCurrentDungeon() === Dungeon.NONE && !PSGame.isOnTransport()) {
       PSGame.getParty().reallocate();
     }
 
