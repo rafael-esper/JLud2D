@@ -541,6 +541,10 @@ export class PSBattle {
     ap *= apVariance; // reduce AP by up to 25%
     dp *= dpVariance; // reduce DP by up to 25%
 
+    // Truncate AP and DP (round down)
+    ap = Math.floor(ap);
+    dp = Math.floor(dp);
+
     console.log(`${attacker.getName()} final AP: ${ap} (variance: ${apVariance.toFixed(3)})`);
     console.log(`${target.getName()} final DP: ${dp} (variance: ${dpVariance.toFixed(3)})`);
 
@@ -1041,14 +1045,28 @@ export class PSBattle {
     } else if (battler instanceof EnemyBattler) {
       // Enemy death handling
       const enemyName = battler.getEnemy().getTranslatedName(PSGame);
-      console.log(`Enemy ${enemyName} killed - removing sprite`);
+      console.log(`Enemy ${enemyName} killed - hiding sprite`);
 
       if (battler.sprite) {
-        console.log(`Destroying sprite for ${enemyName}`);
-        battler.sprite.destroy();
-        battler.sprite = null;
-        console.log(`Sprite destroyed for ${enemyName}`);
+        // Animate to END state (Java behavior)
+        battler.sprite.animate(MenuState.END);
+        // Hide defeated enemy sprite (setVisible(false))
+        battler.sprite.setVisible(false);
+        console.log(`Sprite hidden for ${enemyName}`);
       }
+
+      // Update enemy label box color to red when killed (Java behavior)
+      if (this.menuEnemyLabelBox && battler.position !== undefined) {
+        try {
+          this.menuEnemyLabelBox.updateColor(battler.position, 0xFF0000); // RED color
+          console.log(`Enemy ${enemyName} label turned red at position ${battler.position}`);
+        } catch (error) {
+          console.warn(`Could not update label color for ${enemyName}:`, error);
+        }
+      }
+
+      // Play enemy death sound (Java behavior)
+      PSGame.playSound(PS1Sound.ENEMY_DEAD);
 
       // Show victory message with translated enemy name
       const victoryMessage = PSGame.getString("Battle_Monster_Killed", "<monster>", enemyName);

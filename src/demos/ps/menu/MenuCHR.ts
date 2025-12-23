@@ -18,6 +18,7 @@ export class MenuCHR extends MenuType {
   private loopable: boolean = false;
   private scene: Phaser.Scene;
   private sprite: Phaser.GameObjects.Sprite | null = null;
+  private visible: boolean = true;
 
   constructor(scene: Phaser.Scene, x: number, y: number, chr: CHR);
   constructor(scene: Phaser.Scene, x: number, y: number, loopable: boolean, chr: CHR);
@@ -57,7 +58,7 @@ export class MenuCHR extends MenuType {
       this.sprite = this.scene.add.sprite(this.x, this.y, textureKey);
       this.sprite.setDepth(1960); // Same depth as entity sprites for proper animation
       this.sprite.setOrigin(0, 0);
-      this.sprite.setVisible(true);
+      this.sprite.setVisible(this.visible); // Respect the visibility state
     }
   }
 
@@ -87,7 +88,7 @@ export class MenuCHR extends MenuType {
     const worldY = camera.scrollY + this.y;
 
     this.sprite.setPosition(worldX, worldY);
-    this.sprite.setVisible(true);
+    this.sprite.setVisible(this.visible); // Respect the visibility state
     this.sprite.setDepth(1960); // Same depth as entity sprites for proper animation
 
     switch (this.state) {
@@ -148,6 +149,16 @@ export class MenuCHR extends MenuType {
   public changePosition(x: number, y: number): void {
     this.x = x;
     this.y = y;
+  }
+
+  /**
+   * Set sprite visibility
+   */
+  public setVisible(visible: boolean): void {
+    this.visible = visible;
+    if (this.sprite) {
+      this.sprite.setVisible(visible);
+    }
   }
 
   /**
