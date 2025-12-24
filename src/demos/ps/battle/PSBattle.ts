@@ -916,6 +916,14 @@ export class PSBattle {
         const enemyName = defender.getEnemy().getTranslatedName(PSGame) || defender.getEnemy().getName();
         const updatedText = this.format(enemyName, this.maxEnemyNameSize, true) + " " + this.format(defender.getHp(), 3);
         this.menuEnemyLabelBox.updateText(defender.position, updatedText);
+
+        // If enemy HP reaches 0, immediately turn label red (simultaneous with HP change)
+        if (defender.getHp() <= 0) {
+          this.menuEnemyLabelBox.updateColor(defender.position, 0xFF0000); // RED color
+        }
+
+        // Force immediate display update (Java pattern: drawMenus() after text updates)
+        PSMenu.instance.drawMenus();
       }
 
       // Enemy hit animation
@@ -1055,15 +1063,7 @@ export class PSBattle {
         console.log(`Sprite hidden for ${enemyName}`);
       }
 
-      // Update enemy label box color to red when killed (Java behavior)
-      if (this.menuEnemyLabelBox && battler.position !== undefined) {
-        try {
-          this.menuEnemyLabelBox.updateColor(battler.position, 0xFF0000); // RED color
-          console.log(`Enemy ${enemyName} label turned red at position ${battler.position}`);
-        } catch (error) {
-          console.warn(`Could not update label color for ${enemyName}:`, error);
-        }
-      }
+      // Note: Label color is already changed to red when HP reached 0 in hit() method
 
       // Play enemy death sound (Java behavior)
       PSGame.playSound(PS1Sound.ENEMY_DEAD);
