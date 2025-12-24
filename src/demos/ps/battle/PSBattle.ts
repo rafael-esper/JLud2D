@@ -9,7 +9,7 @@ import { ScriptEngine } from '../../../core/ScriptEngine';
 import { Battler } from '../game/Battler';
 import { PartyMember } from '../game/PartyMember';
 import { EnemyBattler } from './EnemyBattler';
-import { Enemy } from './Enemy';
+import { Enemy, HasItem } from './Enemy';
 import { BattlePosition, SceneType } from './BattlePosition';
 import { PSMenu, PSSceneType, SpecialEntity } from '../PSMenu';
 import { PSCancellable } from '../menu/MenuStack';
@@ -676,49 +676,59 @@ export class PSBattle {
   }
 
   private async battleWonRoutine(battlers: Battler[]): Promise<void> {
-    // Calculate total EXP and mesetas from defeated enemies
-    let totalExp = 0;
-    let totalMesetas = 0;
+    // Sort battlers using natural comparator (like Java Collections.sort)
+    battlers.sort(Battler.getNaturalComparator());
 
-    for (const battler of battlers) {
-      if (battler instanceof EnemyBattler && battler.getHp() <= 0) {
-        totalExp += battler.getExpReward();
-        totalMesetas += battler.getMstReward();
-      }
-    }
+    let item: Item | null = null;
+    let gainedExp = 0;
+    let gainedMst = 0;
 
-    // Display victory message
-    await PSMenu.StextNext(PSGame.getString("Battle_Won", "<number1>", totalExp.toString(), "<number2>", totalMesetas.toString()));
-
-    // Award experience points
-    if (totalExp > 0) {
-      const livingPlayers = battlers.filter(b => b instanceof PartyMember && b.getHp() > 0) as PartyMember[];
-      const expPerPlayer = Math.floor(totalExp / livingPlayers.length);
-
-      for (const player of livingPlayers) {
-        const oldLevel = player.getLevel();
-        player.giveExp(expPerPlayer);
-        const newLevel = player.getLevel();
-
-        // Show EXP gain message
-        await PSMenu.StextNext(PSGame.getString("Battle_Xp_Points", "<number>", expPerPlayer.toString()));
-
-        // Check for level up
-        if (newLevel > oldLevel) {
-          await PSMenu.StextNext(PSGame.getString("Battle_Level_Up", "<player>", player.getName(), "<level>", newLevel.toString()));
-
-          // TODO: Handle stat increases and technique learning
+    // Calculate totals and check for item drops
+    for (const b of battlers) {
+      if (b instanceof EnemyBattler) {
+        gainedExp += b.getEnemy().exp;
+        gainedMst += b.getEnemy().mst;
+        // Check for item drops
+        if (b.getEnemy().item === HasItem.COLA) {
+          item = PSGame.getItem(OriginalItem.Inventory_Monomate);
+        } else if (b.getEnemy().item === HasItem.DIMATE) {
+          item = PSGame.getItem(OriginalItem.Inventory_Dimate);
+        } else if (b.getEnemy().item === HasItem.FLASH) {
+          item = PSGame.getItem(OriginalItem.Inventory_Flash);
+        }
+      } else {
+        // Turn on textboxes for alive party members
+        if (b.getHp() > 0) {
+          (b as PartyMember).textBox?.setOn();
         }
       }
     }
 
-    // Award mesetas
-    if (totalMesetas > 0) {
-      PSGame.getParty().addMesetas(totalMesetas);
-      await PSMenu.StextLast(PSGame.getString("Battle_Mesetas_Gain", "<amount>", totalMesetas.toString()));
+    // Stop music
+    // TODO: Script.stopmusic() equivalent
+
+    // Display victory message if any gains
+    if (gainedMst > 0 || gainedExp > 0) {
+      await PSMenu.Stext(PSGame.getString("Battle_Won", "<number1>", gainedExp.toString(), "<number2>", gainedMst.toString()));
+      if (PSGame.getParty() !== null) {
+        PSGame.getParty().addMesetas(gainedMst);
+      }
     }
 
-    // TODO: Handle item drops from enemies
+    // Add XP to alive party members
+    if (gainedExp > 0) {
+      for (const b of battlers) {
+        if (b instanceof PartyMember && b.getHp() > 0) {
+          const p = b as PartyMember;
+          p.giveExp(gainedExp);
+        }
+      }
+    }
+
+    // 1/3 chance of getting an item
+    if (item !== null && Math.floor(Math.random() * 3) + 1 === 1) {
+      PSGame.chest(0, Trapped.NO_TRAP, item);
+    }
   }
 
   private setEnemyActions(battlers: Battler[]): void {
@@ -1068,9 +1078,6 @@ export class PSBattle {
       // Play enemy death sound (Java behavior)
       PSGame.playSound(PS1Sound.ENEMY_DEAD);
 
-      // Show victory message with translated enemy name
-      const victoryMessage = PSGame.getString("Battle_Monster_Killed", "<monster>", enemyName);
-      await PSMenu.StextTimeout(victoryMessage);
     }
   }
 
