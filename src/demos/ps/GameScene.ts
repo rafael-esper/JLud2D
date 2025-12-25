@@ -87,11 +87,12 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
+    // Ensure screen is black before map setup
+    await ScriptEngine.fadeout(25, true);
+
     this.tiledMap = await MainEngine.loadAndInitMap(this, mapName, mapBasePath);
 
-    // Set screen to black IMMEDIATELY after map loads to prevent flash
-    this.cameras.main.setAlpha(0);
-    console.log("GameScene: Screen set to black, ready for fade-in");
+    console.log("GameScene: Map loaded, screen remains black for setup");
 
     // Play music based on current city
     const currentCity = PSGame.getCurrentCity();
@@ -104,9 +105,6 @@ export class GameScene extends Phaser.Scene {
     // Start the map (equivalent to Phantasy.java startmap())
     await this.startmap();
 
-    // Setup camera and ensure it tracks the player
-    MainEngine.setupCamera();
-
     console.log("GameScene: Initialization complete");
   }
 
@@ -116,16 +114,13 @@ export class GameScene extends Phaser.Scene {
   private async startmap(): Promise<void> {
     console.log("PS::startmap");
 
-    // Start with black screen for proper fade-in
-    this.cameras.main.setAlpha(0);
-
     // Enable camera tracking (equivalent to Java cameratracking=1)
     MainEngine.setCameraTracking(1);
 
     // Allocate party at goto position
     await PSGame.getParty().allocate(PSGame.getgotox(), PSGame.getgotoy());
 
-    // Setup camera to center on player after spawning
+    // Setup camera to center on player after spawning (before fade-in)
     MainEngine.setupCamera();
 
     // Fade in screen (equivalent to Java screen.fadeIn(30, true))
