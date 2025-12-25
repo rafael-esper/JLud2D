@@ -127,6 +127,13 @@ interface VGMInfo {
 - `*.c` - Reference C implementations
 - `vgmspec170.txt` - VGM format specification v1.70
 
+#### External Links
+- [YM2612 Reference Implementation](https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/chips/ym2612.c) - Official YM2612 sound chip emulator C implementation
+- [Sonic the Hedgehog 2 VGM Pack](https://vgmrips.net/packs/pack/sonic-the-hedgehog-2-mega-drive-genesis) - Complete VGM soundtrack from Sonic 2 (Mega Drive/Genesis)
+- [WebVGM Online Player](https://www.wothke.ch/webVGM/) - Browser-based VGM player for testing and reference
+- [Phantasy Star IV VGM Pack](https://vgmrips.net/packs/pack/phantasy-star-iv-mega-drive-genesis) - Complete VGM soundtrack from Phantasy Star IV (Mega Drive/Genesis)
+
+
 ## HTML Setup
 
 No manual script loading required! The VGM module automatically loads its dependencies using the `loadVGMScripts()` function.
