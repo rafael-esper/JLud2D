@@ -110,7 +110,7 @@ export class PSBattle {
       this.sceneType = SceneType.OPEN;
     }
 
-    PSMenu.startScene(scene, SpecialEntity.NONE);
+    await PSMenu.startScene(scene, SpecialEntity.NONE);
 
     const outcome = await this.startBattle(enemies, PS1Music.BATTLE);
 
@@ -187,10 +187,6 @@ export class PSBattle {
     }
 
     this.battlePositions = BattlePosition.distributePositions(maxSize, numOfEnemies, this.sceneType);
-
-    // Allow background to be fully established before creating enemy sprites
-    // This ensures proper stacking order: background first, then enemy sprites with natural delay
-    await new Promise(resolve => setTimeout(resolve, 100));
 
     const textEnemies: string[] = new Array(numOfEnemies);
 
