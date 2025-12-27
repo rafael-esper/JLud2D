@@ -772,9 +772,15 @@ export class PSDungeon {
       // If it's over an open door, advance one tile (Java logic)
       if (tile === OPEN_DOOR || tile === OPEN_MAGIC_DOOR) {
         if (this.showDungeon) {
-          // TODO: Add fadeOut equivalent
+          await ScriptEngine.fadeout(25, false);
         }
         await this.walkup(entity, 1);
+        if (this.showDungeon) {
+          // Draw the new scene before fading in
+          this.drawDungeon(entity, 0);
+          this.drawImageToScreen();
+          await ScriptEngine.fadein(25, false);
+        }
 
         // And after if the current tile is a stairs up/down, call its zone (EXIT) or room
         const currentTile = this.gettile(entity.getx(), entity.gety());
