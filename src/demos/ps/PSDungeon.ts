@@ -7,6 +7,7 @@ import { PSMenu } from './PSMenu';
 import { PSSceneType, SpecialEntity } from './PSMenu';
 import { Dungeon, DungeonHelper, DungeonTypeHelper } from './game/Dungeon';
 import { OriginalItem } from './game/PSLibItem';
+import { PS1Sound } from './game/PSLibSound';
 import { EntityDirection } from '../../domain/Entity';
 import { Entity } from '../../domain/Entity';
 import { InputManager } from '../../config/Controls';
@@ -33,6 +34,8 @@ export class PSDungeon {
   private alreadyInside: boolean = false;
   private zoneCheck: boolean = true;
   private isAnimating: boolean = false;
+  private openEffect: boolean = false;
+  private trapEffect: boolean = false;
   private inputManager: InputManager | null = null;
   private currentScene: any = null;
   private dungeonRenderTexture: Phaser.GameObjects.RenderTexture | null = null;
@@ -181,6 +184,7 @@ export class PSDungeon {
       }
 
       if (this.inputManager!.b1) {
+        console.log("PSDungeon: b1 pressed, calling handleOpenAction");
         this.handleOpenAction(player);
       }
 
@@ -263,7 +267,7 @@ export class PSDungeon {
         }
       }
 
-      await this.delay(50);
+      await this.delay(30);
 
       if (this.inputManager!.justPressed('b3')) {
         PSDungeon.setIsInsideDungeon(false);
@@ -782,7 +786,109 @@ export class PSDungeon {
   }
 
   private handleOpenAction(player: Entity): void {
-    // TODO: Implement door opening logic
+    const x = player.getx();
+    const y = player.gety();
+    const face = player.getFace();
+
+    let targetX: number, targetY: number;
+    switch (face) {
+      case EntityDirection.NORTH:
+        targetX = x; targetY = y - 16;
+        break;
+      case EntityDirection.WEST:
+        targetX = x - 16; targetY = y;
+        break;
+      case EntityDirection.SOUTH:
+        targetX = x; targetY = y + 16;
+        break;
+      case EntityDirection.EAST:
+        targetX = x + 16; targetY = y;
+        break;
+      default:
+        console.log("PSDungeon: Invalid facing direction");
+        return;
+    }
+
+    console.log(`PSDungeon.handleOpenAction: Player at (${x},${y}) facing ${face}, checking tile at (${targetX},${targetY})`);
+    this.open(targetX, targetY);
+  }
+
+  private async open(xpos: number, ypos: number): Promise<void> {
+    const tile = this.gettile(xpos, ypos);
+    const currentMap = MainEngine.getCurrentMap();
+
+    console.log(`PSDungeon.open: tile at (${xpos},${ypos}) = ${tile} (DOOR=${DOOR}, LOCKED_DOOR=${LOCKED_DOOR}, MAGIC_DOOR=${MAGIC_DOOR})`);
+
+    if (!currentMap) {
+      console.log("PSDungeon.open: No current map");
+      return;
+    }
+
+    switch (tile) {
+      case DOOR:
+        console.log("PSDungeon.open: Opening regular door");
+        const tileX = Math.floor(xpos / 16);
+        const tileY = Math.floor(ypos / 16);
+        console.log(`PSDungeon.open: Setting map tile at (${tileX}, ${tileY}) from ${tile} to ${OPEN_DOOR}`);
+        currentMap.settile(tileX, tileY, 0, OPEN_DOOR);
+        console.log(`PSDungeon.open: Tile updated. Verification: ${this.gettile(xpos, ypos)}`);
+
+        if (this.showDungeon) {
+          console.log("PSDungeon.open: Playing door sound and animation");
+          this.isAnimating = true;
+          PSGame.playSound(PS1Sound.DOOR);
+          this.putwallimage(this.img_dungeon_doorAnim);
+          this.drawImageToScreen();
+          await this.delayScreen();
+          this.isAnimating = false;
+          console.log("PSDungeon.open: Animation complete");
+        }
+        console.log("PSDungeon.open: Door opened successfully");
+        break;
+
+      case LOCKED_DOOR:
+        console.log("PSDungeon.open: Trying to open locked door");
+        if (!PSGame.getParty().hasQuestItem(PSGame.getItem(OriginalItem.Quest_Dungeon_Key))) {
+          console.log("PSDungeon.open: No dungeon key, showing locked message");
+          await PSMenu.Stext(PSGame.getString("Dungeon_Locked_Door"));
+          break;
+        }
+        console.log("PSDungeon.open: Has key, opening locked door");
+        currentMap.settile(Math.floor(xpos / 16), Math.floor(ypos / 16), 0, OPEN_DOOR);
+        if (this.showDungeon) {
+          this.isAnimating = true;
+          PSGame.playSound(PS1Sound.DOOR);
+          this.putwallimage(this.img_dungeon_doorAnim);
+          this.drawImageToScreen();
+          await this.delayScreen();
+          this.isAnimating = false;
+        }
+        break;
+
+      case MAGIC_DOOR:
+        console.log("PSDungeon.open: Trying to open magic door");
+        if (!PSGame.getParty().hasQuestItem(PSGame.getItem(OriginalItem.Quest_Miracle_Key)) && !this.openEffect) {
+          console.log("PSDungeon.open: No miracle key, showing magic door message");
+          await PSMenu.Stext(PSGame.getString("Dungeon_Magic_Door"));
+          break;
+        }
+        console.log("PSDungeon.open: Opening magic door");
+        this.openEffect = false;
+        currentMap.settile(Math.floor(xpos / 16), Math.floor(ypos / 16), 0, OPEN_MAGIC_DOOR);
+        if (this.showDungeon) {
+          this.isAnimating = true;
+          PSGame.playSound(PS1Sound.DOOR);
+          this.putwallimage(this.img_dungeon_mdoorAnim);
+          this.drawImageToScreen();
+          await this.delayScreen();
+          this.isAnimating = false;
+        }
+        break;
+
+      default:
+        console.log(`PSDungeon.open: Not a door tile (${tile}), cannot open`);
+        break;
+    }
   }
 
   private gettile(x: number, y: number): number {
@@ -924,5 +1030,21 @@ export class PSDungeon {
 
   public setAlreadyInside(value: boolean): void {
     this.alreadyInside = value;
+  }
+
+  public setOpen(): void {
+    this.openEffect = true;
+  }
+
+  public getTrapEffect(): boolean {
+    return this.trapEffect;
+  }
+
+  public setTrapEffect(value: boolean): void {
+    this.trapEffect = value;
+  }
+
+  public setZoneCheck(): void {
+    this.zoneCheck = true;
   }
 }

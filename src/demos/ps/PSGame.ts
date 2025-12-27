@@ -378,9 +378,20 @@ export class PSGame {
    */
   public static getParty(): Party {
     if (!this.party) {
-      throw new Error("Party not initialized - call initPSGame() first");
+      // Auto-initialize with default game type for development/testing
+      console.warn("PSGame: Party not initialized, auto-initializing with PS_ORIGINAL");
+      this.initPSGameSync(GameType.PS_ORIGINAL);
     }
-    return this.party;
+    return this.party!;
+  }
+
+  /**
+   * Synchronous version of initPSGame for auto-initialization
+   */
+  private static initPSGameSync(gameType: GameType): void {
+    this.gameData.setGameType(gameType);
+    this.party = new Party(gameType);
+    console.log(`PSGame: Auto-initialized party with ${GameType[gameType]}`);
   }
 
   /**
