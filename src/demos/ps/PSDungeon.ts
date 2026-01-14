@@ -122,8 +122,27 @@ export class PSDungeon {
     const player = MainEngine.getPlayer();
     player?.setFace(dungeonDir);
 
+    // Hide all tilemap layers - dungeons should never show map layers
+    const currentMap = MainEngine.getCurrentMap();
+    if (currentMap && typeof currentMap.setLayersVisible === 'function') {
+      currentMap.setLayersVisible(false);
+    }
+
+    // Hide ALL entities immediately after allocation - dungeons render in 3D overlay only
+    const allEntities = MainEngine.getEntities();
+    for (const entity of allEntities) {
+      // Set entity visibility to false (prevents draw() from rendering)
+      entity.setVisible(false);
+      // Also hide the sprite
+      const sprite = entity.getSprite();
+      if (sprite) {
+        sprite.setVisible(false);
+      }
+    }
+
     MainEngine.setCameraTracking(1);
     MainEngine.setupCamera();
+
     await ScriptEngine.fadein(5, false);
 
     if (this.getAlreadyInside()) {

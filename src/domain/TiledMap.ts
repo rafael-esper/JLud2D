@@ -541,6 +541,23 @@ export class TiledMap {
   }
 
   /**
+   * Show or hide all tilemap layers
+   * Used for dungeon maps where layers should never be visible
+   */
+  public setLayersVisible(visible: boolean): void {
+    console.log(`TiledMap: Setting all layers visible=${visible}`);
+
+    // Hide layers stored in the layers object
+    for (const layerName in this.layers) {
+      const layer = this.layers[layerName];
+      if (layer) {
+        console.log(`TiledMap: Setting layer "${layerName}" visible=${visible}`);
+        layer.setVisible(visible);
+      }
+    }
+  }
+
+  /**
    * Get the depth at which entities should render
    * Based on renderstring position of 'E'
    */

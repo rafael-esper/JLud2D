@@ -236,8 +236,8 @@ export class Entity {
     // Increment animation frame when moving (like Java move_tick)
     this.framect++;
 
-    // Update sprite position
-    if (this.sprite && this.chr) {
+    // Update sprite position - only render if entity is visible
+    if (this.visible && this.sprite && this.chr) {
       const frameToUse = this.specframe >= 0 ? this.specframe : this.frame;
       // Only render if we have a valid frame number
       if (frameToUse !== undefined && frameToUse !== null && !isNaN(frameToUse)) {
@@ -283,8 +283,8 @@ export class Entity {
     }
 
 
-    // Update sprite frame
-    if (this.sprite && this.chr) {
+    // Update sprite frame - only render if entity is visible
+    if (this.visible && this.sprite && this.chr) {
       const frameToUse = this.specframe >= 0 ? this.specframe : this.frame;
       // Only render if we have a valid frame number
       if (frameToUse !== undefined && frameToUse !== null && !isNaN(frameToUse)) {
