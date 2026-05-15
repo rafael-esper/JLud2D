@@ -143,6 +143,14 @@ export class PSDungeon {
     MainEngine.setCameraTracking(1);
     MainEngine.setupCamera();
 
+    // Init render texture and draw the first dungeon frame BEFORE fadein,
+    // so the camera fades into the dungeon view instead of popping it in.
+    this.initBackBuffer();
+    if (player) {
+      this.drawDungeon(player, 0);
+      this.drawImageToScreen();
+    }
+
     await ScriptEngine.fadein(5, false);
 
     if (this.getAlreadyInside()) {
@@ -167,7 +175,6 @@ export class PSDungeon {
   }
 
   private async dungeonMainLoop(player: Entity | null): Promise<void> {
-    this.initBackBuffer();
     this.hideTilemapLayers();
     const initialMap = MainEngine.getCurrentMap();
     if (!player || !initialMap) return;
@@ -272,6 +279,9 @@ export class PSDungeon {
 
         this.zoneCheck = true;
       }
+
+      // Exit may have been triggered this iteration — skip idle draw and delay
+      if (!PSDungeon.getIsInsideDungeon()) break;
 
       if (!this.isAnimating) {
         if (this.showDungeon) {
@@ -694,6 +704,21 @@ export class PSDungeon {
   }
 
   /**
+   * Hide dungeon RT immediately — call this while the screen is still black (after fadeout,
+   * before fadein) so the overlay never appears on top of the incoming map.
+   */
+  public hideRenderTexture(): void {
+    if (this.dungeonRenderTexture) {
+      this.dungeonRenderTexture.setVisible(false);
+      this.dungeonRenderTexture.clear();
+    }
+    if (this.backBuffer) {
+      this.backBuffer.setVisible(false);
+      this.backBuffer.clear();
+    }
+  }
+
+  /**
    * Clean up dungeon rendering graphics when exiting dungeon
    */
   private cleanupDungeonGraphics(): void {
@@ -796,17 +821,18 @@ export class PSDungeon {
           await ScriptEngine.fadeout(25, false);
         }
         await this.walkup(entity, 1);
-        if (this.showDungeon) {
-          // Draw the new scene before fading in
-          this.drawDungeon(entity, 0);
-          this.drawImageToScreen();
-          await ScriptEngine.fadein(25, false);
-        }
 
-        // And after if the current tile is a stairs up/down, call its zone (EXIT) or room
         const currentTile = this.gettile(entity.getx(), entity.gety());
         if (currentTile === STAIRS_UP || currentTile === STAIRS_DOWN || currentTile === ROOM) {
+          // Exit zone: screen is already black from door fadeout; mapswitch skips its own fadeout
           await this.callZone(entity, 0);
+        } else {
+          // Normal door to corridor: reveal the new area
+          if (this.showDungeon) {
+            this.drawDungeon(entity, 0);
+            this.drawImageToScreen();
+            await ScriptEngine.fadein(25, false);
+          }
         }
       }
     }

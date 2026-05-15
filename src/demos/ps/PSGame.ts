@@ -433,11 +433,15 @@ export class PSGame {
     this.setgotoxy(x, y);
     this.transportOff();
 
-    if (fade) {
+    if (fade && !ScriptEngine.screenFadedOut) {
       await ScriptEngine.fadeout(30, true);
     }
 
-    //MainEngine.setEntitiesPaused(false);
+    // Screen is now black — hide the dungeon RT before fadein so it never overlays the new map
+    if (this.currentDungeon) {
+      this.currentDungeon.hideRenderTexture();
+    }
+
     await MainEngine.startEngine(mapname, basePath);
   }
 

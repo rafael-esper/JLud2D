@@ -32,8 +32,8 @@ export class Warehouse {
     }
   }
 
-  public static exit(): void {
-    PSGame.mapswitchToCity(City.CAMINEET, 32, 7);
+  public static async exit(): Promise<void> {
+    await PSGame.mapswitchToCity(City.CAMINEET, 32, 7);
   }
 
   public static trap(): void {

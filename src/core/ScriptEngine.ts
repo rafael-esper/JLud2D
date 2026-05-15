@@ -12,6 +12,9 @@ export class ScriptEngine {
   private static uiGraphics: Phaser.GameObjects.Graphics | null = null;
   private static uiTexts: Phaser.GameObjects.Text[] = [];
 
+  // True after fadeout completes, cleared by fadein — lets callers skip a redundant fadeout
+  public static screenFadedOut: boolean = false;
+
   // ============================================================================
   // SCENE MANAGEMENT
   // ============================================================================
@@ -368,6 +371,8 @@ export class ScriptEngine {
       currentScene.cameras.main.once('camerafadeincomplete', () => {
         console.log("ScriptEngine: Fade in complete");
 
+        ScriptEngine.screenFadedOut = false;
+
         // Unpause entities after fade in completes (critical for movement)
         MainEngine.setEntitiesPaused(false);
         console.log("ScriptEngine: Entities unpaused after fade in");
@@ -409,6 +414,8 @@ export class ScriptEngine {
 
       currentScene.cameras.main.once('camerafadeoutcomplete', () => {
         console.log("ScriptEngine: Fade out complete");
+
+        ScriptEngine.screenFadedOut = true;
 
         // Clear inputs at end of fade to prevent unwanted movement
         ScriptEngine.clearInputs();
