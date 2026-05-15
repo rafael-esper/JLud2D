@@ -242,9 +242,27 @@ export class PSDungeon {
 
       if (this.inputManager!.down) {
         const tile = this.getfronttile(player, -1);
+        let movedTile = tile;
 
-        // Animate before moving (mirrors forward walk: animate then move)
-        if (this.showDungeon && tile === FLOOR) {
+        // Java: move FIRST, then animate from new position
+        if (tile === FLOOR) {
+          await this.walkup(player, -1);
+        } else if (tile === WALL && this.getlefttile(player, 0) === FLOOR) {
+          await this.turnRoutine(player, true);
+          movedTile = FLOOR; // Java: tile = FLOOR after turn so animation runs
+          await this.walkup(player, -1);
+        } else if (tile === WALL && this.getrighttile(player, 0) === FLOOR) {
+          await this.turnRoutine(player, false);
+          movedTile = FLOOR; // Java: tile = FLOOR after turn so animation runs
+          await this.walkup(player, -1);
+        } else {
+          await this.delayScreen(); // Dead-end: no move, no animation
+        }
+
+        this.walkingBack = true;
+
+        // Animate from new position (reversed frames 5→0)
+        if (this.showDungeon && movedTile === FLOOR) {
           for (let i = 5; i >= 0; i--) {
             this.drawDungeon(player, i);
             this.drawImageToScreen();
@@ -252,19 +270,6 @@ export class PSDungeon {
           }
         }
 
-        if (tile === FLOOR) {
-          await this.walkup(player, -1);
-        } else if (tile === WALL && this.getlefttile(player, 0) === FLOOR) {
-          await this.turnRoutine(player, true);
-          await this.walkup(player, -1);
-        } else if (tile === WALL && this.getrighttile(player, 0) === FLOOR) {
-          await this.turnRoutine(player, false);
-          await this.walkup(player, -1);
-        } else {
-          await this.delayScreen();
-        }
-
-        this.walkingBack = true;
         this.zoneCheck = true;
       }
 
