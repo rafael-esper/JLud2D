@@ -26,6 +26,8 @@ import { Enemy } from './battle/Enemy';
 import { BattleOutcome } from './battle/PSBattle';
 import { PSSceneType } from './PSMenu';
 import { Trapped } from './game/GameData';
+import { MenuCHR } from './menu/MenuCHR';
+import { MenuState } from './menu/MenuType';
 
 
 export class PSGame {
@@ -305,6 +307,9 @@ export class PSGame {
    */
   public static async initPSGame(gameType: GameType): Promise<void> {
     console.log(`PSGame: Initializing game type ${GameType[gameType]}`);
+
+    // Reset all game state for a fresh start
+    this.gameData = new GameData();
 
     // Initialize party with specified game type
     this.party = new Party(gameType);
@@ -1207,24 +1212,79 @@ export class PSGame {
   /**
    * Open chest with trap and item handling
    */
-  public static async chest(mesetas: number, trapped: Trapped, item?: Item): Promise<void> {
+  public static async chest(mesetas: number, trapped: Trapped, item?: Item): Promise<boolean> {
     console.log(`PSGame.chest: Opening chest with ${mesetas} mesetas, trap: ${trapped}`);
 
-    if (mesetas > 0) {
-      this.getParty().addMesetas(mesetas);
-      await PSMenu.Stext(this.getString("Chest_Mesetas", "<number>", mesetas.toString()));
+    // 1. Disable menu controls during chest interaction
+    PSMenu.menuOff();
+
+    // 2. Create and display chest sprite at position (128, 112)
+    const chestCHR = await this.getCHR(PS1CHR.CHEST);
+    const currentScene = this.getCurrentScene();
+    if (!currentScene) {
+      console.error("PSGame.chest: No current scene available");
+      PSMenu.menuOn();
+      return false;
     }
 
-    if (item) {
-      this.getParty().addItem(item);
-      await PSMenu.Stext(this.getString("Chest_Item", "<item>", item.getName()));
+    const chestSprite = new MenuCHR(currentScene, 128, 112, chestCHR);
+    chestSprite.setDepth(1995); // above dungeon texture (1990), below menu text boxes (2000+)
+    PSMenu.instance.push(chestSprite);
+
+    // 3. Show initial "Chest Found!" text
+    await PSMenu.StextFirst(this.getString("Chest_Found"));
+
+    // 4. Trap detection (if Myau is in party)
+    if (trapped !== Trapped.NO_TRAP && this.getParty().hasMember("Myau")) {
+      await PSMenu.PromptNext(this.getString("Chest_Myau_Sniff"), this.getYesNo());
+      await PSMenu.PromptNext(this.getString("Chest_Trap"), this.getYesNo());
     }
 
-    // TODO: Handle trap effects
-    if (trapped !== Trapped.NO_TRAP) {
-      console.log(`PSGame.chest: Processing trap ${trapped}`);
-      // This would trigger trap effects like damage, status effects, etc.
+    // 5. Ask "Open chest?" with YES/NO menu
+    const openChestChoice = await PSMenu.PromptNext(
+      this.getString("Chest_Open"),
+      this.getYesNo()
+    );
+
+    let chestOpened = false;
+
+    if (openChestChoice === 1) {  // YES is first option; PromptNext returns 1-indexed
+      chestOpened = true;
+
+      // 6. Play opening animation — run drawMenus() each frame until animation finishes
+      chestSprite.animate(MenuState.ANIM1);
+      await PSMenu.instance.waitAnimationEnd(chestSprite);
+
+      // 7. Handle traps
+      if (trapped === Trapped.EXPLOSION) {
+        chestSprite.animate(MenuState.ANIM2);
+        await PSMenu.instance.waitAnimationEnd(chestSprite);
+        await PSMenu.StextNext(this.getString("Chest_Explosion"));
+        // TODO: Damage all party members
+      } else if (trapped === Trapped.ARROW) {
+        chestSprite.animate(MenuState.ANIM3);
+        await PSMenu.instance.waitAnimationEnd(chestSprite);
+        await PSMenu.StextNext(this.getString("Chest_Arrow"));
+        // TODO: Damage random party member
+      }
+
+      // 8. Show rewards
+      if (mesetas > 0) {
+        this.getParty().addMesetas(mesetas);
+        await PSMenu.StextNext(this.getString("Chest_Mesetas", "<number>", mesetas.toString()));
+      }
+
+      if (item) {
+        this.getParty().addItem(item);
+        await PSMenu.StextNext(this.getString("Chest_Item", "<item>", item.getName()));
+      }
     }
+
+    // 9. Cleanup
+    PSMenu.instance.pop();
+    PSMenu.menuOn();
+
+    return chestOpened;
   }
 
   /**
@@ -1244,29 +1304,21 @@ export class PSGame {
   /**
    * Chest flag management - direct port from PSGame.java
    */
-  public static chestFlag(flag: any, mesetas: number, trapped: any, item: any): void {
+  public static async chestFlag(flag: any, mesetas: number, trapped: any, item: any): Promise<void> {
     if (this.gameData.chestFlags.has(flag)) {
       console.log(`PSGame.chestFlag: Chest ${flag} already opened`);
       return;
     }
 
     console.log(`PSGame.chestFlag: Opening chest ${flag}`);
-    this.gameData.chestFlags.add(flag);
 
-    if (mesetas > 0) {
-      this.getParty().addMesetas(mesetas);
-      console.log(`PSGame.chestFlag: Added ${mesetas} mesetas`);
-    }
+    // Call the chest() method to show visual display and get user choice
+    const opened = await this.chest(mesetas, trapped, item);
 
-    if (item) {
-      this.getParty().addItem(item);
-      console.log(`PSGame.chestFlag: Added item ${item}`);
-    }
-
-    // TODO: Handle trap effects
-    if (trapped !== null) {
-      console.log(`PSGame.chestFlag: Chest has trap ${trapped}`);
-      // This would trigger trap effects like explosions, damage, etc.
+    // Only set flag if user actually opened the chest
+    if (opened) {
+      this.gameData.chestFlags.add(flag);
     }
   }
+
 }

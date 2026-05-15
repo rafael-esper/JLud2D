@@ -178,8 +178,8 @@ export class PSDungeon {
       if (this.inputManager) this.inputManager.updateControls();
       if (this.zoneCheck) {
         this.zoneCheck = false;
-        this.callZone(player, 1);
-        this.callZone(player, 0);
+        await this.callZone(player, 1);
+        await this.callZone(player, 0);
 
         if (this.getfronttile(player, 1) === FLOOR) {
           this.enemyBattle();
@@ -203,9 +203,8 @@ export class PSDungeon {
         this.showDungeon = !this.showDungeon;
       }
 
-      if (this.inputManager!.b1) {
-        console.log("PSDungeon: b1 pressed, calling handleOpenAction");
-        this.handleOpenAction(player);
+      if (this.inputManager!.justPressed('b1')) {
+        await this.handleOpenAction(player);
       }
 
       if (this.inputManager!.left || this.inputManager!.right) {
@@ -231,42 +230,41 @@ export class PSDungeon {
         switch (tile) {
           case STAIRS_DOWN:
             PSGame.gameData.dungeonFloor--;
-            this.callZone(player, 0);
+            await this.callZone(player, 0);
             break;
           case STAIRS_UP:
             PSGame.gameData.dungeonFloor++;
-            this.callZone(player, 0);
+            await this.callZone(player, 0);
             break;
         }
         this.zoneCheck = true;
       }
 
       if (this.inputManager!.down) {
-        let tile = this.getfronttile(player, -1);
+        const tile = this.getfronttile(player, -1);
+
+        // Animate before moving (mirrors forward walk: animate then move)
+        if (this.showDungeon && tile === FLOOR) {
+          for (let i = 5; i >= 0; i--) {
+            this.drawDungeon(player, i);
+            this.drawImageToScreen();
+            await this.delayScreen();
+          }
+        }
 
         if (tile === FLOOR) {
           await this.walkup(player, -1);
         } else if (tile === WALL && this.getlefttile(player, 0) === FLOOR) {
-          this.turnRoutine(player, true);
-          tile = FLOOR;
+          await this.turnRoutine(player, true);
           await this.walkup(player, -1);
         } else if (tile === WALL && this.getrighttile(player, 0) === FLOOR) {
-          this.turnRoutine(player, false);
-          tile = FLOOR;
+          await this.turnRoutine(player, false);
           await this.walkup(player, -1);
         } else {
           await this.delayScreen();
         }
 
         this.walkingBack = true;
-
-        if (this.showDungeon && tile === FLOOR) {
-            for (let i = 5; i >= 0; i--) {
-            this.drawDungeon(player, i);
-            this.drawImageToScreen();
-            await this.delayScreen();
-          }
-        }
         this.zoneCheck = true;
       }
 
@@ -459,11 +457,11 @@ export class PSDungeon {
     if (!this.currentScene) return;
 
     this.backBuffer = this.currentScene.add.graphics();
-    this.backBuffer.setDepth(2000);
+    this.backBuffer.setDepth(1980);
     this.backBuffer.setScrollFactor(0);
 
     this.dungeonRenderTexture = this.currentScene.add.renderTexture(0, 0, this.TOTAL_XSIZE, this.TOTAL_YSIZE);
-    this.dungeonRenderTexture.setDepth(5000); // Very high depth to ensure visibility above everything
+    this.dungeonRenderTexture.setDepth(1990); // Above entities/tilemap but below PSMenu (2000+)
     this.dungeonRenderTexture.setScrollFactor(0);
     this.dungeonRenderTexture.setOrigin(0, 0); // Important: set origin to top-left
 
@@ -480,10 +478,8 @@ export class PSDungeon {
       this.backBuffer.fillStyle(this.backColor, 1);
       this.backBuffer.fillRect(0, 0, 320, 240);
 
-      // Show dungeon view - make sure it's positioned correctly and visible
       this.dungeonRenderTexture.setPosition(0, 0);
       this.dungeonRenderTexture.setVisible(true);
-      this.dungeonRenderTexture.setDepth(5000); // Very high depth to ensure visibility
 
     } else {
       // Hide dungeon graphics for map view
@@ -805,13 +801,13 @@ export class PSDungeon {
         // And after if the current tile is a stairs up/down, call its zone (EXIT) or room
         const currentTile = this.gettile(entity.getx(), entity.gety());
         if (currentTile === STAIRS_UP || currentTile === STAIRS_DOWN || currentTile === ROOM) {
-          this.callZone(entity, 0);
+          await this.callZone(entity, 0);
         }
       }
     }
   }
 
-  private handleOpenAction(player: Entity): void {
+  private async handleOpenAction(player: Entity): Promise<void> {
     const x = player.getx();
     const y = player.gety();
     const face = player.getFace();
@@ -831,11 +827,21 @@ export class PSDungeon {
         targetX = x + 16; targetY = y;
         break;
       default:
-        console.log("PSDungeon: Invalid facing direction");
         return;
     }
 
-    this.open(targetX, targetY);
+    await this.open(targetX, targetY);
+
+  }
+
+  private async invokeScriptAsync(functionName: string): Promise<void> {
+    const scriptContext = MainEngine.getScriptContext();
+    if (scriptContext && typeof scriptContext[functionName] === 'function') {
+      const result = scriptContext[functionName]();
+      if (result && typeof result.then === 'function') {
+        await result;
+      }
+    }
   }
 
   private async open(xpos: number, ypos: number): Promise<void> {
@@ -965,12 +971,10 @@ export class PSDungeon {
     }
   }
 
-  private callZone(entity: Entity, distance: number): void {
+  private async callZone(entity: Entity, distance: number): Promise<void> {
     const curTile = this.getfronttile(entity, distance);
 
     if (distance > 0 && curTile !== FLOOR) return;
-    if (distance === 0 && curTile === ROOM) {
-    }
 
     const zone = this.getfrontzone(entity, distance);
     const currentMap = MainEngine.getCurrentMap();
@@ -978,7 +982,7 @@ export class PSDungeon {
     if (zone !== 0 && currentMap) {
       const scriptName = currentMap.getScriptZone(zone);
       if (scriptName && distance === currentMap.getMethodZone(zone)) {
-        MainEngine.callScriptFunction(scriptName);
+        await this.invokeScriptAsync(scriptName);
       }
     }
   }

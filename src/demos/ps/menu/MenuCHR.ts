@@ -19,6 +19,7 @@ export class MenuCHR extends MenuType {
   private scene: Phaser.Scene;
   private sprite: Phaser.GameObjects.Sprite | null = null;
   private visible: boolean = true;
+  private _depth: number = 1960;
 
   constructor(scene: Phaser.Scene, x: number, y: number, chr: CHR);
   constructor(scene: Phaser.Scene, x: number, y: number, loopable: boolean, chr: CHR);
@@ -56,7 +57,7 @@ export class MenuCHR extends MenuType {
       }
 
       this.sprite = this.scene.add.sprite(this.x, this.y, textureKey);
-      this.sprite.setDepth(1960); // Same depth as entity sprites for proper animation
+      this.sprite.setDepth(this._depth);
       this.sprite.setOrigin(0, 0);
       this.sprite.setVisible(this.visible); // Respect the visibility state
     }
@@ -159,6 +160,11 @@ export class MenuCHR extends MenuType {
     if (this.sprite) {
       this.sprite.setVisible(visible);
     }
+  }
+
+  public setDepth(depth: number): void {
+    this._depth = depth;
+    if (this.sprite) this.sprite.setDepth(depth);
   }
 
   /**
