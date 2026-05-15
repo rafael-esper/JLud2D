@@ -1280,8 +1280,11 @@ export class PSGame {
       }
     }
 
-    // 9. Cleanup
-    PSMenu.instance.pop();
+    // 9. Cleanup — pop the textBox left by PromptNext, then the chestSprite,
+    //    then flush the Graphics object (it only clears itself inside waitXxx loops)
+    PSMenu.instance.pop(); // textBox ("Open chest?")
+    PSMenu.instance.pop(); // chestSprite
+    PSMenu.instance.clearGraphics();
     PSMenu.menuOn();
 
     return chestOpened;

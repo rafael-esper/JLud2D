@@ -89,8 +89,8 @@ export class MenuCHR extends MenuType {
     const worldY = camera.scrollY + this.y;
 
     this.sprite.setPosition(worldX, worldY);
-    this.sprite.setVisible(this.visible); // Respect the visibility state
-    this.sprite.setDepth(1960); // Same depth as entity sprites for proper animation
+    this.sprite.setVisible(this.visible);
+    this.sprite.setDepth(this._depth);
 
     switch (this.state) {
       case MenuState.READY:

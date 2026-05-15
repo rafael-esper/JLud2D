@@ -613,7 +613,7 @@ export class PSDungeon {
           this.dungeonRenderTexture.destroy();
         }
         this.dungeonRenderTexture = (scene as any).add.renderTexture(0, 0, this.TOTAL_XSIZE, this.TOTAL_YSIZE);
-        this.dungeonRenderTexture.setDepth(5000);
+        this.dungeonRenderTexture.setDepth(1990);
         this.dungeonRenderTexture.setScrollFactor(0);
         this.dungeonRenderTexture.setOrigin(0, 0);
 
