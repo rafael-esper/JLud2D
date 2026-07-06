@@ -474,25 +474,19 @@ export class PSBattle {
   }
 
   private async executeAction(b: Battler, battlers: Battler[]): Promise<void> {
-    if (!b.target && b.action !== Action.DEFEND) {
-      return; // No valid target
-    }
-
     switch (b.action) {
       case Action.ATTACK:
-        await this.executeAttack(b, b.target!);
+        if (b.target) {
+          await this.executeAttack(b, b.target);
+        }
         break;
 
       case Action.MAGIC:
-        if (b instanceof PartyMember && b.technique) {
-          await this.executeTechnique(b, b.technique, b.target, battlers);
-        }
+        await this.executeMagic(b, battlers);
         break;
 
       case Action.ITEM:
-        if (b instanceof PartyMember && b.selectedItem) {
-          await this.executeItem(b, b.selectedItem, b.target);
-        }
+        await this.executeItemAction(b, battlers);
         break;
 
       case Action.DEFEND:
@@ -500,8 +494,8 @@ export class PSBattle {
         break;
 
       case Action.SPECIAL:
-        if (b instanceof EnemyBattler) {
-          await this.executeEnemySpecial(b, b.target!, battlers);
+        if (b instanceof EnemyBattler && b.target) {
+          await this.executeEnemySpecial(b, b.target, battlers);
         }
         break;
     }
@@ -594,12 +588,16 @@ export class PSBattle {
     this.battlelog(`${battler.getName()} makes no action!`);
   }
 
-  private async executeTechnique(caster: PartyMember, technique: any, target: Battler | null, battlers: Battler[]): Promise<void> {
-    // TODO: Implement technique execution when technique system is available
+  private async executeMagic(b: Battler, battlers: Battler[]): Promise<void> {
+    // TODO(next batch): port of Java MAGIC case (lines 376-439) —
+    // castSpell + ESCAPE/WALL/PROT/FIRE/GIFIRE/WIND/THUNDER handling
+    void b; void battlers;
   }
 
-  private async executeItem(user: PartyMember, item: any, target: Battler | null): Promise<void> {
-    // TODO: Implement item usage when item system is available
+  private async executeItemAction(b: Battler, battlers: Battler[]): Promise<void> {
+    // TODO(next batch): port of Java ITEM case (lines 441-468) —
+    // Item_Use message, callEffect, consume item, ESCAPE outcome
+    void b; void battlers;
   }
 
   private async executeEnemySpecial(enemy: EnemyBattler, target: Battler, battlers: Battler[]): Promise<void> {
@@ -608,72 +606,113 @@ export class PSBattle {
     await this.executeAttack(enemy, target);
   }
 
+  /**
+   * Per-character action menu — direct port of Java mainActionMenu (lines 505-622).
+   * Targets are NOT chosen by the player; they are assigned randomly by
+   * setTargets() like the original game.
+   */
   private async mainActionMenu(battlers: Battler[]): Promise<BattleOutcome> {
-    // Process each player's turn
-    for (const battler of battlers) {
-      if (!(battler instanceof PartyMember) || battler.getHp() <= 0) {
-        continue;
+    const members: PartyMember[] = [];
+    for (const b of battlers) {
+      if (b instanceof PartyMember && b.hp > 0 && b.paralyzed <= 0) {
+        members.push(b);
       }
+    }
 
-      const player = battler as PartyMember;
-      let actionSelected = false;
+    let currentMember = 0;
+    let gotoNextChar = false;
 
-      while (!actionSelected) {
-        // Create player action menu
-        const actionMenu = PSMenu.instance.createPromptBox(10, 100, [
-          PSGame.getString("Menu_Battle_Attack"),
-          PSGame.getString("Menu_Battle_Magic"),
-          PSGame.getString("Menu_Battle_Item"),
-          PSGame.getString("Menu_Battle_Defend")
-        ], true);
-        PSMenu.instance.push(actionMenu);
+    while (currentMember < members.length) {
+      const p = members[currentMember];
 
-        const actionChoice = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
+      PSMenu.instance.push(PSMenu.instance.createPromptBox(5, 5, [
+        PSGame.getString("Menu_Battle_Attack"),
+        PSGame.getString("Menu_Battle_Magic"),
+        PSGame.getString("Menu_Battle_Item"),
+        PSGame.getString("Menu_Battle_Defend")
+      ], false));
+      // Current character's name so the player knows whose turn it is
+      PSMenu.instance.push(PSMenu.instance.createLabelBox(6, 77, [" " + this.format(p.getName(), 6, true)], true));
+
+      const actionOpt = await PSMenu.instance.waitOpt(PSCancellable.TRUE) + 1;
+
+      if (actionOpt === 0) { // Cancelled: step back to the previous character
+        PSMenu.instance.pop();
         PSMenu.instance.pop();
 
-        if (actionChoice === -1) {
+        if (currentMember === 0) {
           return BattleOutcome.BACK_MAIN_MENU;
+        } else {
+          currentMember--;
+          continue;
         }
+      }
 
-        switch (actionChoice) {
-          case 0: // Attack
-            player.action = Action.ATTACK;
-            // Select target
-            player.target = await this.selectEnemyTarget(battlers);
-            if (player.target) {
-              actionSelected = true;
-            }
-            break;
+      if (actionOpt === 1) {
+        p.action = Action.ATTACK;
+        gotoNextChar = true;
+      } else if (actionOpt === 2) {
+        p.action = Action.MAGIC;
 
-          case 1: // Magic
-            const technique = await this.selectTechnique(player);
-            if (technique) {
-              player.action = Action.MAGIC;
-              player.technique = technique;
-              if (technique.isTargeted) {
-                player.target = await this.selectTarget(battlers, technique.targetEnemies);
+        if (p.getSpells(EffectPlace.BATTLE).length === 0) {
+          await PSMenu.Stext(PSGame.getString("Magic_NotLearned", "<player>", p.getName()));
+          gotoNextChar = false;
+        } else {
+          PSMenu.instance.push(PSMenu.instance.createPromptBox(80, 30, p.listSpells(EffectPlace.BATTLE), true));
+          const chosenSpell = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
+          if (chosenSpell !== -1) {
+            p.usedSpell = p.getSpells(EffectPlace.BATTLE)[chosenSpell];
+            p.effect = await PSLibSpell.prepareSpell(p.usedSpell, p);
+
+            // Special code to treat chat/tele interruption (cast immediately)
+            if (p.effect !== null && (p.effect.getEffect() === Effect.CHAT || p.effect.getEffect() === Effect.TELE)) {
+              p.effect.setTargets(battlers);
+              const outcome = await PSLibSpell.castSpell(p.usedSpell, p.effect);
+              PSMenu.instance.pop();
+              PSMenu.instance.pop();
+              PSMenu.instance.pop();
+              if (outcome === EffectOutcome.SUCCESS) {
+                this.cleanPlayerStatus(battlers);
+                return BattleOutcome.TALK;
+              } else {
+                return BattleOutcome.ROUND_START;
               }
-              actionSelected = true;
             }
-            break;
 
-          case 2: // Item
-            const item = await this.selectItem(player);
-            if (item) {
-              player.action = Action.ITEM;
-              player.selectedItem = item;
-              if (item.isTargeted) {
-                player.target = await this.selectTarget(battlers, false);
-              }
-              actionSelected = true;
-            }
-            break;
-
-          case 3: // Defend
-            player.action = Action.DEFEND;
-            actionSelected = true;
-            break;
+            gotoNextChar = (p.effect !== null);
+          } else {
+            gotoNextChar = false;
+          }
+          PSMenu.instance.pop(); // spell list
         }
+      } else if (actionOpt === 3) {
+        p.action = Action.ITEM;
+
+        if (p.items.length === 0) {
+          await PSMenu.Stext(PSGame.getString("Menu_No_Items", "<player>", p.getName()));
+          gotoNextChar = false;
+        } else {
+          PSMenu.instance.push(PSMenu.instance.createPromptBox(80, 30, Item.toString(p.items, false), true));
+          const optItem = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
+          if (optItem >= 0) {
+            p.usedItem = p.items[optItem];
+            p.effect = await PSLibItem.prepareItem(p.usedItem, p);
+            gotoNextChar = (p.effect !== null);
+          } else {
+            gotoNextChar = false;
+          }
+          PSMenu.instance.pop(); // item list
+        }
+      } else if (actionOpt === 4) {
+        p.action = Action.DEFEND;
+        gotoNextChar = true;
+      }
+
+      PSMenu.instance.pop();
+      PSMenu.instance.pop();
+
+      if (gotoNextChar) {
+        currentMember++;
       }
     }
 
@@ -1078,50 +1117,4 @@ export class PSBattle {
     }
   }
 
-  // Helper methods for battle menu system
-  private async selectEnemyTarget(battlers: Battler[]): Promise<EnemyBattler | null> {
-    const enemies = battlers.filter(b => b instanceof EnemyBattler && b.getHp() > 0) as EnemyBattler[];
-    if (enemies.length === 0) return null;
-    if (enemies.length === 1) return enemies[0];
-
-    const enemyNames = enemies.map(e => e.getEnemy().getTranslatedName(PSGame) || e.getEnemy().getName());
-    const targetMenu = PSMenu.instance.createPromptBox(50, 50, enemyNames, true);
-    PSMenu.instance.push(targetMenu);
-
-    const choice = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
-    PSMenu.instance.pop();
-
-    return choice >= 0 ? enemies[choice] : null;
-  }
-
-  private async selectTarget(battlers: Battler[], targetEnemies: boolean): Promise<Battler | null> {
-    if (targetEnemies) {
-      return this.selectEnemyTarget(battlers);
-    } else {
-      const allies = battlers.filter(b => b instanceof PartyMember && b.getHp() > 0) as PartyMember[];
-      if (allies.length === 0) return null;
-      if (allies.length === 1) return allies[0];
-
-      const allyNames = allies.map(p => p.getName());
-      const targetMenu = PSMenu.instance.createPromptBox(50, 50, allyNames, true);
-      PSMenu.instance.push(targetMenu);
-
-      const choice = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
-      PSMenu.instance.pop();
-
-      return choice >= 0 ? allies[choice] : null;
-    }
-  }
-
-  private async selectTechnique(player: PartyMember): Promise<any | null> {
-    // TODO: Implement technique selection from player's learned techniques
-    // For now return null (no techniques available)
-    return null;
-  }
-
-  private async selectItem(player: PartyMember): Promise<any | null> {
-    // TODO: Implement item selection from party inventory
-    // For now return null (no items available)
-    return null;
-  }
 }
