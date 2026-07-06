@@ -12,7 +12,7 @@ import { EnemyBattler } from './EnemyBattler';
 import { Enemy, HasItem } from './Enemy';
 import { BattlePosition, SceneType } from './BattlePosition';
 import { PSMenu, PSSceneType, SpecialEntity } from '../PSMenu';
-import { PSCancellable } from '../menu/MenuStack';
+import { PSCancellable, MenuStack } from '../menu/MenuStack';
 import { MenuCHR } from '../menu/MenuCHR';
 import { MenuLabelBox } from '../menu/MenuLabelBox';
 import { MenuState } from '../menu/MenuType';
@@ -230,8 +230,9 @@ export class PSBattle {
       }
     }
 
+    // Java: right-aligned by name width — 320 - fontXSize*(7+maxEnemyNameSize)
     this.menuEnemyLabelBox = PSMenu.instance.createLabelBox(
-      140, 5, textEnemies, false
+      320 - MenuStack.fontXSize * (7 + this.maxEnemyNameSize), 5, textEnemies, false
     );
     PSMenu.instance.push(this.menuEnemyLabelBox);
 
@@ -498,17 +499,23 @@ export class PSBattle {
   }
 
   private async executeAttack(attacker: Battler, target: Battler): Promise<void> {
-    // Critical hit check using original Java formula
-    const isCritical = Math.floor(Math.random() * 1000) < (attacker.getStr() - target.getStr());
+    // Critical hits are rolled once, inside playerAttackAnimation (Java behavior)
+    let isCritical = false;
 
     if (attacker instanceof PartyMember) {
+      // Java: hide boxes and show the ATTACKER's box for player attacks
+      await this.hideBoxesAndShowTarget(attacker, this.currentBattlers);
+
       // Player attack with animation (Java: xAdj -20, weapon sound with default fallback)
       const weapon = attacker.equipment[EquipPlace.WEAPON];
       const weaponAnimation = attacker.sprite; // Player weapon sprite
       if (weaponAnimation) {
-        await this.playerAttackAnimation(attacker, target, weaponAnimation, -20, weapon ? weapon.weaponSound : null);
+        isCritical = await this.playerAttackAnimation(attacker, target, weaponAnimation, -20, weapon ? weapon.weaponSound : null);
       }
     } else if (attacker instanceof EnemyBattler) {
+      // Java: hide boxes and show the DEFENDER's box for enemy attacks
+      await this.hideBoxesAndShowTarget(target, this.currentBattlers);
+
       // Enemy attack with animation
       await this.enemyAnimationAttack(attacker);
     }
@@ -806,44 +813,32 @@ export class PSBattle {
    * @param sound Attack sound effect
    * @returns True if critical hit occurred
    */
-  private async playerAttackAnimation(attacker: Battler, defender: Battler, animation: MenuCHR, xAdj: number, sound: any): Promise<boolean> {
-    // Calculate critical hit based on strength difference (original formula)
-    const criticalChance = Math.max(0, attacker.getStr() - defender.getStr());
-    const criticalRoll = Math.floor(Math.random() * 256);
-    const isCritical = criticalRoll < criticalChance;
-
-    // Hide boxes and focus on target
-    await this.hideBoxesAndShowTarget(defender, this.currentBattlers);
+  private async playerAttackAnimation(attacker: Battler, defender: Battler, animation: MenuCHR, xAdj: number, sound: PS1Sound | null): Promise<boolean> {
+    // Java: single d1000 roll based on strength difference
+    const isCritical = Math.floor(Math.random() * 1001) < (attacker.getStr() - defender.getStr());
 
     if (defender instanceof EnemyBattler) {
-      // Position weapon animation at enemy contact point (Java: battlePositions[position])
-      const contactX = this.battlePositions[defender.position];
-      const contactY = defender.getContactPos();
-
-      animation.changePosition(contactX + xAdj, contactY);
-      PSMenu.instance.push(animation);
-
-      // Start weapon animation
-      animation.animate(MenuState.ANIM1);
-
-      // Play attack sound (Java: default attack sound when no weapon sound)
-      if (sound) {
-        PSGame.playSound(sound);
-      } else {
-        PSGame.playSound(PS1Sound.PLAYER_DEFAULT_ATTACK);
-      }
-
-      // Wait for animation to complete
-      await this.waitForAnimationComplete(animation);
-
-      // Show critical hit message if applicable
+      // Java: centered "Critical!" label at the enemy's contact point, with sound and delays
       if (isCritical) {
-        const criticalMessage = PSGame.getString("Battle_Critical_Hit");
-        // Position critical hit message near target
-        await PSMenu.StextTimeout(criticalMessage);
+        PSMenu.instance.push(PSMenu.instance.createCenteredLabelBox(
+          this.battlePositions[defender.position],
+          defender.getContactPos(),
+          PSGame.getString("Battle_Critical_Hit"), true));
+        await PSMenu.instance.waitDelay(20);
+        PSGame.playSound(sound ?? PS1Sound.PLAYER_DEFAULT_ATTACK);
+        await PSMenu.instance.waitDelay(10);
+        PSMenu.instance.pop();
       }
 
-      // Clean up animation
+      // Attack sound (Java: default attack sound when no weapon sound)
+      PSGame.playSound(sound ?? PS1Sound.PLAYER_DEFAULT_ATTACK);
+
+      // Weapon animation at the enemy contact point (Java: ANIM2, then END)
+      PSMenu.instance.push(animation);
+      animation.changePosition(this.battlePositions[defender.position] + xAdj, defender.getContactPos());
+      animation.animate(MenuState.ANIM2);
+      await PSMenu.instance.waitAnimationEnd(animation);
+      animation.animate(MenuState.END);
       PSMenu.instance.pop();
     }
 
@@ -890,18 +885,15 @@ export class PSBattle {
       }
     }
 
-    // Add small delay for visual effect (original Java timing)
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Java: waitDelay(15) — draws menus while waiting
+    await PSMenu.instance.waitDelay(15);
   }
 
   /**
-   * Wait for MenuCHR animation to complete
-   * @param animation The animation to wait for
+   * Wait for MenuCHR animation to complete (Java: MenuStack.waitAnimationEnd)
    */
   private async waitForAnimationComplete(animation: MenuCHR): Promise<void> {
-    // Wait for animation to finish (simplified timing)
-    // In original Java this checks animation state, here we use fixed timing
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await PSMenu.instance.waitAnimationEnd(animation);
   }
 
   /**
@@ -939,9 +931,9 @@ export class PSBattle {
         PSMenu.instance.drawMenus();
       }
 
-      // Enemy hit animation
+      // Enemy hit animation (Java: ANIM1 is the damage animation)
       if (defender.sprite) {
-        defender.sprite.animate(MenuState.ANIM3);
+        defender.sprite.animate(MenuState.ANIM1);
         await this.waitForAnimationComplete(defender.sprite);
         defender.sprite.animate(MenuState.READY);
       }
