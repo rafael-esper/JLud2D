@@ -12,12 +12,7 @@ import { EffectPlace } from './Item';
 import { PS1Image } from './PSLibImage';
 import { PSGame } from '../PSGame';
 import { OriginalItem } from './PSLibItem';
-
-// Forward declarations for types that will be implemented later
-export interface MenuLabelBox {
-  // Will be defined when we port MenuLabelBox
-  updateText(index: number, text: string): void;
-}
+import { MenuLabelBox } from '../menu/MenuLabelBox';
 
 export enum Gender {
   MALE,

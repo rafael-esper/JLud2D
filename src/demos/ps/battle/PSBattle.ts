@@ -255,15 +255,19 @@ export class PSBattle {
         p.textBox = playerBox;
 
         // Initialize attack sprite
-        const weapon = p.equipment[EquipPlace.WEAPON];
-        if (weapon) {
-          battler.sprite = new MenuCHR(0, 0, weapon.getChrWeaponAnimation());
-        } else {
-          // Load default claw animation
-          const clawChr = await import('../../../domain/CHR').then(mod =>
-            mod.CHR.loadChr(PSGame.getCurrentScene(), "battle/weapon_ps1/Claw.chr", "ps")
-          );
-          battler.sprite = new MenuCHR(0, 0, clawChr);
+        const weaponScene = PSGame.getCurrentScene();
+        if (weaponScene) {
+          const weapon = p.equipment[EquipPlace.WEAPON];
+          const weaponChr = weapon ? await weapon.getChrWeaponAnimation(weaponScene) : null;
+          if (weaponChr) {
+            battler.sprite = new MenuCHR(weaponScene, 0, 0, weaponChr);
+          } else {
+            // Load default claw animation
+            const clawChr = await import('../../../domain/CHR').then(mod =>
+              mod.CHR.loadChr(weaponScene, "battle/weapon_ps1/Claw.chr", "ps")
+            );
+            battler.sprite = new MenuCHR(weaponScene, 0, 0, clawChr);
+          }
         }
         pos++;
       }
@@ -301,7 +305,8 @@ export class PSBattle {
    * Main battle loop
    */
   private async battleLoop(battlers: Battler[]): Promise<BattleOutcome> {
-    let opt = 0; // Start with 0 to show menu
+    let opt = 1; // Java: first round goes straight to the character action menu;
+                 // the Action/Talk/Run prompt only appears after cancelling (opt=0)
 
     while (true) {
       // Show player boxes
@@ -343,7 +348,7 @@ export class PSBattle {
         const talkEffect = new PSEffect(Effect.TALK);
         battlers.sort(Battler.getNaturalComparator());
         talkEffect.setTargets(battlers);
-        if (talkEffect.callEffect() === EffectOutcome.SUCCESS) {
+        if (await talkEffect.callEffect() === EffectOutcome.SUCCESS) {
           this.cleanPlayerStatus(battlers);
           ScriptEngine.stopmusic();
           return BattleOutcome.TALK;
@@ -488,9 +493,8 @@ export class PSBattle {
         break;
     }
 
-    // Reset action after execution
-    b.action = Action.ATTACK;
-    b.target = null;
+    // Java keeps actions for the whole round — DEFEND must persist so the
+    // 1.5x defense bonus applies when this battler is attacked later
   }
 
   private async executeAttack(attacker: Battler, target: Battler): Promise<void> {
@@ -498,10 +502,11 @@ export class PSBattle {
     const isCritical = Math.floor(Math.random() * 1000) < (attacker.getStr() - target.getStr());
 
     if (attacker instanceof PartyMember) {
-      // Player attack with animation
+      // Player attack with animation (Java: xAdj -20, weapon sound with default fallback)
+      const weapon = attacker.equipment[EquipPlace.WEAPON];
       const weaponAnimation = attacker.sprite; // Player weapon sprite
       if (weaponAnimation) {
-        await this.playerAttackAnimation(attacker, target, weaponAnimation, 0, null);
+        await this.playerAttackAnimation(attacker, target, weaponAnimation, -20, weapon ? weapon.weaponSound : null);
       }
     } else if (attacker instanceof EnemyBattler) {
       // Enemy attack with animation
@@ -811,8 +816,8 @@ export class PSBattle {
     await this.hideBoxesAndShowTarget(defender, this.currentBattlers);
 
     if (defender instanceof EnemyBattler) {
-      // Position weapon animation at enemy contact point
-      const contactX = defender.sprite?.x || 0;
+      // Position weapon animation at enemy contact point (Java: battlePositions[position])
+      const contactX = this.battlePositions[defender.position];
       const contactY = defender.getContactPos();
 
       animation.changePosition(contactX + xAdj, contactY);
@@ -821,9 +826,11 @@ export class PSBattle {
       // Start weapon animation
       animation.animate(MenuState.ANIM1);
 
-      // Play attack sound
+      // Play attack sound (Java: default attack sound when no weapon sound)
       if (sound) {
         PSGame.playSound(sound);
+      } else {
+        PSGame.playSound(PS1Sound.PLAYER_DEFAULT_ATTACK);
       }
 
       // Wait for animation to complete
@@ -1044,13 +1051,11 @@ export class PSBattle {
     console.log(`${battlerName} is killed!`);
 
     if (battler instanceof PartyMember) {
-      // Player death handling
+      // Player death handling (Java: red box + hide, message — no sound)
       if (battler.textBox) {
+        battler.textBox.updateColorAll(0xFF0000);
         battler.textBox.setOff();
       }
-
-      // Play death sound
-      PSGame.playSound(PS1Sound.DEAD);
 
       // Show death message
       const deathMessage = PSGame.getString("Battle_Player_Died", "<player>", battler.getName());
