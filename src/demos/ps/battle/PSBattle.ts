@@ -9,7 +9,7 @@ import { ScriptEngine } from '../../../core/ScriptEngine';
 import { Battler } from '../game/Battler';
 import { PartyMember } from '../game/PartyMember';
 import { EnemyBattler } from './EnemyBattler';
-import { Enemy, HasItem, FireRes } from './Enemy';
+import { Enemy, HasItem, FireRes, Special, CanProt } from './Enemy';
 import { BattlePosition, SceneType } from './BattlePosition';
 import { PSMenu, PSSceneType, SpecialEntity } from '../PSMenu';
 import { PSCancellable, MenuStack } from '../menu/MenuStack';
@@ -514,8 +514,21 @@ export class PSBattle {
       // Java: hide boxes and show the ATTACKER's box for player attacks
       await this.hideBoxesAndShowTarget(attacker, this.currentBattlers);
 
-      // Player attack with animation (Java: xAdj -20, weapon sound with default fallback)
       const weapon = attacker.equipment[EquipPlace.WEAPON];
+
+      // Pistols hit every living enemy for itemstat/2 (Java lines 688-698)
+      if (weapon && weapon.type === ItemType.PISTOL && attacker.sprite) {
+        for (const naturalIndex of Battler.getNaturalOrder(this.currentBattlers)) {
+          const shooted = this.currentBattlers[naturalIndex];
+          if (shooted instanceof EnemyBattler && shooted.getHp() > 0) {
+            await this.playerAttackAnimation(attacker, shooted, attacker.sprite, 0, weapon.weaponSound);
+            await this.hit(shooted, Math.trunc(weapon.itemstat / 2));
+          }
+        }
+        return;
+      }
+
+      // Normal attack with animation (Java: xAdj -20, weapon sound with default fallback)
       const weaponAnimation = attacker.sprite; // Player weapon sprite
       if (weaponAnimation) {
         isCritical = await this.playerAttackAnimation(attacker, target, weaponAnimation, -20, weapon ? weapon.weaponSound : null);
@@ -524,8 +537,24 @@ export class PSBattle {
       // Java: hide boxes and show the DEFENDER's box for enemy attacks
       await this.hideBoxesAndShowTarget(target, this.currentBattlers);
 
+      // Magic wall (WALL/PROT spells) — counts down per enemy attack (Java 665-681)
+      if (this.wallEffect > 0) {
+        this.wallEffect--;
+        if (this.wallEffect <= 0 || attacker.getEnemy().prot === CanProt.NO) {
+          await PSMenu.StextTimeout(PSGame.getString("Battle_Wall_End"));
+          this.wallEffect = 0;
+          this.protEffect = false;
+        }
+      }
+
       // Enemy attack with animation
       await this.enemyAnimationAttack(attacker);
+
+      if (this.wallEffect > 0) {
+        PSGame.playSound(PS1Sound.MISS);
+        await PSMenu.StextTimeout(PSGame.getString("Battle_Wall_Dodge", "<monster>", this.battlerName(attacker)));
+        return;
+      }
     }
 
     // Calculate Attack Points (AP) with status modifiers - Java lines 633-641
@@ -744,10 +773,164 @@ export class PSBattle {
     return null;
   }
 
-  private async executeEnemySpecial(enemy: EnemyBattler, target: Battler, battlers: Battler[]): Promise<void> {
-    // TODO: Implement enemy special attacks based on enemy type
-    // For now, just do a regular attack
-    await this.executeAttack(enemy, target);
+  /**
+   * Enemy special attacks — port of Java special() (lines 854-1002)
+   */
+  private async executeEnemySpecial(b: EnemyBattler, target: Battler, battlers: Battler[]): Promise<void> {
+    const special = b.getEnemy().special;
+
+    if (special === Special.CURE) {
+      PSGame.playSound(PS1Sound.ENEMY_ROPE);
+      b.setHp(Math.floor(Math.min(b.getMaxHp(), b.getHp() + Math.max(20, Math.random() * b.getMaxHp() / 2))));
+      this.menuEnemyLabelBox?.updateText(b.position,
+        this.format(this.battlerName(b), this.maxEnemyNameSize, true) + " " + this.format(b.getHp(), 3));
+      await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Stamina", "<monster>", this.battlerName(b)));
+      this.battlelog(`${b.getName()} uses Cure! Current HP: ${b.getHp()}/${b.getMaxHp()}`);
+
+    } else if (special === Special.HELP) {
+      PSGame.playSound(PS1Sound.ENEMY_ROPE);
+      b.boost = this.randomInt(3, 5);
+      this.menuEnemyLabelBox?.updateColor(b.position, 0x00FFFF); // CYAN
+      await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Up", "<monster>", this.battlerName(b)));
+
+    } else if (special === Special.PETRIFY) {
+      await this.executeAttack(b, target);
+      let hasPetrifyProtection = false;
+      for (const p of PSGame.getParty().getMembers()) {
+        const cover = p.equipment[EquipPlace.COVER];
+        if (cover && cover.equals(PSGame.getItem(OriginalItem.Shield_Mirror_Shield))) {
+          hasPetrifyProtection = true;
+        }
+      }
+      if (!hasPetrifyProtection && b.target instanceof PartyMember) {
+        b.target.setHp(0);
+        b.target.textBox?.updateColorAll(0xFF0000);
+        b.target.textBox?.updateText(1, PSGame.getString("Stats_HP") + ":" + this.format(b.target.getHp(), 4));
+        PSMenu.instance.drawMenus();
+        await PSMenu.StextTimeout(PSGame.getString("Battle_Player_Stone", "<player>", b.target.getName()));
+      }
+
+    } else if (special === Special.MP_DRAIN) {
+      if (target instanceof PartyMember) {
+        await this.hideBoxesAndShowTarget(target, battlers);
+        if (b.sprite) {
+          b.sprite.animate(MenuState.ANIM3); // Enemy special attack animation
+        }
+        PSGame.playSound(PS1Sound.ENEMY_SPLASH);
+        if (b.sprite) {
+          await PSMenu.instance.waitAnimationEnd(b.sprite);
+        }
+
+        target.mp -= Math.trunc(this.randomInt(12, 20) * target.getMp() / 100);
+        target.textBox?.updateText(2, PSGame.getString("Stats_MP") + ":" + this.format(target.getMp(), 4));
+        PSMenu.instance.drawMenus();
+        await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Drain_MP", "<monster>", this.battlerName(b)));
+      }
+
+    } else if (special === Special.ROPE) {
+      if (target instanceof PartyMember) {
+        PSGame.playSound(PS1Sound.ENEMY_ROPE);
+        target.paralyzed = this.randomInt(2, 4);
+        target.textBox?.updateColorAll(0xFFFF00); // YELLOW
+        await PSMenu.StextTimeout(PSGame.getString("Battle_Player_Bind", "<player>", target.getName()));
+        this.battlelog(`${b.getName()} uses Rope! ${target.getName()} is Paralyzed: ${target.paralyzed}`);
+      }
+
+    } else if (special === Special.FIRE) {
+      this.battlelog(`${b.getName()} uses Fire!`);
+      for (let i = 0; i < 2 && b.target && b.target.getHp() > 0; i++) {
+        await this.hideBoxesAndShowTarget(b.target, battlers);
+        if (b.sprite) {
+          b.sprite.animate(MenuState.ANIM3); // Enemy special attack animation
+        }
+
+        PSGame.playSound(PS1Sound.FIRE);
+        const fireAnim = PSBattle.enemyFire;
+        if (fireAnim) {
+          PSMenu.instance.push(fireAnim);
+          fireAnim.changePosition(
+            this.battlePositions[b.position] + b.getEnemy().specialShiftX,
+            b.getVerticalPos() + b.getEnemy().specialShiftY);
+          fireAnim.animate(MenuState.ANIM2);
+        }
+
+        if (b.sprite) {
+          await PSMenu.instance.waitAnimationEnd(b.sprite);
+          b.sprite.animate(MenuState.READY); // Back to idle state
+        }
+
+        if (fireAnim) {
+          fireAnim.animate(MenuState.END);
+          PSMenu.instance.pop();
+        }
+
+        if (this.protEffect && this.wallEffect > 0) {
+          PSGame.playSound(PS1Sound.MISS);
+          await PSMenu.StextTimeout(PSGame.getString("Battle_Wall_Deflect", "<monster>", this.battlerName(b)));
+        } else {
+          await this.spellDamage(b, b.target, Effect.FIRE, 8, 15);
+        }
+      }
+
+    } else if (special === Special.THUNDER) {
+      for (const naturalIndex of Battler.getNaturalOrder(battlers)) {
+        const bTarget = battlers[naturalIndex];
+        if (bTarget instanceof PartyMember && bTarget.getHp() > 0) {
+          await this.hideBoxesAndShowTarget(bTarget, battlers);
+          if (b.sprite) {
+            b.sprite.animate(MenuState.ANIM3); // Enemy special attack animation
+          }
+
+          PSGame.playSound(PS1Sound.THUNDER);
+          const thunderAnim = PSBattle.enemyThunder;
+          if (thunderAnim) {
+            PSMenu.instance.push(thunderAnim);
+            thunderAnim.changePosition(
+              this.battlePositions[b.position] + b.getEnemy().specialShiftX,
+              b.getVerticalPos() + b.getEnemy().specialShiftY);
+            thunderAnim.animate(MenuState.ANIM2);
+          }
+
+          if (b.sprite) {
+            await PSMenu.instance.waitAnimationEnd(b.sprite);
+            b.sprite.animate(MenuState.READY); // Back to idle state
+          }
+
+          if (thunderAnim) {
+            thunderAnim.animate(MenuState.END);
+            PSMenu.instance.pop();
+          }
+
+          if (this.protEffect && this.wallEffect > 0) {
+            PSGame.playSound(PS1Sound.MISS);
+            await PSMenu.StextTimeout(PSGame.getString("Battle_Wall_Deflect", "<monster>", this.battlerName(b)));
+          } else {
+            await this.spellDamage(b, bTarget, Effect.THUNDER, 25, 60);
+          }
+        }
+      }
+
+    } else if (special === Special.THUNDER2) {
+      for (const naturalIndex of Battler.getNaturalOrder(battlers)) {
+        const bTarget = battlers[naturalIndex];
+        if (bTarget instanceof PartyMember && bTarget.getHp() > 0) {
+          await this.hideBoxesAndShowTarget(bTarget, battlers);
+          await this.enemyAnimationAttack(b);
+          if (PSGame.getParty().hasQuestItem(PSGame.getItem(OriginalItem.Quest_Damoa_Crystal))) {
+            await this.spellDamage(b, bTarget, Effect.THUNDER, 60, 100);
+          } else {
+            await this.spellDamage(b, bTarget, Effect.THUNDER, 150, 300);
+          }
+        }
+      }
+
+    } else if (special === Special.DOUBLE_ATTACK) {
+      await this.executeAttack(b, target);
+      b.target = PSBattle.getTarget(b, battlers);
+      if (b.target) {
+        await this.executeAttack(b, b.target);
+      }
+    }
   }
 
   /**
@@ -933,25 +1116,54 @@ export class PSBattle {
     }
   }
 
+  /**
+   * Enemy AI — port of Java setEnemyActions (lines 1119-1171).
+   * Targets are assigned separately by setTargets().
+   */
   private setEnemyActions(battlers: Battler[]): void {
-    for (const battler of battlers) {
-      if (!(battler instanceof EnemyBattler) || battler.getHp() <= 0) {
+    for (const b of battlers) {
+      if (!(b instanceof EnemyBattler)) {
         continue;
       }
 
-      const enemy = battler;
+      const eb = b;
+      switch (eb.getEnemy().special) {
+        case Special.NONE:
+          eb.action = Action.ATTACK;
+          break;
 
-      // Simple AI: mostly attack, occasionally use special if available
-      if (enemy.getEnemy().special && Math.random() < 0.25) {
-        enemy.action = Action.SPECIAL;
-      } else {
-        enemy.action = Action.ATTACK;
-      }
+        case Special.PETRIFY: // Medusa: always petrifies
+        case Special.THUNDER2: // Lassic: always attacks all
+        case Special.DOUBLE_ATTACK: // Darkfalz: always double attacks
+          eb.action = Action.SPECIAL;
+          break;
 
-      // Select target (random living player)
-      const players = battlers.filter(b => b instanceof PartyMember && b.getHp() > 0);
-      if (players.length > 0) {
-        enemy.target = players[Math.floor(Math.random() * players.length)];
+        case Special.MP_DRAIN:
+          if (eb.target instanceof PartyMember && eb.target.getMp() > 0 && this.randomInt(1, 3) === 1) {
+            eb.action = Action.SPECIAL;
+          } else {
+            eb.action = Action.ATTACK;
+          }
+          break;
+
+        case Special.CURE:
+          if (eb.getHp() < eb.getMaxHp() && this.randomInt(1, 3) === 1) {
+            eb.action = Action.SPECIAL;
+          } else {
+            eb.action = Action.ATTACK;
+          }
+          break;
+
+        case Special.HELP:
+          if (eb.boost === 0 && this.randomInt(1, 4) === 1) {
+            eb.action = Action.SPECIAL;
+          } else {
+            eb.action = Action.ATTACK;
+          }
+          break;
+
+        default:
+          eb.action = this.randomInt(1, 4) === 1 ? Action.SPECIAL : Action.ATTACK;
       }
     }
   }
