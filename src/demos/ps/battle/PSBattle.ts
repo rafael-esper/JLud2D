@@ -381,10 +381,11 @@ export class PSBattle {
           b.target = PSBattle.getTarget(b, battlers);
         }
 
-        // Process status effects
-        await this.processStatusEffects(b, battlers);
-        if (b.paralyzed > 0) {
-          continue; // Skip action if paralyzed
+        // Process status effects; a paralyzed battler skips its turn,
+        // including the round the paralysis wears off (Java behavior)
+        const skipTurn = await this.processStatusEffects(b);
+        if (skipTurn) {
+          continue;
         }
 
         // Execute action
@@ -412,53 +413,64 @@ export class PSBattle {
   }
 
   /**
-   * Process status effects each turn - port of Java status effect countdown system
-   * @param b The battler to process status effects for
-   * @param battlers All battlers in the battle
+   * Process status effect countdowns for one battler's turn.
+   * Port of Java battleLoop lines 318-361 (boost, weak, paralysis).
+   * @returns true if the battler's turn must be skipped (paralysis)
    */
-  private async processStatusEffects(b: Battler, battlers: Battler[]): Promise<void> {
-    // Process paralysis - if paralyzed, skip turn and count down
-    if (b.paralyzed > 0) {
-      b.paralyzed--;
-      if (b.paralyzed > 0) {
-        const battlerName = b instanceof EnemyBattler
-          ? b.getEnemy().getTranslatedName(PSGame)
-          : b.getName();
-        const message = PSGame.getString("Battle_Player_Bound", "<player>", battlerName);
-        console.log(message);
-        return; // Skip turn completely
-      } else {
-        // Paralysis ends
-        const battlerName = b instanceof EnemyBattler
-          ? b.getEnemy().getTranslatedName(PSGame)
-          : b.getName();
-        const message = PSGame.getString("Battle_Player_Unbound", "<player>", battlerName);
-        console.log(message);
-      }
-    }
+  private async processStatusEffects(b: Battler): Promise<boolean> {
+    const WHITE = 0xFFFFFF;
 
-    // Process boost effect (increased attack)
+    // Reduces gradually boost effect
     if (b.boost > 0) {
       b.boost--;
-      if (b.boost === 0) {
-        // Boost effect ends - visual indicator should return to normal
-        console.log(`${b.getName()}'s boost effect ends`);
+      if (b instanceof EnemyBattler && b.boost === 0) {
+        this.menuEnemyLabelBox?.updateColor(b.position, WHITE);
+      } else if (b instanceof PartyMember && b.boost === 0) {
+        b.textBox?.updateColor(0, WHITE);
+        b.textBox?.updateColor(1, WHITE);
+        b.textBox?.updateColor(2, WHITE);
       }
     }
 
-    // Process weak effect (decreased attack/defense)
+    // Reduces gradually weak effect
     if (b.weak > 0) {
       b.weak--;
-      if (b.weak === 0) {
-        // Weak effect ends - visual indicator should return to normal
-        console.log(`${b.getName()}'s weakness effect ends`);
+      if (b instanceof EnemyBattler && b.weak === 0 && b.paralyzed <= 0) {
+        this.menuEnemyLabelBox?.updateColor(b.position, WHITE);
       }
     }
 
-    // Reset defending status at start of new turn (Java implementation)
-    if (b instanceof PartyMember) {
-      (b as any).defending = false;
+    // *** Paralyzed Condition ***
+    if (b.paralyzed > 0) {
+      b.paralyzed--;
+      if (b.paralyzed > 0) { // Still paralyzed
+        if (b instanceof PartyMember) {
+          await PSMenu.StextTimeout(PSGame.getString("Battle_Player_Bound", "<player>", b.getName()));
+        } else {
+          await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Bound", "<monster>", this.battlerName(b)));
+        }
+      } else { // Finish paralyzed condition
+        if (b instanceof PartyMember) {
+          b.textBox?.updateColor(0, WHITE);
+          b.textBox?.updateColor(1, WHITE);
+          b.textBox?.updateColor(2, WHITE);
+          await PSMenu.StextTimeout(PSGame.getString("Battle_Player_Unbound", "<player>", b.getName()));
+        } else if (b instanceof EnemyBattler) {
+          this.menuEnemyLabelBox?.updateColor(b.position, WHITE);
+          await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Unbound", "<monster>", this.battlerName(b)));
+        }
+      }
+      return true; // Java: continue in both branches — the turn is lost
     }
+
+    return false;
+  }
+
+  /** Display name for a battler (translated for enemies) */
+  private battlerName(b: Battler): string {
+    return b instanceof EnemyBattler
+      ? (b.getEnemy().getTranslatedName(PSGame) || b.getName())
+      : b.getName();
   }
 
   private async executeAction(b: Battler, battlers: Battler[]): Promise<void> {
@@ -577,10 +589,9 @@ export class PSBattle {
   }
 
   private async executeDefend(battler: Battler): Promise<void> {
-    // Defending reduces incoming damage by 50% until next turn
-    battler.defending = true;
-
-    console.log(`${battler.getName()} defends!`);
+    // Java (NONE/DEFEND case): no action on the defender's own turn — the
+    // 1.5x defense bonus is applied via action === DEFEND when attacked
+    this.battlelog(`${battler.getName()} makes no action!`);
   }
 
   private async executeTechnique(caster: PartyMember, technique: any, target: Battler | null, battlers: Battler[]): Promise<void> {
@@ -712,8 +723,8 @@ export class PSBattle {
       }
     }
 
-    // Stop music
-    // TODO: Script.stopmusic() equivalent
+    // Stop music (Java: Script.stopmusic())
+    ScriptEngine.stopmusic();
 
     // Display victory message if any gains
     if (gainedMst > 0 || gainedExp > 0) {
@@ -735,7 +746,7 @@ export class PSBattle {
 
     // 1/3 chance of getting an item
     if (item !== null && Math.floor(Math.random() * 3) + 1 === 1) {
-      PSGame.chest(0, Trapped.NO_TRAP, item);
+      await PSGame.chest(0, Trapped.NO_TRAP, item);
     }
   }
 
@@ -992,27 +1003,21 @@ export class PSBattle {
    * @param attacker The attacking battler
    */
   private async miss(defender: Battler, attacker: Battler): Promise<void> {
-    console.log("weak:");
-
     // Play miss sound
     PSGame.playSound(PS1Sound.MISS);
 
-    // Display dodge message based on attacker type
-    const defenderName = defender instanceof EnemyBattler
-      ? defender.getEnemy().getTranslatedName(PSGame)
-      : defender.getName();
-    const attackerName = attacker instanceof EnemyBattler
-      ? attacker.getEnemy().getTranslatedName(PSGame)
-      : attacker.getName();
+    if (!PSGame.getDisplayMessages()) {
+      await PSMenu.instance.waitDelay(15);
+      return;
+    }
 
-    if (attacker instanceof PartyMember) {
-      // Enemy dodged player attack
-      const message = PSGame.getString("Battle_Enemy_Dodge", "<monster>", defenderName, "<player>", attackerName);
-      console.log(message);
+    // Java: message keyed on who dodged (the defender)
+    if (defender instanceof PartyMember) {
+      await PSMenu.StextTimeout(PSGame.getString("Battle_Player_Dodge",
+        "<player>", this.battlerName(defender), "<monster>", this.battlerName(attacker)));
     } else {
-      // Player dodged enemy attack
-      const message = PSGame.getString("Battle_Player_Dodge", "<player>", defenderName, "<monster>", attackerName);
-      console.log(message);
+      await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Dodge",
+        "<monster>", this.battlerName(defender), "<player>", this.battlerName(attacker)));
     }
   }
 
@@ -1021,15 +1026,14 @@ export class PSBattle {
    * @param amount Damage amount determining shake intensity
    */
   private async earthquakeEffect(amount: number): Promise<void> {
-    console.log(`Screen shake effect for ${amount} damage`);
+    // Java: blits the screen at random offsets for 12 frames, offset
+    // scaling with damage (1 + amount/10 pixels)
+    const scene = PSGame.getCurrentScene();
+    if (!scene) return;
 
-    // Simplified screen shake - in original Java this manipulates screen buffer
-    // For now we just add a delay to simulate the effect
-    const shakeIntensity = Math.min(amount / 10, 5);
-    const shakeDuration = shakeIntensity * 50; // 50ms per intensity point
-
-    // TODO: Implement actual screen shake with Phaser camera effects
-    await new Promise(resolve => setTimeout(resolve, shakeDuration));
+    const quakeAmount = 1 + Math.floor(Math.abs(amount) / 10);
+    scene.cameras.main.shake(200, quakeAmount / 320);
+    await PSMenu.instance.waitDelay(12); // draws menus while the shake plays
   }
 
   /**
