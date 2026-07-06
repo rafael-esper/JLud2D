@@ -140,6 +140,7 @@ export class GameConfig implements IGameConfig {
       scale: {
         mode: Phaser.Scale.FIT,           // FIT mode scales to fit screen while maintaining aspect ratio
         autoCenter: Phaser.Scale.CENTER_BOTH,  // Center both horizontally and vertically
+        expandParent: false,              // #game-container is sized by CSS (100dvh) — don't touch it
         width: this.xRes,                 // Set the base resolution width
         height: this.yRes                // Set the base resolution height
       },

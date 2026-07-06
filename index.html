@@ -6,19 +6,38 @@
     <title>JLud2D - Phaser 4 Port</title>
     <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
     <style>
+        :root {
+            --safe-t: env(safe-area-inset-top, 0px);
+            --safe-b: env(safe-area-inset-bottom, 0px);
+            --safe-l: env(safe-area-inset-left, 0px);
+            --safe-r: env(safe-area-inset-right, 0px);
+        }
         html, body {
             height:100%; margin:0; background:#111; color:#eee;
             font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;
             -webkit-user-select:none; user-select:none;
             -ms-touch-action:none; touch-action:none;
+            overflow:hidden;
         }
+        /* The container owns the viewport; Phaser Scale.FIT fits the canvas inside it.
+           100dvh tracks the mobile browser chrome (URL bar) automatically. */
         #game-container {
-            width:100%; height:100%; overflow:hidden; position:relative;
+            position:fixed; top:0; left:0; width:100%;
+            height:100vh;  /* fallback */
+            height:100dvh;
+            overflow:hidden;
+            background:#000;
+        }
+        /* In portrait with on-screen controls open, shrink the game area above them */
+        @media (orientation: portrait) {
+            #game-container.controls-open {
+                height:calc(100vh - 180px);
+                height:calc(100dvh - 180px - var(--safe-b));
+            }
         }
         canvas {
-            image-rendering: pixelated;
-            image-rendering: -moz-crisp-edges;
-            image-rendering: crisp-edges;
+            image-rendering: crisp-edges;   /* fallback */
+            image-rendering: pixelated;     /* preferred: must come last */
         }
 
         /* On-screen controls (outside Phaser canvas) */
@@ -38,21 +57,22 @@
         }
         .control-button:active { transform: translateY(2px); opacity:0.9; }
 
-        /* Button positions - fixed CSS positioning */
-        #btn-b1 { right:182px; bottom:18px; }  /* Bottom row, left */
-        #btn-b2 { right:100px; bottom:18px; }  /* Bottom row, center */
-        #btn-b3 { right:18px; bottom:18px; }   /* Bottom row, right */
-        #btn-b4 { right:182px; bottom:88px; }  /* Top row, left */
-        #btn-b5 { right:100px; bottom:88px; }  /* Top row, center */
-        #btn-b6 { right:18px; bottom:88px; }   /* Top row, right */
-        #btn-pause { right:100px; bottom:158px; width:44px; height:32px; border-radius:8px; font-size:12px; }
-        #btn-start { right:18px; bottom:158px; width:44px; height:32px; border-radius:8px; font-size:12px; }
-        #btn-toggle-controls { left:18px; top:18px; width:42px; height:42px; border-radius:10px; font-size:12px; }
-        #btn-show-controls { right:18px; bottom:18px; width:36px; height:36px; border-radius:8px; font-size:16px; background: rgba(0,0,0,0.7); opacity: 0; transition: opacity 0.3s ease; z-index: 1000; }
+        /* Button positions - fixed CSS positioning, offset by device safe areas
+           (home indicator / notch) so controls stay reachable on phones */
+        #btn-b1 { right:calc(182px + var(--safe-r)); bottom:calc(18px + var(--safe-b)); }  /* Bottom row, left */
+        #btn-b2 { right:calc(100px + var(--safe-r)); bottom:calc(18px + var(--safe-b)); }  /* Bottom row, center */
+        #btn-b3 { right:calc(18px + var(--safe-r)); bottom:calc(18px + var(--safe-b)); }   /* Bottom row, right */
+        #btn-b4 { right:calc(182px + var(--safe-r)); bottom:calc(88px + var(--safe-b)); }  /* Top row, left */
+        #btn-b5 { right:calc(100px + var(--safe-r)); bottom:calc(88px + var(--safe-b)); }  /* Top row, center */
+        #btn-b6 { right:calc(18px + var(--safe-r)); bottom:calc(88px + var(--safe-b)); }   /* Top row, right */
+        #btn-pause { right:calc(100px + var(--safe-r)); bottom:calc(158px + var(--safe-b)); width:44px; height:32px; border-radius:8px; font-size:12px; }
+        #btn-start { right:calc(18px + var(--safe-r)); bottom:calc(158px + var(--safe-b)); width:44px; height:32px; border-radius:8px; font-size:12px; }
+        #btn-toggle-controls { left:calc(18px + var(--safe-l)); top:calc(18px + var(--safe-t)); width:42px; height:42px; border-radius:10px; font-size:12px; }
+        #btn-show-controls { right:calc(18px + var(--safe-r)); bottom:calc(18px + var(--safe-b)); width:36px; height:36px; border-radius:8px; font-size:16px; background: rgba(0,0,0,0.7); opacity: 0; transition: opacity 0.3s ease; z-index: 1000; }
 
         /* Joystick area - fixed CSS positioning */
         #joy-area {
-            position:fixed; left:18px; bottom:18px;
+            position:fixed; left:calc(18px + var(--safe-l)); bottom:calc(18px + var(--safe-b));
             width:30vmin; height:30vmin; max-width:200px; max-height:200px;
             touch-action:none;
         }
@@ -381,6 +401,14 @@
                 const toggle = document.getElementById('btn-toggle-controls');
                 const showBtn = document.getElementById('btn-show-controls');
                 const joyArea = document.getElementById('joy-area');
+
+                // Reserve space for the controls in portrait (CSS media query) and
+                // let Phaser Scale.FIT re-fit the canvas right away
+                const container = document.getElementById('game-container');
+                if (container) {
+                    container.classList.toggle('controls-open', this.controlsVisible);
+                }
+                window.dispatchEvent(new Event('resize'));
 
                 if (joyArea) {
                     if (this.controlsVisible) {

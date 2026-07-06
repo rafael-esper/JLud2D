@@ -107,12 +107,6 @@ class Game {
       }
     });
 
-    // Listen for config changes to update responsive scaler
-    window.addEventListener('gameScaleChanged', (event) => {
-      const detail = (event as CustomEvent).detail;
-      console.log(`Game scale changed: Canvas ${detail.canvasWidth}x${detail.canvasHeight}, Container ${detail.containerWidth}x${detail.containerHeight} (scale: ${detail.scale})`);
-    });
-
     // Handle visibility change
     document.addEventListener('visibilitychange', () => {
       if (this.game) {
@@ -124,33 +118,8 @@ class Game {
       }
     });
 
-    // Handle window resize and fullscreen changes
-    window.addEventListener('resize', () => {
-      if (this.game && this.game.scale) {
-        // Force Phaser to recalculate scale after resize
-        setTimeout(() => {
-          this.game.scale.refresh();
-        }, 100);
-      }
-    });
-
-    // Handle fullscreen change events
-    document.addEventListener('fullscreenchange', () => {
-      if (this.game && this.game.scale) {
-        // Force refresh when entering/exiting fullscreen
-        setTimeout(() => {
-          this.game.scale.refresh();
-        }, 100);
-      }
-    });
-
-    document.addEventListener('webkitfullscreenchange', () => {
-      if (this.game && this.game.scale) {
-        setTimeout(() => {
-          this.game.scale.refresh();
-        }, 100);
-      }
-    });
+    // Resize, orientation and fullscreen changes are handled by Phaser's
+    // Scale Manager (Scale.FIT) — no extra listeners or timers needed
   }
 
   private toggleFullscreen() {
