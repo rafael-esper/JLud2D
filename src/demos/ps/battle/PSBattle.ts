@@ -9,7 +9,7 @@ import { ScriptEngine } from '../../../core/ScriptEngine';
 import { Battler } from '../game/Battler';
 import { PartyMember } from '../game/PartyMember';
 import { EnemyBattler } from './EnemyBattler';
-import { Enemy, HasItem } from './Enemy';
+import { Enemy, HasItem, FireRes } from './Enemy';
 import { BattlePosition, SceneType } from './BattlePosition';
 import { PSMenu, PSSceneType, SpecialEntity } from '../PSMenu';
 import { PSCancellable, MenuStack } from '../menu/MenuStack';
@@ -19,7 +19,7 @@ import { MenuState } from '../menu/MenuType';
 import { PS1Music } from '../game/PSLibMusic';
 import { PS1Sound } from '../game/PSLibSound';
 import { PS1CHR } from '../game/PSLibCHR';
-import { PSEffect, Effect, EffectOutcome, EffectTarget, EffectPlace } from '../game/PSEffect';
+import { PSEffect, Effect, EffectOutcome, EffectTarget, EffectPlace, EffectHelper } from '../game/PSEffect';
 import { PSLibSpell, Spell } from '../game/PSLibSpell';
 import { PSLibItem } from '../game/PSLibItem';
 import { Item, EquipPlace, ItemType } from '../game/Item';
@@ -388,8 +388,11 @@ export class PSBattle {
           continue;
         }
 
-        // Execute action
-        await this.executeAction(b, battlers);
+        // Execute action; MAGIC/ITEM escape spells can end the battle
+        const actionOutcome = await this.executeAction(b, battlers);
+        if (actionOutcome === BattleOutcome.ESCAPE) {
+          return BattleOutcome.ESCAPE;
+        }
 
         if (!this.checkOnePlayerAlive(battlers)) {
           this.battlelog("Battle lost!");
@@ -473,7 +476,9 @@ export class PSBattle {
       : b.getName();
   }
 
-  private async executeAction(b: Battler, battlers: Battler[]): Promise<void> {
+  private async executeAction(b: Battler, battlers: Battler[]): Promise<BattleOutcome | null> {
+    // Java keeps actions for the whole round — DEFEND must persist so the
+    // 1.5x defense bonus applies when this battler is attacked later
     switch (b.action) {
       case Action.ATTACK:
         if (b.target) {
@@ -482,12 +487,10 @@ export class PSBattle {
         break;
 
       case Action.MAGIC:
-        await this.executeMagic(b, battlers);
-        break;
+        return this.executeMagic(b, battlers);
 
       case Action.ITEM:
-        await this.executeItemAction(b, battlers);
-        break;
+        return this.executeItemAction(b, battlers);
 
       case Action.DEFEND:
         await this.executeDefend(b);
@@ -500,8 +503,7 @@ export class PSBattle {
         break;
     }
 
-    // Java keeps actions for the whole round — DEFEND must persist so the
-    // 1.5x defense bonus applies when this battler is attacked later
+    return null;
   }
 
   private async executeAttack(attacker: Battler, target: Battler): Promise<void> {
@@ -588,16 +590,158 @@ export class PSBattle {
     this.battlelog(`${battler.getName()} makes no action!`);
   }
 
-  private async executeMagic(b: Battler, battlers: Battler[]): Promise<void> {
-    // TODO(next batch): port of Java MAGIC case (lines 376-439) —
-    // castSpell + ESCAPE/WALL/PROT/FIRE/GIFIRE/WIND/THUNDER handling
-    void b; void battlers;
+  /** Inclusive random integer — equivalent of Java Script.random(min, max) */
+  private randomInt(min: number, max: number): number {
+    return min + Math.floor(Math.random() * (max - min + 1));
   }
 
-  private async executeItemAction(b: Battler, battlers: Battler[]): Promise<void> {
-    // TODO(next batch): port of Java ITEM case (lines 441-468) —
-    // Item_Use message, callEffect, consume item, ESCAPE outcome
-    void b; void battlers;
+  /**
+   * Spell damage with mental modifier and fire resistance — port of Java spellDamage
+   */
+  private async spellDamage(attacker: Battler, defenser: Battler, effect: Effect, min: number, max: number): Promise<void> {
+    let damage = this.randomInt(min, max);
+    damage += Math.trunc((attacker.getMental() - defenser.getMental()) / 20);
+    if (damage <= 0) {
+      damage = 1;
+    }
+
+    if (defenser instanceof EnemyBattler && (effect === Effect.FIRE || effect === Effect.GIFIRE)) {
+      if (defenser.getEnemy().fire === FireRes.YES) {
+        this.battlelog(`Fire resistance! Damage ${damage} is going to be diminished.`);
+        damage = Math.trunc(damage / 4);
+      }
+    }
+
+    this.battlelog(`${attacker.getName()} uses Spell causing ${damage} damage on ${defenser.getName()}`);
+    await this.hit(defenser, damage);
+  }
+
+  /**
+   * MAGIC turn execution — port of Java battleLoop MAGIC case (lines 376-439)
+   */
+  private async executeMagic(b: Battler, battlers: Battler[]): Promise<BattleOutcome | null> {
+    if (!b.effect || !b.usedSpell) {
+      return null;
+    }
+
+    await this.hideBoxesAndShowTarget(b, battlers);
+    const spellTarget = b.effect.getTarget();
+    if (spellTarget instanceof PartyMember) {
+      spellTarget.textBox?.setOn();
+    }
+
+    const effectTarget = EffectHelper.getTarget(b.effect.getEffect());
+    if (effectTarget === EffectTarget.ENEMY || effectTarget === EffectTarget.ALL_ENEMIES) {
+      b.effect.setTargets(battlers);
+    }
+
+    const outcome = await PSLibSpell.castSpell(b.usedSpell, b.effect);
+
+    // Java gates every branch below on outcome == SUCCESS
+    if (outcome !== EffectOutcome.SUCCESS) {
+      return null;
+    }
+
+    switch (b.effect.getEffect()) {
+      case Effect.ESCAPE:
+        this.cleanPlayerStatus(battlers);
+        return BattleOutcome.ESCAPE;
+
+      case Effect.WALL:
+        await PSMenu.StextTimeout(PSGame.getString("Battle_Wall_Spell"));
+        this.wallEffect = Math.max(this.wallEffect, this.randomInt(2, 5));
+        break;
+
+      case Effect.PROT:
+        await PSMenu.StextTimeout(PSGame.getString("Battle_Wall_Spell"));
+        this.wallEffect = Math.max(this.wallEffect, this.randomInt(2, 5));
+        this.protEffect = true;
+        break;
+
+      case Effect.FIRE:
+        if (PSBattle.playerFire) {
+          await this.hideBoxesAndShowTarget(b, battlers);
+          for (let i = 0; i < 2 && b.target && b.target.getHp() > 0; i++) {
+            await this.playerAttackAnimation(b, b.target, PSBattle.playerFire, 0, PS1Sound.FIRE);
+            await this.spellDamage(b, b.target, Effect.FIRE, 8, 15); // Original: 7-11
+          }
+        }
+        break;
+
+      case Effect.GIFIRE:
+        if (PSBattle.playerGifire && b.target) {
+          await this.hideBoxesAndShowTarget(b, battlers);
+          await this.playerAttackAnimation(b, b.target, PSBattle.playerGifire, 0, PS1Sound.FIRE);
+          await this.spellDamage(b, b.target, Effect.GIFIRE, 48, 64);
+        }
+        break;
+
+      case Effect.WIND:
+        if (PSBattle.playerWind) {
+          await this.hideBoxesAndShowTarget(b, battlers);
+          for (let i = 0; i < 3 && b.target; i++) {
+            await this.playerAttackAnimation(b, b.target, PSBattle.playerWind, 0, PS1Sound.WIND);
+            await this.spellDamage(b, b.target, Effect.WIND, 15, 20); // Original: 9-12
+            b.target = PSBattle.getTarget(b, battlers);
+          }
+        }
+        break;
+
+      case Effect.THUNDER:
+        if (PSBattle.playerThunder) {
+          await this.hideBoxesAndShowTarget(b, battlers);
+          for (const naturalIndex of Battler.getNaturalOrder(battlers)) {
+            const bTarget = battlers[naturalIndex];
+            if (bTarget instanceof EnemyBattler && bTarget.getHp() > 0) {
+              await this.playerAttackAnimation(b, bTarget, PSBattle.playerThunder, 0, PS1Sound.THUNDER);
+              await this.spellDamage(b, bTarget, Effect.THUNDER, 25, 60); // Original: 30-40
+            }
+          }
+        }
+        break;
+    }
+
+    return null;
+  }
+
+  /**
+   * ITEM turn execution — port of Java battleLoop ITEM case (lines 441-468)
+   */
+  private async executeItemAction(b: Battler, battlers: Battler[]): Promise<BattleOutcome | null> {
+    if (!b.effect || !b.usedItem) {
+      return null;
+    }
+
+    await this.hideBoxesAndShowTarget(b, battlers);
+    const itemTarget = b.effect.getTarget();
+    if (itemTarget instanceof PartyMember) {
+      itemTarget.textBox?.setOn();
+    }
+
+    const effectTarget = EffectHelper.getTarget(b.effect.getEffect());
+    if (effectTarget === EffectTarget.ENEMY || effectTarget === EffectTarget.ALL_ENEMIES) {
+      b.effect.setTargets(battlers);
+    }
+
+    await PSMenu.StextTimeout(PSGame.getString("Item_Use", "<item>", b.usedItem.getName(), "<player>", b.getName()));
+    const outcome = await b.effect.callEffect();
+
+    if (outcome === EffectOutcome.NONE || outcome === EffectOutcome.FAIL) {
+      await PSMenu.StextLast(PSGame.getString("Item_NoEffect"));
+    } else if (b.usedItem.getCost() > 0 && b instanceof PartyMember) {
+      // Consumable used up (Java: items.remove(usedItem))
+      const idx = b.items.indexOf(b.usedItem);
+      if (idx >= 0) {
+        b.items.splice(idx, 1);
+      }
+    }
+
+    if (b.effect.getEffect() === Effect.ESCAPE && outcome === EffectOutcome.SUCCESS) {
+      this.cleanPlayerStatus(battlers);
+      return BattleOutcome.ESCAPE;
+    }
+
+    return null;
   }
 
   private async executeEnemySpecial(enemy: EnemyBattler, target: Battler, battlers: Battler[]): Promise<void> {
