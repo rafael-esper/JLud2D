@@ -69,10 +69,55 @@ export class ControlsConfig implements IControlsConfig {
   public touchEnabled: boolean = true;
   public virtualDPad: boolean = true;
 
+  /** localStorage key holding the user's rebinds from the Controls panel */
+  public static readonly STORAGE_KEY = 'jlud2d-controls';
+
+  /** The fields the Controls panel can rebind */
+  public static readonly BINDING_KEYS = [
+    'keyUp', 'keyDown', 'keyLeft', 'keyRight',
+    'keyB1', 'keyB2', 'keyB3', 'keyB4', 'keyB5', 'keyB6',
+    'keyStart', 'keyMenu'
+  ] as const;
+
   constructor(controlsData?: Partial<IControlsConfig>) {
     if (controlsData) {
       Object.assign(this, controlsData);
     }
+    // User rebinds win over both defaults and per-demo overrides
+    ControlsConfig.applySavedBindings(this);
+  }
+
+  /** Merge rebinds saved by the emulator UI Controls panel into a config */
+  public static applySavedBindings(config: ControlsConfig): void {
+    try {
+      const saved = localStorage.getItem(ControlsConfig.STORAGE_KEY);
+      if (!saved) return;
+      const overrides = JSON.parse(saved);
+      for (const key of ControlsConfig.BINDING_KEYS) {
+        if (typeof overrides[key] === 'string' && overrides[key].length > 0) {
+          (config as any)[key] = overrides[key];
+        }
+      }
+    } catch (error) {
+      console.warn('ControlsConfig: could not apply saved bindings', error);
+    }
+  }
+
+  /** Persist a single rebind (e.g. keyB1 -> 'J,Z') */
+  public static saveBinding(bindingKey: string, value: string): void {
+    try {
+      const saved = localStorage.getItem(ControlsConfig.STORAGE_KEY);
+      const overrides = saved ? JSON.parse(saved) : {};
+      overrides[bindingKey] = value;
+      localStorage.setItem(ControlsConfig.STORAGE_KEY, JSON.stringify(overrides));
+    } catch (error) {
+      console.warn('ControlsConfig: could not save binding', error);
+    }
+  }
+
+  /** Drop all rebinds, returning every config to defaults */
+  public static clearSavedBindings(): void {
+    localStorage.removeItem(ControlsConfig.STORAGE_KEY);
   }
 
   /**
@@ -219,8 +264,26 @@ export class InputManager {
     // Create cursor keys
     this.cursors = this.scene.input.keyboard.createCursorKeys();
 
-    // Create keyboard keys (all possible keys for mapping)
-    this.wasd = this.scene.input.keyboard.addKeys('W,S,A,D,ESC,ENTER,Z,X,C,I,J,K,L,U,O,ONE,TWO,THREE,FOUR,FIVE,F,H,M,N,P,T,B,V');
+    // Register the default/debug keys plus every key the current bindings
+    // reference, so user rebinds from the emulator UI actually work
+    const keyNames = new Set(
+      'W,S,A,D,ESC,ENTER,Z,X,C,I,J,K,L,U,O,ONE,TWO,THREE,FOUR,FIVE,F,H,M,N,P,T,B,V'.split(',')
+    );
+    const bindings = [
+      this.config.keyUp, this.config.keyDown, this.config.keyLeft, this.config.keyRight,
+      this.config.keyB1, this.config.keyB2, this.config.keyB3,
+      this.config.keyB4, this.config.keyB5, this.config.keyB6,
+      this.config.keyStart, this.config.keyMenu
+    ];
+    for (const binding of bindings) {
+      for (const key of this.config.parseKeys(binding)) {
+        // Arrow keys are handled by the cursor keys object
+        if (key && !['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(key)) {
+          keyNames.add(key);
+        }
+      }
+    }
+    this.wasd = this.scene.input.keyboard.addKeys(Array.from(keyNames).join(','));
   }
 
   private setupGamepad(): void {

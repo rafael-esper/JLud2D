@@ -16,11 +16,13 @@ import { MapScene } from './demos/ak/MapScene';
 import { TitleScene as PSTitleScene } from './demos/ps/TitleScene';
 import { GameScene as PSGameScene } from './demos/ps/GameScene';
 import { ResponsiveScaler } from './utils/ResponsiveScaler';
+import { EmulatorUI } from './ui/EmulatorUI';
 
 class Game {
   private game: Phaser.Game | null = null;
   private config: GameConfig | null = null;
   private responsiveScaler: ResponsiveScaler | null = null;
+  private emulatorUI: EmulatorUI | null = null;
 
   constructor() {
     this.initialize();
@@ -90,6 +92,9 @@ class Game {
     // Start with boot scene and pass config
     this.game.scene.start('BootScene', { config: this.config });
 
+    // Emulator-style overlay shared by all demos (restart, volume, settings…)
+    this.emulatorUI = new EmulatorUI(this.game, this.config);
+
     // Handle window events
     this.setupWindowEvents();
 
@@ -123,13 +128,9 @@ class Game {
   }
 
   private toggleFullscreen() {
-    if (!this.game) return;
-
-    if (this.game.scale.isFullscreen) {
-      this.game.scale.stopFullscreen();
-    } else {
-      this.game.scale.startFullscreen();
-    }
+    // Fullscreen the whole document via the emulator UI so the overlay and
+    // touch controls stay visible (Phaser's own fullscreen only shows canvas)
+    this.emulatorUI?.toggleFullscreen();
   }
 
   private showError(message: string) {

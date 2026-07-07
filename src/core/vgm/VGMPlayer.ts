@@ -93,6 +93,9 @@ export interface VGMInfo {
 
 export class VGMPlayer {
   private audioCtx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
+  private volume: number = 1;
+  private muted: boolean = false;
   private currentSource: AudioBufferSourceNode | null = null;
   private currentVgm: VGM | null = null;
   private currentChips: any[] = [];
@@ -141,7 +144,35 @@ export class VGMPlayer {
     // Initialize audio context
     this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
 
+    // All playback runs through a master gain so volume/mute affect the
+    // currently playing track, not just future ones
+    this.masterGain = this.audioCtx.createGain();
+    this.masterGain.connect(this.audioCtx.destination);
+    this.applyGain();
+
     this.initialized = true;
+  }
+
+  /**
+   * Set master volume (0.0 to 1.0) — applies to current and future playback
+   */
+  setVolume(volume: number): void {
+    this.volume = Math.max(0, Math.min(1, volume));
+    this.applyGain();
+  }
+
+  /**
+   * Mute/unmute without losing the volume setting
+   */
+  setMuted(muted: boolean): void {
+    this.muted = muted;
+    this.applyGain();
+  }
+
+  private applyGain(): void {
+    if (this.masterGain) {
+      this.masterGain.gain.value = this.muted ? 0 : this.volume;
+    }
   }
 
   /**
@@ -320,7 +351,7 @@ export class VGMPlayer {
     // Set up playback
     this.currentSource = this.audioCtx.createBufferSource();
     this.currentSource.buffer = buffer;
-    this.currentSource.connect(this.audioCtx.destination);
+    this.currentSource.connect(this.masterGain ?? this.audioCtx.destination);
 
     // Enable looping if VGM has loop data
     this.currentSource.loop = (vgmInfo.loopSamples > 0 && this.options.enableLooping);
@@ -373,8 +404,8 @@ export class VGMPlayer {
     this.currentSource = this.audioCtx.createBufferSource();
     this.currentSource.buffer = audioBuffer;
 
-    // Connect to output
-    this.currentSource.connect(this.audioCtx.destination);
+    // Connect to output through the master gain (volume/mute control)
+    this.currentSource.connect(this.masterGain ?? this.audioCtx.destination);
 
     // Enable looping based on track setting and global options
     this.currentSource.loop = enableLoop && (this.options.enableLooping || false);

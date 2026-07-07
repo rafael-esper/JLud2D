@@ -83,6 +83,23 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
+    // A Restart from the emulator UI reloads the page for a clean slate and
+    // records which demo to relaunch — honor that instead of showing the menu
+    const restart = sessionStorage.getItem('jlud2d-restart');
+    if (restart) {
+      sessionStorage.removeItem('jlud2d-restart');
+      try {
+        const target = JSON.parse(restart);
+        if (target && target.scene) {
+          console.log(`BootScene: Restarting demo at ${target.scene}`);
+          this.scene.start(target.scene, { demoPath: target.demoPath, config: this.config });
+          return;
+        }
+      } catch (error) {
+        console.warn('BootScene: invalid restart target, opening menu', error);
+      }
+    }
+
     console.log('BootScene: Assets loaded, starting MenuScene');
 
     // Transition to menu scene

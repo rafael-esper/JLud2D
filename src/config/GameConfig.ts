@@ -13,6 +13,7 @@ export interface IGameConfig {
 
   // Audio settings
   noSound: boolean;
+  muted: boolean;
   masterVolume: number;
   musicVolume: number;
   sfxVolume: number;
@@ -46,6 +47,7 @@ export class GameConfig implements IGameConfig {
 
   // Audio settings
   public noSound: boolean = false;
+  public muted: boolean = false;
   public masterVolume: number = 1.0;
   public musicVolume: number = 0.8;
   public sfxVolume: number = 1.0;

@@ -36,6 +36,10 @@ export class VGMMusicManager {
   private preloadInProgress = false;
   private totalCacheMemory = 0; // Track total memory usage in bytes
   private loadedManifests: Map<string, MusicManifest> = new Map(); // Registry of loaded manifests
+  // Volume state kept here too, so values set by the emulator UI before the
+  // player initializes (e.g. right at page load) still get applied
+  private volume = 1;
+  private muted = false;
 
   private constructor() {}
 
@@ -61,6 +65,8 @@ export class VGMMusicManager {
 
       this.vgmPlayer = new VGMPlayer(defaultOptions);
       await this.vgmPlayer.initialize();
+      this.vgmPlayer.setVolume(this.volume);
+      this.vgmPlayer.setMuted(this.muted);
       this.initialized = true;
 
     } catch (error) {
@@ -383,6 +389,22 @@ export class VGMMusicManager {
   public clearCache(): void {
     this.musicCache.clear();
     this.totalCacheMemory = 0;
+  }
+
+  /**
+   * Set master music volume (0.0 to 1.0) — affects the playing track too
+   */
+  public setVolume(volume: number): void {
+    this.volume = Math.max(0, Math.min(1, volume));
+    this.vgmPlayer?.setVolume(this.volume);
+  }
+
+  /**
+   * Mute/unmute music without losing the volume setting
+   */
+  public setMuted(muted: boolean): void {
+    this.muted = muted;
+    this.vgmPlayer?.setMuted(muted);
   }
 
   /**
