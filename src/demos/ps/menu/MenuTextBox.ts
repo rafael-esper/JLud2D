@@ -164,11 +164,17 @@ export class MenuTextBox extends MenuType {
         this.textObjects[1].setVisible(isLatestTextBox && secondLineText.length > 0);
       }
 
-      // Update text animation and state
-      if (this.textDelay < (this.text[0].length + this.text[1].length)) {
-        this.textDelay++;
-      } else {
+      // Update text animation and state — faithful port of the Java counter:
+      // textDelay keeps counting past the text length, and once it exceeds
+      // 3x the text length plus 3x MAX_DELAY the box closes itself, which is
+      // what ends waitB1OrTimeout() for timeout textboxes (dodge/block etc.)
+      const totalLength = this.text[0].length + this.text[1].length;
+      if (this.state !== MenuState.CLOSE && this.textDelay++ > totalLength) {
         this.state = MenuState.READY;
+
+        if (this.textDelay++ > 3 * totalLength + MenuType.MAX_DELAY * 3) {
+          this.state = MenuState.CLOSE; // For timeout textboxes
+        }
       }
 
       // Handle "more" icon (for simplicity, using existing text objects for now)

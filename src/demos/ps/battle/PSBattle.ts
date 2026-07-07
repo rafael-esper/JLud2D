@@ -5,7 +5,6 @@
 
 import { PSGame } from '../PSGame';
 import { MainEngine } from '../../../core/MainEngine';
-import { ScriptEngine } from '../../../core/ScriptEngine';
 import { Battler } from '../game/Battler';
 import { PartyMember } from '../game/PartyMember';
 import { EnemyBattler } from './EnemyBattler';
@@ -351,7 +350,9 @@ export class PSBattle {
         talkEffect.setTargets(battlers);
         if (await talkEffect.callEffect() === EffectOutcome.SUCCESS) {
           this.cleanPlayerStatus(battlers);
-          ScriptEngine.stopmusic();
+          // Through PSGame so currentMusic is cleared — otherwise the next
+          // playMusic() with the same battle track would be skipped
+          PSGame.stopMusic();
           return BattleOutcome.TALK;
         }
       } else if (opt === 3) { // RUN
@@ -360,7 +361,7 @@ export class PSBattle {
         runEffect.setTargets(battlers);
         if (await runEffect.callEffect() === EffectOutcome.SUCCESS) {
           this.cleanPlayerStatus(battlers);
-          ScriptEngine.stopmusic();
+          PSGame.stopMusic();
           return BattleOutcome.ESCAPE;
         }
       }
@@ -1089,8 +1090,9 @@ export class PSBattle {
       }
     }
 
-    // Stop music (Java: Script.stopmusic())
-    ScriptEngine.stopmusic();
+    // Stop music (Java: Script.stopmusic()) — through PSGame so currentMusic
+    // is cleared and the next battle's playMusic() actually restarts the track
+    PSGame.stopMusic();
 
     // Display victory message if any gains
     if (gainedMst > 0 || gainedExp > 0) {

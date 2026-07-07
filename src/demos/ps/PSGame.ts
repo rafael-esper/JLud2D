@@ -647,13 +647,14 @@ export class PSGame {
         // Load the sound first
         this.currentScene.load.audio(audioKey, soundPath);
         this.currentScene.load.once('complete', () => {
-          // Play sound once loaded
-          this.currentScene!.sound.play(audioKey, { volume: 0.7 });
+          // Play sound once loaded (full volume — the master volume from the
+          // emulator UI is applied on top by Phaser's sound manager)
+          this.currentScene!.sound.play(audioKey, { volume: 1.0 });
         });
         this.currentScene.load.start();
       } else {
         // Sound already loaded in Phaser, play it directly
-        this.currentScene.sound.play(audioKey, { volume: 0.7 });
+        this.currentScene.sound.play(audioKey, { volume: 1.0 });
       }
 
       // Cache the sound path for reference
@@ -1161,7 +1162,7 @@ export class PSGame {
   public static async gameOverRoutine(): Promise<void> {
     console.log("PSGame: Game Over routine started");
 
-    ScriptEngine.stopmusic();
+    this.stopMusic();
 
     // Show game over message
     await PSMenu.Stext(this.getString("Battle_Lost"));

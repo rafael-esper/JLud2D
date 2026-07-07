@@ -268,7 +268,11 @@ export class PartyMember extends Battler {
   }
 
   public unEquip(equipPlace: EquipPlace): void {
-    const equipIndex = Object.values(EquipPlace).indexOf(equipPlace);
+    // EquipPlace is a numeric enum, so the value IS the slot index.
+    // (Object.values(...).indexOf() returned 3-5 because of the enum's
+    // reverse mappings, hitting always-empty slots — equipping a new item
+    // then stacked stats instead of replacing the old item's.)
+    const equipIndex = equipPlace as number;
     const item = this.equipment[equipIndex];
 
     if (!item) return;

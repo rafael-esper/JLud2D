@@ -251,12 +251,18 @@ export class PhantasyArena {
   }
 
   /**
-   * Post-battle reward menu (inner while(!chosen) loop of the Java code)
+   * Post-battle reward menu (inner while(!chosen) loop of the Java code).
+   * TS improvement over the Java original: a party panel (name, level,
+   * HP/MP and equipment) stays on screen while choosing, and is refreshed
+   * after every action so cures/revives/equips show immediately.
    */
   private static async rewardMenu(s: ArenaState): Promise<void> {
+    const panel = PSMenu.instance.createLabelBox(2, 4, PhantasyArena.partyPanelRows(), true);
+    PSMenu.instance.push(panel);
+
     let chosen = false;
     while (!chosen) {
-      const opt = await PhantasyArena.prompt(PSGame.getString("PS_Battle_Reward"), [
+      const opt = await PhantasyArena.rewardPrompt([
         s.expLevel >= PhantasyArena.expLevels.length
           ? PSGame.getString("PS_Battle_LevelUp")
           : PhantasyArena.expLevels[s.expLevel] + " " + PSGame.getString("PS_Battle_ExpPoints"),
@@ -306,7 +312,76 @@ export class PhantasyArena {
         await PSMenu.StextLast(PSGame.getString("PS_Battle_Revive_OK"));
         chosen = true;
       }
+
+      // Refresh the panel — stats or equipment may have changed
+      panel.updateColorAll(0xFFFFFF);
+      panel.updateTextArray(PhantasyArena.partyPanelRows());
     }
+
+    PSMenu.instance.pop(); // party panel
+  }
+
+  /**
+   * Two rows per member: stats, then equipped weapon/armor/shield.
+   * Dead members are shown in red, like the in-game status menu.
+   */
+  private static partyPanelRows(): string[] {
+    const rows: string[] = [];
+    for (const p of PSGame.getParty().getMembers()) {
+      const prefix = p.getHp() <= 0 ? '<RED>' : '';
+
+      rows.push(
+        prefix +
+        p.getName().padEnd(7).slice(0, 7) +
+        'LV' + String(p.getLevel()).padStart(2) +
+        '  HP' + String(p.getHp()).padStart(3) + '/' + String(p.getMaxHp()).padStart(3) +
+        '  MP' + String(p.getMp()).padStart(3) + '/' + String(p.getMaxMp()).padStart(3)
+      );
+
+      // equipment[0..2] = weapon / chest / cover (see PartyMember.equipItem)
+      const equip = [0, 1, 2]
+        .map((slot) => p.equipment[slot]?.getName() ?? '-')
+        .join(',');
+      rows.push(prefix + ' ' + (equip.length > 41 ? equip.slice(0, 41) : equip));
+    }
+    return rows;
+  }
+
+  /**
+   * Reward prompt laid out below the party panel. PSMenu.Prompt would put a
+   * 6-choice list at the top-left, covering the panel — so the arena builds
+   * the same prompt itself, with the question in a small box at its side.
+   */
+  private static async rewardPrompt(choices: string[]): Promise<number> {
+    const question = PSMenu.instance.createLabelBox(
+      200, 132, PhantasyArena.wrapText(PSGame.getString("PS_Battle_Reward"), 14), true);
+    PSMenu.instance.push(question);
+
+    const promptBox = PSMenu.instance.createPromptBox(10, 132, choices, true);
+    PSMenu.instance.push(promptBox);
+
+    const ret = await PSMenu.instance.waitOpt('TRUE' as any);
+
+    PSMenu.instance.pop(); // prompt box
+    PSMenu.instance.pop(); // question box
+    return ret + 1; // options counted from 1, like PSMenu.Prompt
+  }
+
+  /** Simple word wrap (PSMenu.splitTextIntoRows is private) */
+  private static wrapText(text: string, maxLength: number): string[] {
+    const rows: string[] = [];
+    let row = '';
+    for (const word of text.split(' ')) {
+      const candidate = row ? row + ' ' + word : word;
+      if (candidate.length <= maxLength) {
+        row = candidate;
+      } else {
+        if (row) rows.push(row);
+        row = word;
+      }
+    }
+    if (row) rows.push(row);
+    return rows;
   }
 
   /**
@@ -405,13 +480,4 @@ export class PhantasyArena {
     return enemy;
   }
 
-  /**
-   * PSMenu.Prompt keeps its text box on the stack (a deliberate TS deviation
-   * for shops); the arena pops it so boxes don't pile up between battles.
-   */
-  private static async prompt(text: string, choices: string[]): Promise<number> {
-    const opt = await PSMenu.Prompt(text, choices);
-    PSMenu.instance.pop(); // leftover prompt text box
-    return opt;
-  }
 }
