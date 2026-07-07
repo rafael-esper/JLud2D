@@ -1105,7 +1105,7 @@ export class PSBattle {
       for (const b of battlers) {
         if (b instanceof PartyMember && b.getHp() > 0) {
           const p = b as PartyMember;
-          p.giveExp(gainedExp);
+          await p.giveExp(gainedExp);
         }
       }
     }

@@ -106,8 +106,10 @@ export class MenuPromptBox extends MenuType {
         this.textObjectsCreated = true;
       }
 
-      // Show/hide text based on whether menu is active
-      this.textObjects.forEach(textObj => textObj.setVisible(active));
+      // Java draws option text regardless of active — active only affects
+      // the cursor blink. Hiding on inactive broke boxes with a label
+      // box stacked on top (e.g. the battle action menu).
+      this.textObjects.forEach(textObj => textObj.setVisible(true));
 
       // Draw each option with circles and graphics
       for (let i = 0; i < this.options.length; i++) {

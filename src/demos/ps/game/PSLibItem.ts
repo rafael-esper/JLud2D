@@ -254,6 +254,9 @@ export class PSLibItem {
       }
 
       const target = PSGame.getParty().getMember(partySel - 1);
+      if (!target) {
+        return null;
+      }
 
       // Check if target is valid for alive-only effects
       if (effectTarget === EffectTarget.ALIVE_MEMBER && target.getHp() <= 0) {

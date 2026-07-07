@@ -8,9 +8,11 @@ import { Job, JobHelper } from './Job';
 import { Specie, SpecieHelper } from './Specie';
 import { Item, EquipPlace, ItemType } from './Item';
 import { Spell } from './PSLibSpell';
-import { EffectPlace } from './Item';
+import { EffectPlace, EffectHelper } from './PSEffect';
 import { PS1Image } from './PSLibImage';
 import { PSGame } from '../PSGame';
+import { PS1Sound } from './PSLibSound';
+import { PSMenu } from '../PSMenu';
 import { OriginalItem } from './PSLibItem';
 import { MenuLabelBox } from '../menu/MenuLabelBox';
 
@@ -30,11 +32,11 @@ export class GenderHelper {
 export class PartyMember extends Battler {
   public static readonly ITEMS_SIZE: number = 10;
 
-  // Core character data
-  private charPath: string;
-  private gender: Gender;
-  private spe: Specie;
-  private job: Job;
+  // Core character data (assigned via setters in the constructor)
+  private charPath!: string;
+  private gender!: Gender;
+  private spe!: Specie;
+  private job!: Job;
   private name: string;
 
   // Stats
@@ -222,8 +224,6 @@ export class PartyMember extends Battler {
   }
 
   public equipItem(item: Item): void {
-    const equipPlace = item.type; // This would need ItemTypeHelper.getEquipPlace(item.type)
-
     // Note: This is simplified - would need proper EquipPlace mapping
     let equipIndex = 0;
     switch (item.type) {
@@ -294,10 +294,10 @@ export class PartyMember extends Battler {
   public getSpells(place: EffectPlace): Spell[] {
     const spellList: Spell[] = [];
     for (const spell of this.spells) {
-      const effect = spell.getEffect();
-      // Note: This would need proper Effect.getPlace() implementation
-      // For now, simplified check
-      spellList.push(spell); // Add all spells for now
+      const spellPlace = EffectHelper.getPlace(spell.getEffect());
+      if (spellPlace === EffectPlace.ANY || spellPlace === place) {
+        spellList.push(spell);
+      }
     }
     return spellList;
   }
@@ -386,18 +386,16 @@ export class PartyMember extends Battler {
     return this.xp;
   }
 
-  public giveExp(gainedExp: number): void {
+  public async giveExp(gainedExp: number): Promise<void> {
     const remainingXp = JobHelper.getXp(this.job, this.getLevel() + 1) - this.xp;
     this.xp += gainedExp;
 
     if (remainingXp <= gainedExp) { // TODO: Advance more than once, if enough Exp
-      // PSGame.playSound(PS1Sound.LEVEL_UP);
-      // PSMenu.StextNext(PSGame.getString("Battle_Level_Up", "<player>", this.getName()));
-      console.log(`${this.getName()} leveled up!`);
+      PSGame.playSound(PS1Sound.LEVEL_UP);
+      await PSMenu.StextNext(PSGame.getString("Battle_Level_Up", "<player>", this.getName()));
 
       if (this.advanceLevel()) {
-        // PSMenu.StextNext(PSGame.getString("Battle_Learn_Spell", "<player>", this.getName()));
-        console.log(`${this.getName()} learned new spell(s)!`);
+        await PSMenu.StextNext(PSGame.getString("Battle_Learn_Spell", "<player>", this.getName()));
       }
     }
   }

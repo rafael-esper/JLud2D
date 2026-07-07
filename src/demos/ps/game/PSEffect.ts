@@ -5,24 +5,12 @@
 
 import { PartyMember } from './PartyMember';
 import { Battler } from './Battler';
-import { EnemyBattler } from './EnemyBattler';
-import { CanRope, CanTalk, CanChat, EnemyType } from './Enemy';
-import { City } from './City';
-import { Dungeon } from './Dungeon';
+import { EnemyBattler } from '../battle/EnemyBattler';
+import { CanRope, CanTalk, CanChat, EnemyType } from '../battle/Enemy';
 import { PS1Sound } from './PSLibSound';
 import { PSGame } from '../PSGame';
-import { Action } from '../battle/PSBattle';
+import { Action, PSBattle as PSBattleClass } from '../battle/PSBattle';
 import { PSMenu } from '../PSMenu';
-
-// Forward declarations for types that will be implemented later
-export interface PSBattle {
-  // Will be defined when we port PSBattle
-}
-
-export interface PSMenu {
-  // Will be defined when we port PSMenu
-}
-
 
 // Effect enums
 export enum EffectTarget {
@@ -144,7 +132,14 @@ export class EffectHelper {
 }
 
 export class PSEffect {
-  private effect: Effect;
+  private static readonly YELLOW = 0xFFFF00;
+  private static readonly CYAN = 0x00FFFF;
+
+  private static enemyName(enemy: EnemyBattler): string {
+    return enemy.getEnemy().getTranslatedName(PSGame) || enemy.getName();
+  }
+
+  private effect!: Effect;
   private value: number = 0;
   private user: PartyMember | null = null;
   private target: Battler | null = null;
@@ -261,22 +256,20 @@ export class PSEffect {
         if (!this.target) return EffectOutcome.FAIL;
 
         this.target.boost = 2 + Math.floor(Math.random() * 4);
-        // Note: Would need textBox color implementation
-        // ((PartyMember)target).textBox.updateColor(Color.CYAN);
+        (this.target as PartyMember).textBox?.updateColorAll(PSEffect.CYAN);
         await PSMenu.StextTimeout(PSGame.getString("Battle_Player_Up", "<player>", this.target.getName()));
 
         return EffectOutcome.SUCCESS;
 
       case Effect.ROPE:
-        // Note: Would need PSBattle.getTarget implementation
-        // this.target = PSBattle.getTarget(this.user, this.targets);
-        if (!this.target) return EffectOutcome.FAIL;
+        // Java: the enemy to bind is picked at random, like attack targets
+        this.target = this.user ? PSBattleClass.getTarget(this.user, this.targets) : this.target;
+        if (!(this.target instanceof EnemyBattler)) return EffectOutcome.FAIL;
 
-        const enemyBattler = this.target as EnemyBattler;
-        if (enemyBattler.getEnemy().rope === CanRope.YES) {
+        if (this.target.getEnemy().rope === CanRope.YES) {
           this.target.paralyzed = 2 + Math.floor(Math.random() * 3);
-          await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Bind", "<monster>", this.target.getName()));
-          // this.target.enemyBox.updateColor(this.target.position, Color.YELLOW);
+          await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Bind", "<monster>", PSEffect.enemyName(this.target)));
+          this.target.enemyBox?.updateColor(this.target.position, PSEffect.YELLOW);
           return EffectOutcome.SUCCESS;
         } else {
           return EffectOutcome.FAIL;
@@ -289,23 +282,24 @@ export class PSEffect {
             if (target.getEnemy().rope === CanRope.YES) {
               target.paralyzed = 2 + Math.floor(Math.random() * 3);
               if (!ropeSuccess) {
-                await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Bind", "<monster>", target.getName()));
+                await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Bind", "<monster>", PSEffect.enemyName(target)));
                 ropeSuccess = true;
               }
-              // target.enemyBox.updateColor(target.position, Color.YELLOW);
+              target.enemyBox?.updateColor(target.position, PSEffect.YELLOW);
             }
           }
         }
         return ropeSuccess ? EffectOutcome.SUCCESS : EffectOutcome.FAIL;
 
       case Effect.FEAR:
-        // Note: Would need PSBattle.getTarget implementation
-        if (!this.target) return EffectOutcome.FAIL;
+        // Java: the enemy to weaken is picked at random, like attack targets
+        this.target = this.user ? PSBattleClass.getTarget(this.user, this.targets) : this.target;
+        if (!(this.target instanceof EnemyBattler)) return EffectOutcome.FAIL;
 
-        const fearTarget = this.target as EnemyBattler;
-        if (this.target.getMaxHp() <= 100 && fearTarget.getEnemy().type !== EnemyType.UNDEAD) {
+        if (this.target.getMaxHp() <= 100 && this.target.getEnemy().type !== EnemyType.UNDEAD) {
           this.target.weak = 3 + Math.floor(Math.random() * 3);
-          await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Down", "<monster>", this.target.getName()));
+          await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Down", "<monster>", PSEffect.enemyName(this.target)));
+          this.target.enemyBox?.updateColor(this.target.position, PSEffect.YELLOW);
           return EffectOutcome.SUCCESS;
         } else {
           return EffectOutcome.FAIL;
@@ -318,9 +312,10 @@ export class PSEffect {
             if (target.getMaxHp() <= 133 && target.getEnemy().type !== EnemyType.UNDEAD) {
               target.weak = 3 + Math.floor(Math.random() * 3);
               if (!fearSuccess) {
-                await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Down", "<monster>", target.getName()));
+                await PSMenu.StextTimeout(PSGame.getString("Battle_Enemy_Down", "<monster>", PSEffect.enemyName(target)));
                 fearSuccess = true;
               }
+              target.enemyBox?.updateColor(target.position, PSEffect.YELLOW);
             }
           }
         }
@@ -336,11 +331,11 @@ export class PSEffect {
         return EffectOutcome.SUCCESS;
 
       case Effect.MUSIC:
-        PSGame.playSound(PS1Sound.FLUTESONG);
-        await PSMenu.instance.waitDelay(90);
-        // Fall through to EXIT
-
       case Effect.EXIT:
+        if (this.effect === Effect.MUSIC) { // Java falls through MUSIC → EXIT
+          PSGame.playSound(PS1Sound.FLUTESONG);
+          await PSMenu.instance.waitDelay(90);
+        }
         // Note: Would need dungeon system implementation
         console.warn('EXIT effect not fully implemented - requires dungeon system');
         return EffectOutcome.CLOSE_ALL;

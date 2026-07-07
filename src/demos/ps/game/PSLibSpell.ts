@@ -3,11 +3,12 @@
  * Defines all spells, their costs, and effects
  */
 
-import { Effect, EffectOutcome, EffectPlace, EffectTarget, PSEffect, EffectHelper } from './PSEffect';
+import { Effect, EffectOutcome, EffectTarget, PSEffect, EffectHelper } from './PSEffect';
 import { PartyMember } from './PartyMember';
 import { PSGame } from '../PSGame';
 import { PS1Sound } from './PSLibSound';
 import { PSMenu } from '../PSMenu';
+import { PSCancellable } from '../menu/MenuStack';
 
 // Spell interface
 export interface Spell {
@@ -171,7 +172,7 @@ export class PSLibSpell {
       let partySel = 1;
       if (PSGame.getParty().partySize() > 1) {
         PSMenu.instance.push(PSMenu.instance.createPromptBox(130, 70, PSGame.getParty().listMembers(), true));
-        partySel = await PSMenu.instance.waitOpt(true) + 1;
+        partySel = await PSMenu.instance.waitOpt(PSCancellable.TRUE) + 1;
         PSMenu.instance.pop();
       }
 
@@ -180,6 +181,9 @@ export class PSLibSpell {
       }
 
       const target = PSGame.getParty().getMember(partySel - 1);
+      if (!target) {
+        return null;
+      }
       if (effectTarget === EffectTarget.ALIVE_MEMBER && target.getHp() <= 0) {
         await PSMenu.Stext(PSGame.getString("Battle_Player_Dead", "<player>", target.getName()));
         return null;

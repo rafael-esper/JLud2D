@@ -135,6 +135,17 @@ export class PSGame {
   }
 
   /**
+   * Pad a value to a fixed width - direct port of Java PSGame.format()
+   */
+  public static format(value: number | string, len: number, alignLeft: boolean = false): string {
+    let str = value.toString();
+    while (str.length < len) {
+      str = alignLeft ? str + ' ' : ' ' + str;
+    }
+    return str;
+  }
+
+  /**
    * Get Yes/No choice array for prompts (localized)
    */
   public static getYesNo(): string[] {
