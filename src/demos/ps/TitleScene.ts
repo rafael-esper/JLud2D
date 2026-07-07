@@ -181,8 +181,11 @@ export class TitleScene extends PSScene {
       // PS Arena
       await PSGame.initPSGame(GameType.PS_ARENA);
       console.log("TitleScene: Starting PS Arena");
-      // TODO: PhantasyArena.PhantasyArenaGame();
-      // For now, return to title
+      const { PhantasyArena } = await import('./PhantasyArena');
+      await PhantasyArena.PhantasyArenaGame();
+      // Arena over (won or defeated): restore the title screen, like the
+      // Java title loop does when PhantasyArenaGame returns
+      this.startScene(PSSceneType.TITLE, SpecialEntity.NONE);
       await PSGame.playMusic(PS1Music.TITLE);
       return false;
     }

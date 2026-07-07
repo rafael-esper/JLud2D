@@ -7,7 +7,7 @@ import { PS1Sound } from './PSLibSound';
 import { PSGame } from '../PSGame';
 import { CHR } from '../../../domain/CHR';
 
-import { Effect, EffectPlace, EffectTarget } from './PSEffect';
+import { Effect } from './PSEffect';
 
 export enum EquipPlace {
   WEAPON, CHEST, COVER
@@ -137,11 +137,8 @@ export class Item {
   }
 
   public async getChrWeaponAnimation(scene?: Phaser.Scene): Promise<CHR | null> {
-    if (this.chrWeaponAnimation === null && this.strWeaponAnimation) {
-      if (scene) {
-        // Note: This would need to be adapted based on how CHR.loadChr works in the TypeScript version
-        console.warn('CHR weapon animation loading not yet implemented in TypeScript version');
-      }
+    if (this.chrWeaponAnimation === null && this.strWeaponAnimation && scene) {
+      this.chrWeaponAnimation = await CHR.loadChr(scene, this.strWeaponAnimation, "ps");
     }
     return this.chrWeaponAnimation;
   }

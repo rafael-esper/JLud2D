@@ -5,7 +5,8 @@
 
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
-import { PSGame, ScreenSize } from './PSGame';
+import { PSGame } from './PSGame';
+import { ScreenSize } from './game/GameData';
 import { PS1Image } from './game/PSLibImage';
 import { MenuStack, PSCancellable } from './menu/MenuStack';
 import { MenuPromptBox } from './menu/MenuPromptBox';
@@ -43,7 +44,11 @@ export abstract class PSScene extends Phaser.Scene {
     // Set scene reference in PSGame
     PSGame.setCurrentScene(this);
 
-    // Initialize PS menu system (equivalent to Java initPSMenu)
+    // Initialize PS menu system (equivalent to Java initPSMenu).
+    // The static PSMenu.initPSMenu computes STEXT_BOTTOM_X/Y/WX/WY — without
+    // it every Stext text box is created at undefined coordinates and
+    // renders nothing (GameScene already did this; PSScene didn't).
+    PSMenu.initPSMenu(ScreenSize.SCREEN_320_240);
     this.initPSMenu();
   }
 
