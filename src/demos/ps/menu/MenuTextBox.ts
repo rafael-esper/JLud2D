@@ -56,9 +56,8 @@ export class MenuTextBox extends MenuType {
     const scene = (this.menuStack as any).scene;
     if (!scene) return;
 
-    // Dynamic depth based on menu stack position to prevent text overlap
-    const stackDepth = this.menuStack.getStackDepth();
-    const baseDepth = 2010 + stackDepth * 10; // Above all menu graphics
+    // Text sits inside this menu's depth band (see MenuStack.getMenuDepth)
+    const baseDepth = this.menuStack.getMenuDepth(this) + 5;
 
     // Create first line text object (initially empty, will be updated in draw)
     const textObj1 = scene.add.text(

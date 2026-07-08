@@ -40,14 +40,19 @@ export enum PS1Enemy {
   DEATH_KNIGHT, SKELETON_GUARD, REVENANT,  CYCLOP
 }
 
+// NOTE: In Java these are separate enum classes, so PS1Enemy.AMMONITE and
+// PS4Enemy.RED_SCORPION are distinct map keys. TypeScript numeric enums are
+// plain numbers, so each family needs its own value range or later
+// registrations overwrite the PS1 entries in the enemy lib map
+// (AMMONITE=0 was showing RED_SCORPION=0, etc.).
 export enum PS4Enemy {
-  RED_SCORPION,
+  RED_SCORPION = 1000,
   YELLOW_SCORPION,
   BLUE_SCORPION
 }
 
 export enum XeenEnemy {
-  SEWER_SLUG,
+  SEWER_SLUG = 2000,
   BEHOLDER
 }
 

@@ -38,6 +38,12 @@ export class MenuStack {
   public MAX_SCREEN_X: number = 320;
   public MAX_SCREEN_Y: number = 240;
 
+  // Bottom text box position (set by PSMenu.initPSMenu, matching Java)
+  public STEXT_BOTTOM_X: number = 0;
+  public STEXT_BOTTOM_Y: number = 0;
+  public STEXT_BOTTOM_WX: number = 0;
+  public STEXT_BOTTOM_WY: number = 0;
+
   // Colors (matching Java exactly)
   private static readonly LIGHT_GRAY = 0x5A5A5A; // RGB(90,90,90)
   private static readonly DARK_GRAY = 0x3C3C3C;  // RGB(60,60,60)
@@ -45,6 +51,16 @@ export class MenuStack {
 
   // Menu stack
   private menus: MenuType[] = [];
+
+  // Rendering: each stack position gets its own depth band so a box drawn
+  // over a lower menu covers (and, being translucent, dims) that menu's text,
+  // matching the Java painter's-algorithm framebuffer rendering.
+  // Band layout for menu index i (see getMenuDepth):
+  //   +0 box fill/borders, +4 images, +5 text, +6 cursor/circles
+  public static readonly MENU_BASE_DEPTH = 2000;
+  public static readonly MENU_DEPTH_STEP = 10;
+  private layers: Phaser.GameObjects.Graphics[] = [];
+  private currentLayerIndex: number = 0;
 
   // Background and entity rendering
   public back: Phaser.GameObjects.Image | null = null;
@@ -57,19 +73,17 @@ export class MenuStack {
   public showPlayers: boolean = false;
   public outcome: PSOutcome = PSOutcome.NO_FADE;
 
-  // Graphics context for drawing
-  private graphics: Phaser.GameObjects.Graphics;
-
   constructor(scene: Phaser.Scene, inputManager: InputManager) {
     this.scene = scene;
     this.inputManager = inputManager;
-    this.graphics = scene.add.graphics();
-    this.graphics.setDepth(2000); // Well above entities (which max around 1000 + map_height)
-    this.graphics.setScrollFactor(0, 0); // Fixed to screen like background
   }
 
   public hasMenu(): boolean {
     return this.menus.length > 0;
+  }
+
+  public getScene(): Phaser.Scene {
+    return this.scene;
   }
 
   public push(menu: MenuType): void {
@@ -81,6 +95,12 @@ export class MenuStack {
     if (menu && typeof (menu as any).destroy === 'function') {
       (menu as any).destroy();
     }
+    // Clear the popped menu's box layer immediately — the game loop stops
+    // calling drawMenus() once the stack is empty, so leftovers would linger
+    const layer = this.layers[this.menus.length];
+    if (layer) {
+      layer.clear();
+    }
     return menu;
   }
 
@@ -89,6 +109,29 @@ export class MenuStack {
    */
   public getStackDepth(): number {
     return this.menus.length;
+  }
+
+  /**
+   * Base depth for a menu's depth band, derived from its position in the
+   * stack. Menus above it in the stack render in higher bands, so their
+   * translucent box fills cover (and dim) this menu's text.
+   */
+  public getMenuDepth(menu: MenuType): number {
+    const index = this.menus.indexOf(menu);
+    return MenuStack.MENU_BASE_DEPTH + (index >= 0 ? index : this.menus.length) * MenuStack.MENU_DEPTH_STEP;
+  }
+
+  /**
+   * Get (or lazily create) the box graphics layer for a stack position
+   */
+  private getLayer(index: number): Phaser.GameObjects.Graphics {
+    while (this.layers.length <= index) {
+      const layer = this.scene.add.graphics();
+      layer.setDepth(MenuStack.MENU_BASE_DEPTH + this.layers.length * MenuStack.MENU_DEPTH_STEP);
+      layer.setScrollFactor(0, 0); // Fixed to screen like background
+      this.layers.push(layer);
+    }
+    return this.layers[index];
   }
 
 
@@ -229,30 +272,32 @@ export class MenuStack {
    * Draw box - direct port of Java drawBox() with exact 3D border effect
    */
   public drawBox(x: number, y: number, wx: number, wy: number): void {
+    const graphics = this.getLayer(this.currentLayerIndex);
+
     // setlucent(15) equivalent - translucent background
-    this.graphics.fillStyle(MenuStack.BACK_COLOR, 0.85);
-    this.graphics.fillRect(x, y, wx, wy); // Fill the entire box area, not offset
+    graphics.fillStyle(MenuStack.BACK_COLOR, 0.85);
+    graphics.fillRect(x, y, wx, wy); // Fill the entire box area, not offset
 
     // Draw the 3D border effect following exact Java order
     // rect(x+4,y+4,wx+x-4,wy+y-4,DARK_GRAY)
-    this.graphics.lineStyle(1, MenuStack.DARK_GRAY);
-    this.graphics.strokeRect(x + 4, y + 4, wx - 8, wy - 8);
+    graphics.lineStyle(1, MenuStack.DARK_GRAY);
+    graphics.strokeRect(x + 4, y + 4, wx - 8, wy - 8);
 
     // rect(x+3,y+3,wx+x-3,wy+y-3,LIGHT_GRAY)
-    this.graphics.lineStyle(1, MenuStack.LIGHT_GRAY);
-    this.graphics.strokeRect(x + 3, y + 3, wx - 6, wy - 6);
+    graphics.lineStyle(1, MenuStack.LIGHT_GRAY);
+    graphics.strokeRect(x + 3, y + 3, wx - 6, wy - 6);
 
     // rect(x+2,y+2,wx+x-2,wy+y-2,LIGHT_GRAY)
-    this.graphics.lineStyle(1, MenuStack.LIGHT_GRAY);
-    this.graphics.strokeRect(x + 2, y + 2, wx - 4, wy - 4);
+    graphics.lineStyle(1, MenuStack.LIGHT_GRAY);
+    graphics.strokeRect(x + 2, y + 2, wx - 4, wy - 4);
 
     // rect(x+1,y+1,wx+x-1,wy+y-1,DARK_GRAY)
-    this.graphics.lineStyle(1, MenuStack.DARK_GRAY);
-    this.graphics.strokeRect(x + 1, y + 1, wx - 2, wy - 2);
+    graphics.lineStyle(1, MenuStack.DARK_GRAY);
+    graphics.strokeRect(x + 1, y + 1, wx - 2, wy - 2);
 
     // rect(x,y,wx+x,wy+y,BACK_COLOR)
-    this.graphics.lineStyle(1, MenuStack.BACK_COLOR);
-    this.graphics.strokeRect(x, y, wx, wy);
+    graphics.lineStyle(1, MenuStack.BACK_COLOR);
+    graphics.strokeRect(x, y, wx, wy);
   }
 
   /**
@@ -354,14 +399,16 @@ export class MenuStack {
       }
     }
     this.menus = [];
-    this.graphics.clear();
+    this.clearGraphics();
   }
 
   /**
    * Clear graphics only (for PSMenu.endScene)
    */
   public clearGraphics(): void {
-    this.graphics.clear();
+    for (const layer of this.layers) {
+      layer.clear();
+    }
     // Note: Do NOT clear entity sprite here - it should persist until scene ends
   }
 
@@ -545,7 +592,9 @@ export class MenuStack {
    */
   public drawMenus(): void {
     // Clear previous graphics - redraw all menus each frame
-    this.graphics.clear();
+    for (const layer of this.layers) {
+      layer.clear();
+    }
 
     // Draw background or render scene
     if (this.back === null && this.backAnim === null) {
@@ -582,8 +631,10 @@ export class MenuStack {
     // Player party rendering would be handled by game-specific code
     // if needed, not in generic menu stack
 
-    // Draw all menus in stack order
+    // Draw all menus in stack order, each into its own depth band so boxes
+    // drawn later cover (and dim, being translucent) the text below them
     for (let i = 0; i < this.menus.length; i++) {
+      this.currentLayerIndex = i;
       const menu = this.menus[i];
       const isActive = (i === this.menus.length - 1); // Last menu is active
       menu.draw(isActive);

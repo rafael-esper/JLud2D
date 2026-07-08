@@ -43,9 +43,7 @@ export class MenuPromptBox extends MenuType {
     }
 
     // Create graphics object for drawing circles and cursor
-    this.graphics = (menuStack as any).scene.add.graphics();
-    // Dynamic depth for graphics based on menu stack position
-    this.graphics.setDepth(2000 + this.menuStack.getStackDepth() * 10);
+    this.graphics = menuStack.getScene().add.graphics();
     this.graphics.setScrollFactor(0, 0); // Fixed to screen like other UI elements
   }
 
@@ -86,6 +84,10 @@ export class MenuPromptBox extends MenuType {
   public draw(active: boolean): void {
     // Clear our own graphics only (don't clear menuStack graphics to preserve previous menus)
     this.graphics.clear();
+
+    // Cursor/circles render at the top of this menu's depth band, above its
+    // box and text but below any menu stacked over it
+    this.graphics.setDepth(this.menuStack.getMenuDepth(this) + 6);
 
     if (this.drawDelay > 0) {
       // Opening animation - box grows from center
@@ -144,8 +146,8 @@ export class MenuPromptBox extends MenuType {
     const scene = (this.menuStack as any).scene;
     if (!scene) return;
 
-    const stackDepth = this.menuStack.getStackDepth();
-    const baseDepth = 2010 + stackDepth * 10; // Above all menu graphics
+    // Text sits inside this menu's depth band (see MenuStack.getMenuDepth)
+    const baseDepth = this.menuStack.getMenuDepth(this) + 5;
 
     for (let i = 0; i < this.options.length; i++) {
       const textY = this.y + 2 + ((MenuStack.fontYSize + MenuStack.BETWEEN_ROWS_SPACE) * (i + 1)) - MenuStack.fontYSize;

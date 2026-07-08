@@ -18,6 +18,8 @@ import { CHR } from '../../domain/CHR';
 import { PS1CHR, PS1CHRHelper } from './game/PSLibCHR';
 import { Item } from './game/Item';
 import { OriginalItem, PSLibItem } from './game/PSLibItem';
+import { PSLibEnemy, GenericEnemy } from './game/PSLibEnemy';
+import { VImage } from './menu/MenuImageBox';
 import { I18nManager } from './game/I18nManager';
 import { PS_MUSIC_MANIFEST } from './music-manifest';
 
@@ -79,6 +81,7 @@ export class PSGame {
 
     const musicKey = this.getMusicKeyFromPath(music as string);
 
+    ScriptEngine.setMusicVolume(this.gameData.musicVolume);
     ScriptEngine.playmusic(musicKey);
     this.currentMusic = music;
   }
@@ -328,12 +331,94 @@ export class PSGame {
     console.log(`PSGame: Party initialized with ${this.party.partySize()} members`);
   }
 
+  /** localStorage key used for browser saves (replaces Java's .SAV file chooser) */
+  private static readonly SAVE_KEY: string = 'PS_SAVE';
+
   /**
-   * Load game (placeholder)
+   * Load game - browser adaptation of Java loadGame()
+   * Full restore (party/map) is not implemented yet.
    */
-  public static loadGame(): boolean {
+  public static async loadGame(): Promise<boolean> {
     console.log("PSGame: Load game not implemented in demo");
+    await PSMenu.Stext(this.getString("Menu_Load_Failed"));
     return false;
+  }
+
+  /**
+   * Save game - browser adaptation of Java saveGame() (localStorage instead of a .SAV file)
+   */
+  public static async saveGame(): Promise<void> {
+    const player = MainEngine.getPlayer();
+    if (player) {
+      this.gameData.gotox = Math.floor(player.getx() / 16);
+      this.gameData.gotoy = Math.floor(player.gety() / 16);
+
+      if (this.getCurrentDungeon() !== Dungeon.NONE) {
+        this.gameData.dungeonFace = player.getFace();
+      }
+    }
+
+    GameData.save(this.gameData, PSGame.SAVE_KEY);
+    await PSMenu.Stext(this.getString("Menu_Save_Success"));
+  }
+
+  /**
+   * Change sound volume - direct port from Java changeSoundVolume()
+   */
+  public static changeSoundVolume(volume: number): void {
+    this.gameData.soundVolume = volume;
+  }
+
+  /**
+   * Change music volume - direct port from Java changeMusicVolume()
+   */
+  public static changeMusicVolume(volume: number): void {
+    this.gameData.musicVolume = volume;
+    ScriptEngine.setMusicVolume(volume);
+  }
+
+  /**
+   * Check if any party member is alive - direct port from Java checkAlive()
+   */
+  public static checkAlive(): boolean {
+    return this.getParty().getMembers().some(member => member.getHp() > 0);
+  }
+
+  private static enemyLib: Map<GenericEnemy, Enemy> | null = null;
+
+  /**
+   * Get the enemy library - direct port from Java getEnemyLib()
+   */
+  public static getEnemyLib(): Map<GenericEnemy, Enemy> {
+    if (!this.enemyLib) {
+      this.enemyLib = PSLibEnemy.initializeOriginalEnemies();
+    }
+    return this.enemyLib;
+  }
+
+  /**
+   * Load an image into a Phaser texture and return it as a VImage
+   * (equivalent of Java's PSGame.getImage returning a VImage)
+   */
+  public static async getVImage(imageKey: PS1Image | string): Promise<VImage> {
+    const path = this.getImage(imageKey);
+    const scene = this.currentScene;
+    const key = path.split('/').pop()?.replace(/\.[^/.]+$/, '') || path;
+
+    if (!scene) {
+      return { width: 0, height: 0, key };
+    }
+
+    if (!scene.textures.exists(key)) {
+      await new Promise<void>((resolve) => {
+        scene.load.image(key, path);
+        scene.load.once('complete', () => resolve());
+        scene.load.start();
+      });
+    }
+
+    const source = scene.textures.get(key).getSourceImage();
+    return { width: source.width, height: source.height, key };
   }
 
   /**
@@ -607,18 +692,14 @@ export class PSGame {
    * Turn menu on - direct port from Java PSMenu.menuOn()
    */
   public static menuOn(): void {
-    console.log("PSGame: Menu system activated");
-    // In full implementation, this would enable the in-game menu system
-    // This would integrate with our ported menu system
+    PSMenu.menuOn();
   }
 
   /**
    * Turn menu off - direct port from Java PSMenu.menuOff()
    */
   public static menuOff(): void {
-    console.log("PSGame: Menu system deactivated");
-    // In full implementation, this would disable the in-game menu system
-    // This would integrate with our ported menu system
+    PSMenu.menuOff();
   }
 
   /**
@@ -635,6 +716,10 @@ export class PSGame {
       return;
     }
 
+    // Sound effect assets are quiet compared to the VGM music, so boost the
+    // configured volume 2x (soundVolume 50 → 1.0) to balance them
+    const sfxVolume = Math.min(1, this.gameData.soundVolume * 2 / 100);
+
     try {
       // Get sound path
       const soundPath = sound as string;
@@ -647,14 +732,14 @@ export class PSGame {
         // Load the sound first
         this.currentScene.load.audio(audioKey, soundPath);
         this.currentScene.load.once('complete', () => {
-          // Play sound once loaded (full volume — the master volume from the
-          // emulator UI is applied on top by Phaser's sound manager)
-          this.currentScene!.sound.play(audioKey, { volume: 1.0 });
+          // Play sound once loaded (the master volume from the emulator UI is
+          // applied on top by Phaser's sound manager)
+          this.currentScene!.sound.play(audioKey, { volume: this.gameData.soundVolume / 100 });
         });
         this.currentScene.load.start();
       } else {
         // Sound already loaded in Phaser, play it directly
-        this.currentScene.sound.play(audioKey, { volume: 1.0 });
+        this.currentScene.sound.play(audioKey, { volume: this.gameData.soundVolume / 100 });
       }
 
       // Cache the sound path for reference
@@ -1175,6 +1260,20 @@ export class PSGame {
     // - Party member revival mechanics
 
     console.log("PSGame: Game Over routine completed");
+  }
+
+  /**
+   * Return to the title screen (Java: setMapOff + mapswitch("Title.map"))
+   * In the Phaser port the title is its own scene, so switch scenes.
+   */
+  public static async exitToTitle(): Promise<void> {
+    this.stopMusic();
+    const scene = this.currentScene;
+    await ScriptEngine.fadeout(25, true);
+    MainEngine.cleanup();
+    if (scene) {
+      scene.scene.start('PSTitleScene', { config: (scene as any).config });
+    }
   }
 
   /**

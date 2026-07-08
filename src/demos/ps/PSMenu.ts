@@ -4,10 +4,9 @@
  */
 
 import { MenuStack, PSOutcome } from './menu/MenuStack';
-import { MenuImageBox } from './menu/MenuImageBox';
+import { MenuImageBox, VImage } from './menu/MenuImageBox';
 import { MenuScrollerText } from './menu/MenuScrollerText';
 import { MenuTextBox } from './menu/MenuTextBox';
-import { MenuCHR } from './menu/MenuCHR';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { PSGame } from './PSGame';
 import { CHR } from '../../domain/CHR';
@@ -83,19 +82,29 @@ export class PSMenu {
     PSMenu.instance.STEXT_BOTTOM_WY = 16 * 2 + 10;
   }
 
+  // Whether the main-menu button hook is active (Java: hookbutton(4, "PSMenuMain.menu"))
+  private static menuHooked: boolean = false;
+
   /**
    * Enable menu input hooks - direct port of Java menuOn()
+   * The scene update loop checks isMenuHooked() and opens PSMenuMain.menu() on b4.
    */
   public static menuOn(): void {
-    // TODO: Implement button hooks for menu system
-    // In original Java: hookbutton(4, "PSMenuMain.menu")
+    PSMenu.menuHooked = true;
   }
 
   /**
    * Disable menu input hooks - direct port of Java menuOff()
    */
   public static menuOff(): void {
-    // TODO: Implement button hook clearing
+    PSMenu.menuHooked = false;
+  }
+
+  /**
+   * Whether the main menu can currently be opened by the menu button
+   */
+  public static isMenuHooked(): boolean {
+    return PSMenu.menuHooked;
   }
 
   // Scene management methods
@@ -514,7 +523,7 @@ export class PSMenu {
    * Display cinematic text with portrait - direct port of Java cinematicText()
    */
   public static async cinematicText(portrait: VImage, texts: string[]): Promise<void> {
-    const portraitBox = MenuImageBox.MenuImage(PSMenu.instance.scene, PSMenu.instance, 32, 22, portrait);
+    const portraitBox = MenuImageBox.MenuImage(PSMenu.instance.getScene(), PSMenu.instance, 32, 22, portrait);
     PSMenu.instance.push(portraitBox);
 
     for (let t = 0; t < texts.length; t++) {
@@ -529,7 +538,7 @@ export class PSMenu {
           console.log(strText[j]);
         }
 
-        const menuScrollerText = new MenuScrollerText(PSMenu.instance.scene, 35, 22 + 113 + 15, strText);
+        const menuScrollerText = new MenuScrollerText(PSMenu.instance.getScene(), 35, 22 + 113 + 15, strText);
         PSMenu.instance.push(menuScrollerText);
 
         await PSMenu.instance.waitReady(menuScrollerText);

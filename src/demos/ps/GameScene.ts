@@ -12,6 +12,7 @@ import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { MenuStack } from './menu/MenuStack';
 import { PSMenu } from './PSMenu';
+import { PSMenuMain } from './PSMenuMain';
 
 export class GameScene extends Phaser.Scene {
   private config: GameConfig;
@@ -168,8 +169,20 @@ export class GameScene extends Phaser.Scene {
       this.menuStack.drawMenus();
     }
 
-    // Handle ESC/Menu - Back to main menu
-    if (this.inputManager.justPressed('menu')) {
+    // Open the main game menu (Java: hookbutton(4, "PSMenuMain.menu"))
+    if (!isMenuActive && PSMenu.isMenuHooked() && !MainEngine.isScriptActive()) {
+      if (this.inputManager.justPressed('b4')) {
+        this.inputManager.unpress(8); // b4 (Java: unpress(4))
+        PSMenuMain.menu().catch(error => console.error('GameScene: Main menu error:', error));
+      } else if (PSGame.gameData.enableCheats && this.inputManager.justPressed('M')) {
+        // Java: hookkey(SCAN_M, "PSMenuMain.cheatMenu")
+        PSMenuMain.cheatMenu().catch(error => console.error('GameScene: Cheat menu error:', error));
+      }
+    }
+
+    // Handle ESC/Menu - Back to main menu (only when no game menu is open;
+    // ESC is also the cancel button inside menus)
+    if (!isMenuActive && this.inputManager.justPressed('menu')) {
       console.log('GameScene: Menu key pressed, returning to main menu');
       PSGame.stopMusic(); // Stop the city music
       MainEngine.cleanup();

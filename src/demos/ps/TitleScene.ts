@@ -90,7 +90,7 @@ export class TitleScene extends PSScene {
       if (mainOpt === 2) {
         // Load Game
         await PSGame.initPSGame(GameType.PS_ORIGINAL);
-        if (PSGame.loadGame()) {
+        if (await PSGame.loadGame()) {
           // syncAfterLoading() - placeholder
           break;
         }

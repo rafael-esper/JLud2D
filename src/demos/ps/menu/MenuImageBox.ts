@@ -5,7 +5,6 @@
 
 import { MenuType } from './MenuType';
 import { MenuStack } from './MenuStack';
-import { ScriptEngine } from '../../../core/ScriptEngine';
 
 export interface VImage {
   width: number;
@@ -18,6 +17,7 @@ export interface VImage {
 export class MenuImageBox extends MenuType {
   private hasBox: boolean;
   private image: VImage;
+  private phaserImage: Phaser.GameObjects.Image | null = null;
   private x: number;
   private y: number;
   private wx: number;
@@ -52,7 +52,7 @@ export class MenuImageBox extends MenuType {
     return menuImageBox;
   }
 
-  public draw(active: boolean): void {
+  public draw(_active: boolean): void {
     if (this.drawDelay > 0) {
       this.drawDelay--;
       const specwx = ((MenuType.MAX_DELAY - this.drawDelay) / MenuType.MAX_DELAY) * this.wx;
@@ -61,10 +61,33 @@ export class MenuImageBox extends MenuType {
     } else {
       if (this.hasBox) {
         this.menuStack.drawBox(this.x, this.y, this.wx, this.wy);
-        ScriptEngine.blit(this.x + 4, this.y + 4, this.image);
+        this.showImage(this.x + 4, this.y + 4);
       } else {
-        ScriptEngine.blit(this.x, this.y, this.image);
+        this.showImage(this.x, this.y);
       }
+    }
+  }
+
+  /**
+   * Create (once) and position the Phaser image for this box
+   */
+  private showImage(x: number, y: number): void {
+    if (!this.phaserImage && this.image.key && this.scene.textures.exists(this.image.key)) {
+      this.phaserImage = this.scene.add.image(x, y, this.image.key);
+      this.phaserImage.setOrigin(0, 0);
+      this.phaserImage.setScrollFactor(0, 0);
+    }
+    if (this.phaserImage) {
+      // Image sits inside this menu's depth band, above its own box fill
+      this.phaserImage.setDepth(this.menuStack.getMenuDepth(this) + 4);
+      this.phaserImage.setPosition(x, y);
+    }
+  }
+
+  public destroy(): void {
+    if (this.phaserImage) {
+      this.phaserImage.destroy();
+      this.phaserImage = null;
     }
   }
 
