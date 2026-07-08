@@ -95,11 +95,11 @@ export class GameScene extends Phaser.Scene {
 
     console.log("GameScene: Map loaded, screen remains black for setup");
 
-    // Play music based on current city
+    // Play music based on current city (CAMINEET is 0 — check against null)
     const currentCity = PSGame.getCurrentCity();
-    if (currentCity) {
+    if (currentCity !== null) {
       const cityMusic = CityHelper.getMusic(currentCity);
-      console.log(`GameScene: Playing city music for ${currentCity}: ${cityMusic}`);
+      console.log(`GameScene: Playing city music for ${City[currentCity]}: ${cityMusic}`);
       await PSGame.playMusic(cityMusic);
     }
 

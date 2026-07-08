@@ -11,9 +11,9 @@ import { PS1Image } from './game/PSLibImage';
 import { PS1Sound } from './game/PSLibSound';
 import { PSMenu } from './PSMenu';
 import { Party } from './game/Party';
-import { Planet, City, CityHelper } from './game/City';
+import { Planet, City, CityHelper, PlanetHelper } from './game/City';
 import { ScreenSize, GameType, Flags, GameData } from './game/GameData';
-import { Dungeon } from './game/Dungeon';
+import { Dungeon, DungeonHelper } from './game/Dungeon';
 import { CHR } from '../../domain/CHR';
 import { PS1CHR, PS1CHRHelper } from './game/PSLibCHR';
 import { Item } from './game/Item';
@@ -38,7 +38,6 @@ export class PSGame {
   private static party: Party | null = null;
   private static gotox: number = 0;
   private static gotoy: number = 0;
-  private static currentCity: any = null; // Current city for music and location
   private static currentMusic: PS1Music | null = null; // Track currently playing music
   private static i18nManager: I18nManager = I18nManager.getInstance();
   public static currentDungeon: any = null; // Current dungeon instance
@@ -520,7 +519,7 @@ export class PSGame {
   /**
    * Map switch with string path - base implementation
    */
-  public static async mapswitch(mapname: string, x: number, y: number, fade: boolean = true, basePath?: string): Promise<void> {
+  public static async mapswitch(mapname: string, x: number, y: number, fade: boolean = true, basePath?: string, music?: PS1Music): Promise<void> {
     console.log(`PSGame.mapswitch: Loading map ${mapname} at (${x}, ${y})`);
 
     // Block all input during map transition
@@ -536,6 +535,14 @@ export class PSGame {
     // Screen is now black — hide the dungeon RT before fadein so it never overlays the new map
     if (this.currentDungeon) {
       this.currentDungeon.hideRenderTexture();
+    }
+
+    // Start the new map's music BEFORE the map script runs. In Java, map()
+    // only flags the switch and playMusic() runs right after, so the music is
+    // already playing when the new map's startmap script (which may animate
+    // and even switch maps again, e.g. the spaceport walk) executes.
+    if (music !== undefined) {
+      await this.playMusic(music);
     }
 
     await MainEngine.startEngine(mapname, basePath);
@@ -559,10 +566,10 @@ export class PSGame {
     // Import Planet helpers
     const { PlanetHelper } = await import('./game/City');
 
-    // Get planet map path and call base mapswitch
+    // Get planet map path and call base mapswitch (music starts before the
+    // map script runs, so the spaceport walk animation plays over it)
     const mapPath = PlanetHelper.getMapPath(planet);
-    await this.mapswitch(mapPath, x, y, true);
-    await this.playMusic(PlanetHelper.getMusic(planet));
+    await this.mapswitch(mapPath, x, y, true, undefined, PlanetHelper.getMusic(planet));
   }
 
   /**
@@ -591,8 +598,7 @@ export class PSGame {
     this.gameData.visitedCities.add(city);
 
     // Call base mapswitch with city path
-    await this.mapswitch(CityHelper.getPath(city), x, y, true);
-    this.playMusic(CityHelper.getMusic(city));
+    await this.mapswitch(CityHelper.getPath(city), x, y, true, undefined, CityHelper.getMusic(city));
   }
 
   /**
@@ -629,13 +635,8 @@ export class PSGame {
     PSDungeon.setIsInsideDungeon(true);
 
     // Call base mapswitch with dungeon path - basePath should point to the dungeons directory
-    await this.mapswitch(mapPath, dungeonX, dungeonY, true, `${this.PS_DEMO_BASE_PATH}/dungeons`);
-
-    // Play dungeon music
     const dungeonMusic = DungeonHelper.getMusic(dungeon);
-    if (dungeonMusic) {
-      this.playMusic(dungeonMusic);
-    }
+    await this.mapswitch(mapPath, dungeonX, dungeonY, true, `${this.PS_DEMO_BASE_PATH}/dungeons`, dungeonMusic ?? undefined);
 
     // Initialize dungeon system
     this.currentDungeon = new PSDungeon();
@@ -654,8 +655,8 @@ export class PSGame {
   /**
    * Get current city
    */
-  public static getCurrentCity(): any {
-    return this.currentCity;
+  public static getCurrentCity(): City | null {
+    return this.gameData.current_city;
   }
 
   /**
@@ -716,9 +717,10 @@ export class PSGame {
       return;
     }
 
-    // Sound effect assets are quiet compared to the VGM music, so boost the
-    // configured volume 2x (soundVolume 50 → 1.0) to balance them
-    const sfxVolume = Math.min(1, this.gameData.soundVolume * 2 / 100);
+    // Sound effect assets are recorded much quieter than the VGM music, so
+    // boost the configured volume 4x (soundVolume 50 → 2.0 WebAudio gain).
+    // Phaser's WebAudio path supports gain > 1.0.
+    const sfxVolume = this.gameData.soundVolume * 4 / 100;
 
     try {
       // Get sound path
@@ -734,12 +736,12 @@ export class PSGame {
         this.currentScene.load.once('complete', () => {
           // Play sound once loaded (the master volume from the emulator UI is
           // applied on top by Phaser's sound manager)
-          this.currentScene!.sound.play(audioKey, { volume: this.gameData.soundVolume / 100 });
+          this.currentScene!.sound.play(audioKey, { volume: sfxVolume });
         });
         this.currentScene.load.start();
       } else {
         // Sound already loaded in Phaser, play it directly
-        this.currentScene.sound.play(audioKey, { volume: this.gameData.soundVolume / 100 });
+        this.currentScene.sound.play(audioKey, { volume: sfxVolume });
       }
 
       // Cache the sound path for reference
@@ -1298,21 +1300,25 @@ export class PSGame {
   public static findAndPlayMusic(): void {
     console.log("PSGame: Finding appropriate music for current context");
 
-    // Determine appropriate music based on current location
-    if (this.gameData.current_city) {
-      const { CityHelper } = require('./game/City');
-      const cityMusic = CityHelper.getMusic(this.gameData.current_city);
-      this.playMusic(cityMusic);
-    } else if (this.gameData.current_planet) {
-      const { PlanetHelper } = require('./game/City');
-      const planetMusic = PlanetHelper.getMusic(this.gameData.current_planet);
-      this.playMusic(planetMusic);
-    } else if (this.gameData.current_dungeon) {
-      const { DungeonHelper } = require('./game/Dungeon');
+    // Determine appropriate music based on current location (Java order:
+    // dungeon, then city, then planet/vehicle, then title/story fallback)
+    if (this.gameData.current_dungeon !== Dungeon.NONE) {
       const dungeonMusic = DungeonHelper.getMusic(this.gameData.current_dungeon);
       if (dungeonMusic) {
         this.playMusic(dungeonMusic);
       }
+    } else if (this.gameData.current_city !== null) {
+      this.playMusic(CityHelper.getMusic(this.gameData.current_city));
+    } else if (this.gameData.current_planet !== null) {
+      if (this.gameData.onGroundVehicle || this.gameData.onWaterVehicle) {
+        this.playMusic(PS1Music.VEHICLE);
+      } else {
+        this.playMusic(PlanetHelper.getMusic(this.gameData.current_planet));
+      }
+    } else if (this.gameData.getGameType() === null) {
+      this.playMusic(PS1Music.TITLE);
+    } else {
+      this.playMusic(PS1Music.STORY);
     }
   }
 

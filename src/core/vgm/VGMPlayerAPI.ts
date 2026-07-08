@@ -166,6 +166,15 @@ export class VGMPlayerAPI {
 
 
   /**
+   * Set game music volume (0.0 to 1.0) — multiplies with the emulator UI's
+   * master volume. Safe to call before initialization; VGMMusicManager keeps
+   * the value and applies it when its player comes up.
+   */
+  public static setMusicVolume(volume: number): void {
+    VGMMusicManager.getInstance().setMusicVolume(volume);
+  }
+
+  /**
    * Get VGM player instance (for advanced usage)
    */
   public static getPlayer(): VGMPlayer | null {

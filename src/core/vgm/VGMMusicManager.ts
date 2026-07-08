@@ -37,9 +37,23 @@ export class VGMMusicManager {
   private totalCacheMemory = 0; // Track total memory usage in bytes
   private loadedManifests: Map<string, MusicManifest> = new Map(); // Registry of loaded manifests
   // Volume state kept here too, so values set by the emulator UI before the
-  // player initializes (e.g. right at page load) still get applied
+  // player initializes (e.g. right at page load) still get applied.
+  // Effective gain = volume (emulator master) × musicVolume (in-game option).
   private volume = 1;
+  private musicVolume = 1;
   private muted = false;
+  // Incremented on every play/stop request; a pending async play whose id no
+  // longer matches was superseded and must not start (last request wins)
+  private playRequestId = 0;
+  // Serializes operations on the shared VGMPlayer parse/generate state —
+  // concurrent loads would otherwise generate buffers from each other's data
+  private vgmPlayerLock: Promise<unknown> = Promise.resolve();
+
+  private withPlayerLock<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.vgmPlayerLock.then(fn, fn);
+    this.vgmPlayerLock = run.catch(() => {});
+    return run;
+  }
 
   private constructor() {}
 
@@ -65,7 +79,7 @@ export class VGMMusicManager {
 
       this.vgmPlayer = new VGMPlayer(defaultOptions);
       await this.vgmPlayer.initialize();
-      this.vgmPlayer.setVolume(this.volume);
+      this.applyVolume();
       this.vgmPlayer.setMuted(this.muted);
       this.initialized = true;
 
@@ -140,18 +154,27 @@ export class VGMMusicManager {
 
       const vgmData = new Uint8Array(await response.arrayBuffer());
 
-      // Parse VGM and get info
-      const info = await this.vgmPlayer.loadVGM(vgmData);
-
-      // Optionally pre-generate audio buffer during preload phase
-      let audioBuffer: AudioBuffer | undefined;
-      if (pregenerate) {
-        try {
-          audioBuffer = await this.generateAudioBuffer(vgmData, info);
-        } catch (error) {
-          console.warn(`VGMMusicManager: Failed to pre-generate buffer for ${key}:`, error);
-        }
+      // Another load may have cached this key while we were fetching
+      const alreadyCached = this.musicCache.get(key);
+      if (alreadyCached) {
+        alreadyCached.lastUsed = Date.now();
+        return alreadyCached.info;
       }
+
+      // Parse and (optionally) pre-generate under the player lock, so a
+      // concurrent load can't overwrite the parse state between the two steps
+      const { info, audioBuffer } = await this.withPlayerLock(async () => {
+        const info = await this.vgmPlayer!.loadVGM(vgmData);
+        let audioBuffer: AudioBuffer | undefined;
+        if (pregenerate) {
+          try {
+            audioBuffer = this.vgmPlayer!.generateAudioBuffer();
+          } catch (error) {
+            console.warn(`VGMMusicManager: Failed to pre-generate buffer for ${key}:`, error);
+          }
+        }
+        return { info, audioBuffer };
+      });
 
       // Calculate memory usage
       const dataSize = vgmData.byteLength;
@@ -190,6 +213,8 @@ export class VGMMusicManager {
       return false;
     }
 
+    const requestId = ++this.playRequestId;
+
     let cached = this.musicCache.get(key);
 
     // If not cached, try to find and load it from manifests
@@ -214,6 +239,12 @@ export class VGMMusicManager {
       return false;
     }
 
+    // A newer play/stop request arrived while this one was loading — don't
+    // let a late-resolving play override it
+    if (requestId !== this.playRequestId) {
+      return false;
+    }
+
     try {
       // Update last used timestamp
       cached.lastUsed = Date.now();
@@ -222,9 +253,19 @@ export class VGMMusicManager {
       if (cached.audioBuffer) {
         await this.vgmPlayer.playPreGeneratedBuffer(cached.audioBuffer, cached.loop);
       } else {
-        // Fall back to regular loading (still cached, but needs processing)
-        await this.vgmPlayer.loadVGM(cached.data);
-        await this.vgmPlayer.playMusic();
+        // Fall back to regular loading (still cached, but needs processing);
+        // needs the lock since it goes through the shared parse state
+        const played = await this.withPlayerLock(async () => {
+          await this.vgmPlayer!.loadVGM(cached!.data);
+          if (requestId !== this.playRequestId) {
+            return false; // superseded while parsing
+          }
+          await this.vgmPlayer!.playMusic();
+          return true;
+        });
+        if (!played) {
+          return false;
+        }
       }
 
       return true;
@@ -252,6 +293,8 @@ export class VGMMusicManager {
    * Stop music playback
    */
   public stopMusic(): void {
+    // Invalidate any pending async play so it doesn't resume after the stop
+    this.playRequestId++;
     if (this.vgmPlayer) {
       this.vgmPlayer.stopMusic();
     }
@@ -262,30 +305,6 @@ export class VGMMusicManager {
    */
   public isPlaying(): boolean {
     return this.vgmPlayer ? this.vgmPlayer.isPlaying() : false;
-  }
-
-  /**
-   * Generate audio buffer during preload phase
-   * This performs the expensive VGM processing upfront to eliminate gameplay hangs
-   */
-  private async generateAudioBuffer(vgmData: Uint8Array, info: VGMInfo): Promise<AudioBuffer> {
-    if (!this.vgmPlayer) {
-      throw new Error('VGM Player not available');
-    }
-
-    try {
-      // Load the VGM data into the player temporarily
-      await this.vgmPlayer.loadVGM(vgmData);
-
-      // Generate the audio buffer (this is the expensive operation)
-      const audioBuffer = this.vgmPlayer.generateAudioBuffer();
-
-      return audioBuffer;
-
-    } catch (error) {
-      console.error('VGMMusicManager: Failed to pre-generate audio buffer:', error);
-      throw error;
-    }
   }
 
   /**
@@ -392,11 +411,24 @@ export class VGMMusicManager {
   }
 
   /**
-   * Set master music volume (0.0 to 1.0) — affects the playing track too
+   * Set master volume (0.0 to 1.0) — affects the playing track too
    */
   public setVolume(volume: number): void {
     this.volume = Math.max(0, Math.min(1, volume));
-    this.vgmPlayer?.setVolume(this.volume);
+    this.applyVolume();
+  }
+
+  /**
+   * Set game music volume (0.0 to 1.0) — multiplies with the master volume,
+   * mirroring how Phaser combines per-sound and global volume for SFX
+   */
+  public setMusicVolume(volume: number): void {
+    this.musicVolume = Math.max(0, Math.min(1, volume));
+    this.applyVolume();
+  }
+
+  private applyVolume(): void {
+    this.vgmPlayer?.setVolume(this.volume * this.musicVolume);
   }
 
   /**

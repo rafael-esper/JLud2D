@@ -62,7 +62,7 @@ export class ScriptEngine {
    * Set master music volume (0-100, matching Java Script.setMusicVolume)
    */
   public static setMusicVolume(volume: number): void {
-    VGMPlayerAPI.getPlayer()?.setVolume(Math.max(0, Math.min(100, volume)) / 100);
+    VGMPlayerAPI.setMusicVolume(Math.max(0, Math.min(100, volume)) / 100);
   }
 
   /**

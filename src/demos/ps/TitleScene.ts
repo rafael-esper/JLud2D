@@ -155,7 +155,12 @@ export class TitleScene extends PSScene {
 
       console.log("TitleScene: Starting game as Alis in Camineet");
 
-      // Set starting position for Alis in Camineet
+      // Java: gameData.current_planet = Planet.PALMA; mapswitch(City.CAMINEET, 29, 9)
+      // GameScene loads the map itself, so just set the location state here —
+      // it drives the city music and findAndPlayMusic()
+      PSGame.gameData.current_planet = Planet.PALMA;
+      PSGame.gameData.current_city = City.CAMINEET;
+      PSGame.gameData.visitedCities.add(City.CAMINEET);
       PSGame.setgotoxy(29, 9);
 
       // Start GameScene with scene context established
