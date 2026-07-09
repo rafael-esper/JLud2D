@@ -8,7 +8,7 @@
  *
  * Toolbar actions:
  *   Restart (confirm) · Pause (TODO) · Save state (TODO) · Load state (TODO)
- *   Controls (key rebinding) · Volume (slider + mute) · Settings
+ *   Controls (key rebinding) · Volume (slider + mute) · Game speed · Settings
  *   Touch pad toggle · Fullscreen
  *
  * The bar auto-hides after a few seconds without pointer activity and
@@ -17,6 +17,7 @@
 
 import { GameConfig } from '../config/GameConfig';
 import { ControlsConfig } from '../config/Controls';
+import { GameSpeed, SPEED_LEVELS, SPEED_LABELS, SpeedLevel } from '../config/GameSpeed';
 import { VGMMusicManager } from '../core/vgm2/VGMMusicManager';
 
 type AspectMode = 'fit' | 'integer' | 'stretch';
@@ -61,6 +62,7 @@ const ICONS: Record<string, string> = {
   controls: '<rect x="2" y="6" width="20" height="12" rx="1"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h.01M18 14h.01" stroke-linecap="round"/><path d="M9 14h6"/>',
   volume: '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9.5 9.5 0 0 1 0 13"/>',
   volumeMuted: '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="15" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="15" y2="15"/>',
+  speed: '<path d="M4 17a8 8 0 1 1 16 0"/><line x1="12" y1="16" x2="16.5" y2="11.5"/><circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none"/>',
   settings: '<line x1="4" y1="7" x2="20" y2="7"/><rect x="7" y="5" width="3.5" height="4" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><rect x="13" y="10" width="3.5" height="4" fill="currentColor" stroke="none"/><line x1="4" y1="17" x2="20" y2="17"/><rect x="8.5" y="15" width="3.5" height="4" fill="currentColor" stroke="none"/>',
   touch: '<rect x="2" y="7" width="20" height="10" rx="3"/><path d="M7 10v4M5 12h4"/><circle cx="16" cy="11" r="1.1" fill="currentColor" stroke="none"/><circle cx="18.5" cy="13.5" r="1.1" fill="currentColor" stroke="none"/>',
   fullscreen: '<path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/>',
@@ -76,6 +78,7 @@ export class EmulatorUI {
   private scrim!: HTMLDivElement;
   private panel!: HTMLDivElement;
   private volPop!: HTMLDivElement;
+  private speedPop!: HTMLDivElement;
   private toastEl!: HTMLDivElement;
 
   private hideTimer: number | null = null;
@@ -122,6 +125,7 @@ export class EmulatorUI {
       { act: 'load', icon: 'load', label: 'Load state' },
       { act: 'controls', icon: 'controls', label: 'Controls', sep: true },
       { act: 'volume', icon: 'volume', label: 'Volume' },
+      { act: 'speed', icon: 'speed', label: 'Game speed' },
       { act: 'settings', icon: 'settings', label: 'Settings' },
       { act: 'touch', icon: 'touch', label: 'Touch pad', sep: true },
       { act: 'fullscreen', icon: 'fullscreen', label: 'Full screen' }
@@ -150,6 +154,14 @@ export class EmulatorUI {
       `<input type="range" id="emu-vol-slider" min="0" max="100" step="1" value="${Math.round(this.volume * 100)}" aria-label="Volume">` +
       `<button id="emu-mute" class="emu-small-btn">Mute</button>`;
     this.bar.appendChild(this.volPop);
+
+    // Game-speed popover, same pattern as the volume popover
+    this.speedPop = document.createElement('div');
+    this.speedPop.id = 'emu-speed-pop';
+    this.speedPop.hidden = true;
+    this.speedPop.innerHTML = SPEED_LEVELS.map((lvl) =>
+      `<button class="emu-small-btn" data-speed="${lvl}">${SPEED_LABELS[lvl]}</button>`).join('');
+    this.bar.appendChild(this.speedPop);
 
     // Modal scrim + panel (controls / settings / restart confirmation)
     this.scrim = document.createElement('div');
@@ -180,6 +192,12 @@ export class EmulatorUI {
     slider.addEventListener('change', () => this.setVolume(Number(slider.value) / 100, true));
     this.volPop.querySelector<HTMLButtonElement>('#emu-mute')!
       .addEventListener('click', () => this.setMuted(!this.muted));
+
+    this.speedPop.addEventListener('click', (ev) => {
+      const btn = (ev.target as HTMLElement).closest<HTMLButtonElement>('[data-speed]');
+      if (btn) this.setSpeedLevel(btn.dataset.speed as SpeedLevel);
+    });
+    this.refreshSpeedButtons();
 
     document.addEventListener('fullscreenchange', () => this.refreshFullscreenIcon());
     document.addEventListener('keydown', (ev) => this.onKeyDown(ev), true);
@@ -220,6 +238,9 @@ export class EmulatorUI {
       case 'volume':
         this.volPop.hidden = !this.volPop.hidden;
         break;
+      case 'speed':
+        this.speedPop.hidden = !this.speedPop.hidden;
+        break;
       case 'settings':
         this.openSettingsPanel();
         break;
@@ -232,6 +253,7 @@ export class EmulatorUI {
     }
 
     if (btn.dataset.act !== 'volume') this.volPop.hidden = true;
+    if (btn.dataset.act !== 'speed') this.speedPop.hidden = true;
   }
 
   // ------------------------------------------------------------ auto-hide
@@ -265,8 +287,9 @@ export class EmulatorUI {
       this.armHideTimer();
       return;
     }
-    // An idle volume popover fades away with the bar
+    // Idle popovers fade away with the bar
     this.volPop.hidden = true;
+    this.speedPop.hidden = true;
     this.bar.classList.add('emu-off');
   }
 
@@ -339,6 +362,26 @@ export class EmulatorUI {
     volBtn.innerHTML = this.svg(m ? 'volumeMuted' : 'volume');
     volBtn.classList.toggle('emu-active', m);
     this.volPop.querySelector<HTMLButtonElement>('#emu-mute')!.textContent = m ? 'Unmute' : 'Mute';
+  }
+
+  // ----------------------------------------------------------- game speed
+
+  /** Applies globally: engine ticks, menu/battle pacing, dungeon delays. */
+  private setSpeedLevel(level: SpeedLevel): void {
+    GameSpeed.setLevel(level);
+    this.config.gameSpeed = GameSpeed.getLevel();
+    this.config.saveConfig();
+    this.refreshSpeedButtons();
+    this.toast(`Game speed: ${SPEED_LABELS[GameSpeed.getLevel()]}`);
+  }
+
+  private refreshSpeedButtons(): void {
+    const level = GameSpeed.getLevel();
+    this.speedPop.querySelectorAll<HTMLButtonElement>('[data-speed]').forEach((b) =>
+      b.classList.toggle('emu-active', b.dataset.speed === level));
+    // Flag the toolbar icon whenever the speed deviates from Normal
+    this.bar.querySelector<HTMLButtonElement>('[data-act="speed"]')!
+      .classList.toggle('emu-active', level !== 'normal');
   }
 
   // ------------------------------------------------------------ touch pad
@@ -455,6 +498,7 @@ export class EmulatorUI {
     this.scrim.hidden = false;
     this.panelOpen = true;
     this.volPop.hidden = true;
+    this.speedPop.hidden = true;
     this.setGameKeyboardEnabled(false);
     this.showBar();
   }
@@ -741,8 +785,8 @@ export class EmulatorUI {
   background: var(--emu-edge);
 }
 /* display:flex on these would otherwise override the hidden attribute */
-#emu-scrim[hidden], #emu-vol-pop[hidden] { display: none; }
-#emu-vol-pop {
+#emu-scrim[hidden], #emu-vol-pop[hidden], #emu-speed-pop[hidden] { display: none; }
+#emu-vol-pop, #emu-speed-pop {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
@@ -755,6 +799,7 @@ export class EmulatorUI {
   box-shadow: 0 0 0 1px #090b1c;
 }
 #emu-vol-slider { width: 120px; accent-color: var(--emu-red); }
+#emu-speed-pop { gap: 4px; }
 .emu-small-btn {
   font: inherit;
   font-size: 11px;

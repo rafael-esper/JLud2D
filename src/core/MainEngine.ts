@@ -973,11 +973,9 @@ export class MainEngine {
    * Should be called from scene update() method
    */
   public static updateEngine(inputManager: any): void {
-    // Process timed entity updates and zone checking (for PS demo)
+    // Entity thinking runs inside TimedProcessEntities — do not tick
+    // entities again here, that would double the movement speed
     MainEngine.TimedProcessEntities();
-
-    // Update all entities
-    MainEngine.updateEntities();
 
     // Handle player movement or camera movement
     const player = MainEngine.getPlayer();
@@ -1046,7 +1044,8 @@ export class MainEngine {
       return;
     }
 
-    // Update system time (in real implementation, this would be actual time)
+    // Update system time (once per rendered frame; the game-speed scaling
+    // happens inside Entity.think() via the speed accumulator)
     MainEngine.systemtime++;
 
     while (MainEngine.lastentitythink < MainEngine.systemtime) {

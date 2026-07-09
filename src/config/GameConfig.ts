@@ -4,6 +4,8 @@
  * Manages game settings like resolution, window mode, sound, etc.
  */
 
+import type { SpeedLevel } from './GameSpeed';
+
 export interface IGameConfig {
   // Display settings
   xRes: number;
@@ -26,6 +28,7 @@ export interface IGameConfig {
   // Game settings
   mapName: string;
   startupDemo: string;
+  gameSpeed: SpeedLevel;
 
   // Input settings
   keyboardEnabled: boolean;
@@ -60,6 +63,7 @@ export class GameConfig implements IGameConfig {
   // Game settings
   public mapName: string = '';
   public startupDemo: string = 'demo1';
+  public gameSpeed: SpeedLevel = 'normal';
 
   // Input settings
   public keyboardEnabled: boolean = true;

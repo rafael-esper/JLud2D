@@ -6,6 +6,7 @@
 
 import { VGMPlayerAPI } from './vgm2/VGMPlayerAPI';
 import { MainEngine } from './MainEngine';
+import { GameSpeed } from '../config/GameSpeed';
 
 export class ScriptEngine {
   // Graphics objects for UI drawing
@@ -364,8 +365,9 @@ export class ScriptEngine {
       return;
     }
 
-    // Convert frame duration to milliseconds (assuming 60fps: 16ms per frame)
-    const durationMs = duration * 16;
+    // Convert frame duration to milliseconds (16ms per frame at 60fps),
+    // shortened/lengthened by the global game speed
+    const durationMs = GameSpeed.scaleDelay(duration * 16);
 
     // Render entities at their current positions before fade-in
     MainEngine.RenderEntities();
@@ -412,8 +414,9 @@ export class ScriptEngine {
 
     MainEngine.setEntitiesPaused(true);
 
-    // Convert frame duration to milliseconds (assuming 60fps: 16ms per frame)
-    const durationMs = duration * 16;
+    // Convert frame duration to milliseconds (16ms per frame at 60fps),
+    // shortened/lengthened by the global game speed
+    const durationMs = GameSpeed.scaleDelay(duration * 16);
 
     return new Promise<void>((resolve) => {
       // Use native Phaser camera fade

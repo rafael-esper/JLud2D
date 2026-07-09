@@ -5,6 +5,7 @@
 
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
+import { GameSpeed } from '../../config/GameSpeed';
 import { Entity, EntityDirection } from '../../domain/Entity';
 import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
@@ -1190,7 +1191,7 @@ export class PSGame {
       }
 
       // Add delay to slow down animation (one pixel at a time)
-      await new Promise(resolve => setTimeout(resolve, 8));
+      await new Promise(resolve => setTimeout(resolve, GameSpeed.scaleDelay(8)));
     }
 
     MainEngine.setEntitiesPaused(false);

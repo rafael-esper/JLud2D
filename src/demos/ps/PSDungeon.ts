@@ -11,6 +11,7 @@ import { PS1Sound } from './game/PSLibSound';
 import { EntityDirection } from '../../domain/Entity';
 import { Entity } from '../../domain/Entity';
 import { InputManager } from '../../config/Controls';
+import { GameSpeed } from '../../config/GameSpeed';
 
 // Tile constants
 const WALL = 0;
@@ -335,7 +336,8 @@ export class PSDungeon {
         }
       }
 
-      await this.delay(30);
+      // Java ran this loop once per 20 ms engine frame
+      await this.delay(GameSpeed.scaleDelay(20));
 
       if (this.inputManager!.justPressed('b3')) {
         PSDungeon.setIsInsideDungeon(false);
@@ -1058,7 +1060,10 @@ export class PSDungeon {
   }
 
   private async delayScreen(): Promise<void> {
-    await this.delay(100);
+    // Java: waits gameData.dungeonDelay engine frames of 20 ms each
+    // (in-game Options > Delay still tunes this), scaled by the game speed
+    const frames = PSGame.gameData?.dungeonDelay ?? 4;
+    await this.delay(GameSpeed.scaleDelay(frames * 20));
   }
 
   private async delay(ms: number): Promise<void> {

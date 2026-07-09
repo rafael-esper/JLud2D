@@ -5,6 +5,7 @@
  */
 
 import { CHR } from './CHR';
+import { GameSpeed } from '../config/GameSpeed';
 
 // Direction constants (matching Java Entity interface)
 export const EntityDirection = {
@@ -125,8 +126,11 @@ export class Entity {
   public think(): void {
     if (!this.active) return;
 
-    // Java-style speed accumulation system
-    this.speedct += this.getSpeed();
+    // Java-style speed accumulation system. think() runs once per rendered
+    // frame (60/s vs the Java engine's 50/s), so the global game speed is
+    // applied here through the accumulator: movement stays smooth per-frame
+    // while the effective tick rate scales with the user's speed level.
+    this.speedct += this.getSpeed() * GameSpeed.entitySpeedScale();
     const numTicks = Math.floor(this.speedct / 100);
     this.speedct %= 100;
 

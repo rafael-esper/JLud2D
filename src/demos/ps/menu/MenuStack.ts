@@ -9,6 +9,7 @@ import { MenuTextBox } from './MenuTextBox';
 import { MenuLabelBox } from './MenuLabelBox';
 import { MenuImageBox } from './MenuImageBox';
 import { InputManager } from '../../../config/Controls';
+import { GameSpeed } from '../../../config/GameSpeed';
 import { PSGame } from '../PSGame';
 import { PS1Sound } from '../game/PSLibSound';
 import { ScriptEngine } from '../../../core/ScriptEngine';
@@ -591,6 +592,18 @@ export class MenuStack {
    * Enhanced drawMenus with background animation support - enhanced from Java original
    */
   public drawMenus(): void {
+    // Menu counters (text reveal, box-opening animation, battle CHR frames)
+    // advance once per draw, so pace draws at the Java engine rate (50/s)
+    // scaled by the global game speed. Extra calls within the same frame
+    // consume no additional ticks, and on 0-tick frames the previous render
+    // simply stays on screen.
+    const ticks = GameSpeed.menuTicks();
+    for (let i = 0; i < ticks; i++) {
+      this.drawMenusTick();
+    }
+  }
+
+  private drawMenusTick(): void {
     // Clear previous graphics - redraw all menus each frame
     for (const layer of this.layers) {
       layer.clear();

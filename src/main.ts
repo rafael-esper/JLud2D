@@ -4,6 +4,7 @@
  */
 
 import { GameConfig } from './config/GameConfig';
+import { GameSpeed } from './config/GameSpeed';
 import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';
 import { SettingsScene } from './scenes/SettingsScene';
@@ -35,6 +36,9 @@ class Game {
       // Load configuration
       this.config = await GameConfig.loadConfig();
       console.log('Configuration loaded:', this.config);
+
+      // Restore the persisted game-speed level before any scene starts
+      GameSpeed.setLevel(this.config.gameSpeed);
 
       // Log configuration details
       console.log(`Resolution: ${this.config.xRes}x${this.config.yRes}`);
