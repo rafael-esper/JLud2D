@@ -517,6 +517,38 @@ export class PSGame {
   }
 
   /**
+   * Warp the player to a tile position within the current dungeon - direct port of
+   * Java PSGame.warp(). Delegates to the active dungeon instance's renderer.
+   */
+  public static async warp(i: number, j: number, rendermap: boolean): Promise<void> {
+    const dungeon = this.getCurrentDungeonInstance();
+    if (dungeon && typeof dungeon.warpTo === 'function') {
+      await dungeon.warpTo(i, j, rendermap);
+    } else {
+      console.warn('PSGame.warp: no active dungeon instance to warp within');
+    }
+  }
+
+  /**
+   * Find an inventory item across all party members - direct port of Java findItemWithParty().
+   * Optionally removes the first matching item found.
+   */
+  public static findItemWithParty(inventoryItem: OriginalItem, remove: boolean): boolean {
+    const item = this.getItem(inventoryItem);
+    for (const pm of this.getParty().getMembers()) {
+      const items = pm.getItems();
+      const idx = items.indexOf(item);
+      if (idx !== -1) {
+        if (remove) {
+          items.splice(idx, 1);
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Map switch with string path - base implementation
    */
   public static async mapswitch(mapname: string, x: number, y: number, fade: boolean = true, basePath?: string, music?: PS1Music): Promise<void> {

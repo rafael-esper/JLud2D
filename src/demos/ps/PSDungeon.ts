@@ -81,6 +81,41 @@ export class PSDungeon {
   private img_dungeon_lenc: Phaser.GameObjects.Image[] = [];
   private directions = [EntityDirection.NORTH, EntityDirection.EAST, EntityDirection.SOUTH, EntityDirection.WEST];
 
+  // Per-area encounter pools configured by each dungeon's startmap script.
+  // Stored keyed by area index; consumed once in-dungeon random battles are wired.
+  private randomEnemies: Map<number, any[]> = new Map();
+  private fixedEnemies: Map<number, any[]> = new Map();
+
+  /**
+   * Configure the random-encounter enemy pool for a dungeon area.
+   * Direct port of Java PSDungeon.setRandomEnemies().
+   */
+  public setRandomEnemies(area: number, enemies: any[]): void {
+    this.randomEnemies.set(area, enemies);
+  }
+
+  /**
+   * Configure the fixed-encounter enemy group for a dungeon area.
+   * Direct port of Java PSDungeon.setFixedEnemies().
+   */
+  public setFixedEnemies(area: number, enemies: any[]): void {
+    this.fixedEnemies.set(area, enemies);
+  }
+
+  /**
+   * Get the configured random-encounter pool for a dungeon area (empty if unset).
+   */
+  public getRandomEnemies(area: number): any[] {
+    return this.randomEnemies.get(area) ?? [];
+  }
+
+  /**
+   * Get the configured fixed-encounter group for a dungeon area (empty if unset).
+   */
+  public getFixedEnemies(area: number): any[] {
+    return this.fixedEnemies.get(area) ?? [];
+  }
+
   /**
    * Get whether player is inside a dungeon
    */
@@ -1064,6 +1099,26 @@ export class PSDungeon {
       this.putimage(images[i], 0, flipped ? 1 : 0);
       this.drawImageToScreen();
       await this.delayScreen();
+    }
+  }
+
+  /**
+   * Warp the player to a tile position within the current dungeon (used by stairs
+   * scripts). Port of Java PSGame.warp(): fade out, reposition, then redraw and
+   * fade back in so the new area is revealed.
+   */
+  public async warpTo(i: number, j: number, rendermap: boolean): Promise<void> {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    if (this.showDungeon) {
+      await ScriptEngine.fadeout(30, rendermap);
+    }
+    player.setxy(i * 16, j * 16);
+    if (this.showDungeon) {
+      this.drawDungeon(player, 0);
+      this.drawImageToScreen();
+      await ScriptEngine.fadein(30, rendermap);
     }
   }
 
