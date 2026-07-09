@@ -5,8 +5,9 @@
   "main": "src/main.ts",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
+    "build:worklet": "node scripts/build-worklet.mjs",
+    "dev": "npm run build:worklet && vite",
+    "build": "npm run build:worklet && tsc && vite build",
     "preview": "vite preview",
     "serve": "vite preview --port 3080",
     "type-check": "tsc --noEmit"

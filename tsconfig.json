@@ -24,5 +24,5 @@
     "types": ["phaser"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "src/core/vgm2/test"]
 }

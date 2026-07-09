@@ -8,6 +8,9 @@ import { InputManager, ControlsConfig } from '../../config/Controls';
 import { DemoUI } from '../../utils/DemoUI';
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
+import { VgmEnginePlayer } from '../../core/vgm2/VgmEnginePlayer';
+
+type EngineMode = 'legacy' | 'vgm2';
 
 interface VGMFile {
   name: string;
@@ -25,6 +28,14 @@ export class Demo3Scene extends Phaser.Scene {
   // State
   private selectedFile: number = 0;
   private isPlaying: boolean = false;
+
+  // A/B comparison: the legacy 'vgm' player (via ScriptEngine) vs the new
+  // 'vgm2' streaming AudioWorklet engine (owned locally by this scene)
+  private engineMode: EngineMode = 'legacy';
+  private enginePlayer: VgmEnginePlayer = new VgmEnginePlayer({ sampleRate: 44100 });
+  // Raw VGM bytes per file key, fetched lazily for vgm2 playback
+  private vgmBytes: Map<string, Uint8Array> = new Map();
+  private engineText!: Phaser.GameObjects.Text;
 
   // VGM files configuration
   private files: VGMFile[] = [
@@ -75,9 +86,22 @@ export class Demo3Scene extends Phaser.Scene {
     // Set up controls
     this.setupControls();
 
-    // Set up audio context resume on user interaction
-    this.input.on('pointerdown', () => ScriptEngine.resumeVGMAudio());
-    this.input.keyboard?.on('keydown', () => ScriptEngine.resumeVGMAudio());
+    // Set up audio context resume on user interaction (both engines)
+    this.input.on('pointerdown', () => {
+      ScriptEngine.resumeVGMAudio();
+      this.enginePlayer.resumeAudio();
+    });
+    this.input.keyboard?.on('keydown', () => {
+      ScriptEngine.resumeVGMAudio();
+      this.enginePlayer.resumeAudio();
+    });
+
+    // Engine A/B toggle: TAB or E
+    this.input.keyboard?.on('keydown-TAB', (e: KeyboardEvent) => {
+      e.preventDefault();
+      this.toggleEngine();
+    });
+    this.input.keyboard?.on('keydown-E', () => this.toggleEngine());
 
     console.log('Demo 3 Scene - VGM Player initialized');
   }
@@ -145,6 +169,17 @@ export class Demo3Scene extends Phaser.Scene {
       fontFamily: 'monospace'
     }).setOrigin(0.5);
 
+    // Engine A/B indicator (clickable). Shows which player will be used.
+    this.engineText = this.add.text(centerX, 36, '', {
+      fontSize: '11px',
+      color: '#00ffff',
+      fontFamily: 'monospace',
+      backgroundColor: '#003333',
+      padding: { x: 8, y: 3 }
+    }).setOrigin(0.5).setInteractive({ cursor: 'pointer' });
+    this.engineText.on('pointerdown', () => this.toggleEngine());
+    this.updateEngineText();
+
     // Control buttons
     const buttonY = this.cameras.main.height - 80;
     this.playButton = this.add.text(centerX - 40, buttonY, 'PLAY', {
@@ -169,7 +204,7 @@ export class Demo3Scene extends Phaser.Scene {
 
     // Controls info
     const controlsY = this.cameras.main.height - 40;
-    this.add.text(centerX, controlsY, 'UP/DOWN: Select File | J/Z/ENTER: Play | K/X: Stop | ESC: Back to Menu', {
+    this.add.text(centerX, controlsY, 'UP/DOWN: Select | J/Z/ENTER: Play | K/X: Stop | TAB/E: Engine | ESC: Menu', {
       fontSize: '10px',
       color: '#888888',
       fontFamily: 'monospace',
@@ -227,7 +262,39 @@ export class Demo3Scene extends Phaser.Scene {
   }
 
   /**
-   * Public API: Play music
+   * Toggle between the legacy 'vgm' player and the new 'vgm2' engine.
+   * Stops any current playback so the two never overlap.
+   */
+  private toggleEngine(): void {
+    this.stopMusic();
+    this.engineMode = this.engineMode === 'legacy' ? 'vgm2' : 'legacy';
+    this.updateEngineText();
+    this.statusText.setText(`Engine: ${this.engineLabel()} (press PLAY)`);
+  }
+
+  private engineLabel(): string {
+    return this.engineMode === 'legacy' ? 'vgm (legacy)' : 'vgm2 (new)';
+  }
+
+  private updateEngineText(): void {
+    if (!this.engineText) return;
+    this.engineText.setText(`ENGINE: ${this.engineLabel()}  [TAB/E to switch]`);
+    this.engineText.setColor(this.engineMode === 'vgm2' ? '#00ff88' : '#00ffff');
+  }
+
+  /** Fetch (and cache) raw VGM bytes for the vgm2 engine. */
+  private async getVgmBytes(file: VGMFile): Promise<Uint8Array> {
+    const cached = this.vgmBytes.get(file.key);
+    if (cached) return cached;
+    const response = await fetch(`src/demos/demo3/${file.name}`);
+    if (!response.ok) throw new Error(`Failed to fetch ${file.name}`);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    this.vgmBytes.set(file.key, bytes);
+    return bytes;
+  }
+
+  /**
+   * Public API: Play music through the currently selected engine
    */
   async playMusic(): Promise<void> {
     const file = this.files[this.selectedFile];
@@ -237,15 +304,23 @@ export class Demo3Scene extends Phaser.Scene {
       return;
     }
 
-    try {
-      this.statusText.setText(`Loading ${file.name}...`);
+    // Ensure the other engine is silent before starting
+    this.stopBothEngines();
 
-      // Play using MainEngine
-      const success = await ScriptEngine.playmusic(file.key);
+    try {
+      this.statusText.setText(`Loading ${file.name}... [${this.engineLabel()}]`);
+
+      let success = true;
+      if (this.engineMode === 'legacy') {
+        success = await ScriptEngine.playmusic(file.key);
+      } else {
+        const bytes = await this.getVgmBytes(file);
+        await this.enginePlayer.play(bytes, true);
+      }
 
       if (success) {
         this.isPlaying = true;
-        this.statusText.setText(`Playing: ${file.name}`);
+        this.statusText.setText(`Playing: ${file.name}  [${this.engineLabel()}]`);
       } else {
         this.statusText.setText('Playback failed');
         this.isPlaying = false;
@@ -260,11 +335,16 @@ export class Demo3Scene extends Phaser.Scene {
     }
   }
 
+  private stopBothEngines(): void {
+    ScriptEngine.stopmusic();
+    this.enginePlayer.stop();
+  }
+
   /**
    * Public API: Stop music
    */
   stopMusic(): void {
-    ScriptEngine.stopmusic();
+    this.stopBothEngines();
 
     this.isPlaying = false;
     this.statusText.setText('Stopped');
@@ -311,8 +391,10 @@ export class Demo3Scene extends Phaser.Scene {
       this.scene.start('MenuScene', { config: this.config });
     }
 
-    // Update playing status
-    if (this.isPlaying && !ScriptEngine.isVGMPlaying()) {
+    // Update playing status against whichever engine is active
+    const enginePlaying =
+      this.engineMode === 'legacy' ? ScriptEngine.isVGMPlaying() : this.enginePlayer.isPlaying();
+    if (this.isPlaying && !enginePlaying) {
       // Music finished naturally
       this.isPlaying = false;
       this.statusText.setText('Finished');
