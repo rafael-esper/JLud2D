@@ -83,10 +83,13 @@ export class MenuCHR extends MenuType {
     }
 
     // Ensure sprite is visible and positioned correctly on every frame (like entity sprite)
-    // Position relative to camera since camera may be offset
+    // Position relative to camera since camera may be offset.
+    // Subtract the CHR hotspot like Java CHR.render() does — weapon
+    // animations carry a hotspot (e.g. hy=20) that anchors them on the
+    // enemy contact point.
     const camera = this.sprite.scene.cameras.main;
-    const worldX = camera.scrollX + this.x;
-    const worldY = camera.scrollY + this.y;
+    const worldX = camera.scrollX + this.x - this.chr.getHx();
+    const worldY = camera.scrollY + this.y - this.chr.getHy();
 
     this.sprite.setPosition(worldX, worldY);
     this.sprite.setVisible(this.visible);

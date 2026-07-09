@@ -1339,7 +1339,8 @@ export class PSBattle {
         PSMenu.instance.drawMenus();
       }
 
-      // Enemy hit animation (Java: ANIM1 is the damage animation)
+      // Enemy hit animation (Java: damage sound, then ANIM1)
+      PSGame.playSound(PS1Sound.ENEMY_DAMAGE);
       if (defender.sprite) {
         defender.sprite.animate(MenuState.ANIM1);
         await this.waitForAnimationComplete(defender.sprite);
@@ -1347,8 +1348,9 @@ export class PSBattle {
       }
     }
 
-    // Apply screen shake effect for player damage
+    // Apply damage sound and screen shake effect for player damage
     if (defender instanceof PartyMember) {
+      PSGame.playSound(PS1Sound.PLAYER_DAMAGE);
       await this.earthquakeEffect(amount);
     }
 
