@@ -3,7 +3,7 @@
  * Defines all VGM music files for preloading to eliminate gameplay interruptions
  */
 
-import { MusicManifest } from '../../core/vgm/VGMMusicManager';
+import { MusicManifest } from '../../core/vgm2/VGMMusicManager';
 
 export const AK_MUSIC_MANIFEST: MusicManifest = {
   name: 'Alex Kidd',

@@ -3,7 +3,7 @@
  * Demo3 is a VGM file browser, so it loads music on-demand rather than preloading
  */
 
-import { MusicManifest } from '../../core/vgm/VGMMusicManager';
+import { MusicManifest } from '../../core/vgm2/VGMMusicManager';
 
 export const DEMO3_MUSIC_MANIFEST: MusicManifest = {
   name: 'Demo3 VGM Player',

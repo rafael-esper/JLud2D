@@ -17,7 +17,7 @@
 
 import { GameConfig } from '../config/GameConfig';
 import { ControlsConfig } from '../config/Controls';
-import { VGMMusicManager } from '../core/vgm/VGMMusicManager';
+import { VGMMusicManager } from '../core/vgm2/VGMMusicManager';
 
 type AspectMode = 'fit' | 'integer' | 'stretch';
 

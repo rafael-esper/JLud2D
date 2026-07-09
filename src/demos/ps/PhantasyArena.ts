@@ -219,6 +219,12 @@ export class PhantasyArena {
         outcome = await battle.battleScene(scheduled.scene, PhantasyArena.getEnemy(scheduled.enemy!), scheduled.quantity!);
       }
 
+      // The arena has no overworld location, so the battle's post-fight
+      // findAndPlayMusic() falls back to the title theme. Silence it: the
+      // pauses between arena battles (companion dialogs, reward menu) play no
+      // music; the next battle restarts the battle theme itself.
+      PSGame.stopMusic();
+
       if (scheduled.skipReward) {
         continue; // Java case 172 skips the outcome check and reward
       }

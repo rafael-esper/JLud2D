@@ -4,7 +4,7 @@
  * Separated from MainEngine to keep core functionality focused
  */
 
-import { VGMPlayerAPI } from './vgm/VGMPlayerAPI';
+import { VGMPlayerAPI } from './vgm2/VGMPlayerAPI';
 import { MainEngine } from './MainEngine';
 
 export class ScriptEngine {
