@@ -157,7 +157,6 @@ export class PSDungeon {
    * move or turn away.
    */
   public setLingeringMenu(menu: any): void {
-    console.log('PSDungeon: keeping scene sprite visible off-stack (lingering)');
     PSMenu.instance.removeKeepAlive(menu);
     this.lingeringMenu = menu;
   }

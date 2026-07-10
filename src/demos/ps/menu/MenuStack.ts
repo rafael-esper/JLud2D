@@ -102,7 +102,6 @@ export class MenuStack {
    */
   public removeKeepAlive(menu: MenuType): void {
     const index = this.menus.indexOf(menu);
-    console.log(`MenuStack.removeKeepAlive: index=${index} stack=${this.menus.length}`);
     if (index === -1) return;
     this.menus.splice(index, 1);
     const layer = this.layers[this.menus.length];
