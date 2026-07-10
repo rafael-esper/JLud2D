@@ -6,6 +6,7 @@
 
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
+import { AkMusic } from './music';
 import { Condition, Status, Action, AkMovement } from './AkMovement';
 import { AkCore } from './AkCore';
 import { AkSprites } from './AkSprites';
@@ -223,7 +224,7 @@ export class AkActions {
           movement.setState(Status.STOPPED);
 
           // Change music to swim music
-          ScriptEngine.playmusic('swim');
+          ScriptEngine.playmusic(AkMusic.SWIM);
 
           // Play water sound and animate player going into water
           scene.sound.play('snd_water');
@@ -609,12 +610,12 @@ export class AkActions {
     // Restart appropriate music based on condition
     const restoredCondition = AkCore.getCondition();
     if (restoredCondition === Condition.SWIM) {
-      ScriptEngine.playmusic('swim');
+      ScriptEngine.playmusic(AkMusic.SWIM);
     } else if (restoredCondition === Condition.MOTO) {
-      ScriptEngine.playmusic('moto');
+      ScriptEngine.playmusic(AkMusic.MOTO);
     } else {
       // Default field music for WALK, FLY, HELI, SURF, etc.
-      ScriptEngine.playmusic('field');
+      ScriptEngine.playmusic(AkMusic.FIELD);
     }
 
     console.log(`AkActions: Music restarted for condition ${restoredCondition}`);

@@ -22,7 +22,6 @@ import { OriginalItem, PSLibItem } from './game/PSLibItem';
 import { PSLibEnemy, GenericEnemy } from './game/PSLibEnemy';
 import { VImage } from './menu/MenuImageBox';
 import { I18nManager } from './game/I18nManager';
-import { PS_MUSIC_MANIFEST } from './music-manifest';
 
 // Battle system imports
 import { Enemy } from './battle/Enemy';
@@ -79,27 +78,9 @@ export class PSGame {
       return;
     }
 
-    const musicKey = this.getMusicKeyFromPath(music as string);
-
     ScriptEngine.setMusicVolume(this.gameData.musicVolume);
-    ScriptEngine.playmusic(musicKey);
+    ScriptEngine.playmusic(music as string);
     this.currentMusic = music;
-  }
-
-  /**
-   * Get music key from music path for cached playback
-   */
-  private static getMusicKeyFromPath(musicPath: string): string {
-    // Find the matching asset key in the manifest based on the path
-    for (const asset of PS_MUSIC_MANIFEST.assets) {
-      if (asset.path === musicPath) {
-        return asset.key;
-      }
-    }
-
-    // Fallback: extract filename without extension as key
-    const filename = musicPath.split('/').pop() || '';
-    return filename.replace(/\.(vgz|vgm)$/, '').toLowerCase();
   }
 
   /**
@@ -325,6 +306,10 @@ export class PSGame {
     // Reset all game state for a fresh start
     this.gameData = new GameData();
 
+    // Java: gameData.setGameType(gameType) — findAndPlayMusic() and others
+    // key off it (null game type means "still on the title screen")
+    this.gameData.setGameType(gameType);
+
     // Initialize party with specified game type
     this.party = new Party(gameType);
 
@@ -499,8 +484,7 @@ export class PSGame {
    * Get current game type
    */
   public static getGameType(): GameType {
-    // For now return PS_ORIGINAL, could be stored in gameData
-    return GameType.PS_ORIGINAL;
+    return this.gameData?.getGameType() ?? GameType.PS_ORIGINAL;
   }
 
   /**

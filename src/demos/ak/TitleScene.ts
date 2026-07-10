@@ -8,7 +8,7 @@ import { GameConfig } from '../../config/GameConfig';
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { AkBaseScene } from './AkBaseScene';
-import { AK_MUSIC_MANIFEST } from './music-manifest';
+import { AkMusic } from './music';
 
 export class TitleScene extends AkBaseScene {
 
@@ -37,9 +37,6 @@ export class TitleScene extends AkBaseScene {
   }
 
   async create() {
-    // Preload all Alex Kidd music once at demo start
-    await ScriptEngine.preloadMusicManifest(AK_MUSIC_MANIFEST);
-
     // Setup common AK controls
     this.setupAkControls();
 
@@ -53,8 +50,8 @@ export class TitleScene extends AkBaseScene {
     this.graphics = this.add.graphics();
     this.graphics.setDepth(1000); // High depth to render on top
 
-    // Play intro music from cache
-    ScriptEngine.playmusic('intro');
+    // Play intro music (non-looping jingle)
+    ScriptEngine.playmusic(AkMusic.INTRO, false);
 
     console.log('TitleScene: Title screen initialized');
   }

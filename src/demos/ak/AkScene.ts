@@ -17,7 +17,6 @@ import { AkSprites } from './AkSprites';
 import { CHR } from '../../domain/CHR';
 import { Scene } from 'phaser';
 import { AkBaseScene } from './AkBaseScene';
-import { AK_MUSIC_MANIFEST } from './music-manifest';
 
 export class AkScene extends AkBaseScene {
   private mapFilename: string = 'level01.map.json';

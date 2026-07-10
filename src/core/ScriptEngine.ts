@@ -39,17 +39,11 @@ export class ScriptEngine {
   }
 
   /**
-   * Preload music manifest for instant playback
+   * Play VGM music by path (or a key previously registered via loadVGM);
+   * the track is fetched on first play and streamed instantly after that.
    */
-  public static async preloadMusicManifest(manifest: any): Promise<void> {
-    return await VGMPlayerAPI.preloadMusicManifest(manifest);
-  }
-
-  /**
-   * Play VGM music
-   */
-  public static playmusic(key: string): boolean {
-    return VGMPlayerAPI.playMusic(key);
+  public static playmusic(key: string, loop?: boolean): boolean {
+    return VGMPlayerAPI.playMusic(key, loop);
   }
 
   /**

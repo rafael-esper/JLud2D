@@ -9,18 +9,6 @@
 import { VgmEnginePlayer, VgmEngineOptions, inflateVgmIfNeeded } from './VgmEnginePlayer';
 import { parseVGMInfo, VGMInfo } from './vgmInfo';
 
-export interface MusicAsset {
-  key: string;
-  path: string;
-  preload: boolean;
-  loop?: boolean; // per-track looping (default true)
-}
-
-export interface MusicManifest {
-  name: string;
-  assets: MusicAsset[];
-}
-
 export type { VGMInfo };
 
 interface CachedMusic {
@@ -33,14 +21,13 @@ export class VGMMusicManager {
   private static instance: VGMMusicManager | null = null;
 
   private player: VgmEnginePlayer | null = null;
-  // Cached by PATH (unique), not by the short manifest key — different demos
-  // reuse keys like 'title' for different files, so a key-keyed cache would
-  // collide (e.g. play Sonic's title inside Phantasy Star).
+  // Cached by PATH (unique), not by short keys — different demos reuse keys
+  // like 'title' for different files, so a key-keyed cache would collide
+  // (e.g. play Sonic's title inside Phantasy Star).
   private cache = new Map<string, CachedMusic>();
-  // Resolves a manifest key to its path; refreshed on every load, so it always
-  // reflects the scene that most recently loaded that key.
+  // Resolves a loadMusicAsset() key to its path; refreshed on every load, so
+  // it always reflects the scene that most recently loaded that key.
   private keyToPath = new Map<string, string>();
-  private manifests = new Map<string, MusicManifest>();
   private initialized = false;
   private initPromise: Promise<void> | null = null;
 
@@ -104,37 +91,24 @@ export class VGMMusicManager {
     }
   }
 
-  /** Register a manifest and fetch its preload assets into the byte cache. */
-  async preloadMusicManifest(manifest: MusicManifest): Promise<void> {
-    if (!this.initialized) await this.initialize();
-    this.manifests.set(manifest.name, manifest);
-
-    const preloadAssets = manifest.assets.filter((a) => a.preload);
-    await Promise.all(
-      preloadAssets.map((a) =>
-        this.loadMusicAsset(a.key, a.path, false, a.loop ?? true).catch((e) =>
-          console.error(`VGMMusicManager: Failed to preload ${a.key}:`, e)
-        )
-      )
-    );
-  }
-
-  /** Play a track by key (streams instantly; loads on demand if not cached). */
-  async playMusic(key: string): Promise<boolean> {
+  /**
+   * Play a track (streams instantly; loads on demand if not cached). The
+   * argument is a path, or a key previously registered via loadMusicAsset().
+   */
+  async playMusic(key: string, loop?: boolean): Promise<boolean> {
     if (!this.initialized) await this.initialize();
     if (!this.player) return false;
 
     const requestId = ++this.playRequestId;
 
-    // Resolve the key to a concrete path (most-recent loader wins, then the
-    // manifest registry; finally treat the argument as a path itself).
-    const asset = this.findAsset(key);
-    const path = this.keyToPath.get(key) ?? asset?.path ?? key;
-    const loop = this.cache.get(path)?.loop ?? asset?.loop ?? true;
+    // Resolve the key to a concrete path (most-recent loader wins; otherwise
+    // treat the argument as a path itself).
+    const path = this.keyToPath.get(key) ?? key;
+    const effectiveLoop = loop ?? this.cache.get(path)?.loop ?? true;
 
     let cached = this.cache.get(path);
     if (!cached) {
-      const info = await this.loadMusicAsset(key, path, false, loop);
+      const info = await this.loadMusicAsset(key, path, false, effectiveLoop);
       if (!info) {
         console.error(`VGMMusicManager: Music '${key}' (${path}) could not be loaded`);
         return false;
@@ -147,20 +121,12 @@ export class VGMMusicManager {
     if (requestId !== this.playRequestId) return false;
 
     try {
-      await this.player.play(cached.data, cached.loop);
+      await this.player.play(cached.data, effectiveLoop);
       return requestId === this.playRequestId;
     } catch (error) {
       console.error(`VGMMusicManager: Failed to play '${key}':`, error);
       return false;
     }
-  }
-
-  private findAsset(key: string): MusicAsset | null {
-    for (const manifest of this.manifests.values()) {
-      const asset = manifest.assets.find((a) => a.key === key);
-      if (asset) return asset;
-    }
-    return null;
   }
 
   stopMusic(): void {
@@ -173,8 +139,8 @@ export class VGMMusicManager {
   }
 
   isCached(key: string): boolean {
-    const path = this.keyToPath.get(key) ?? this.findAsset(key)?.path;
-    return !!path && this.cache.has(path);
+    const path = this.keyToPath.get(key) ?? key;
+    return this.cache.has(path);
   }
 
   clearCache(): void {
@@ -210,6 +176,5 @@ export class VGMMusicManager {
   cleanup(): void {
     this.stopMusic();
     this.clearCache();
-    this.manifests.clear();
   }
 }

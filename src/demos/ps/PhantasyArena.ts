@@ -12,6 +12,7 @@ import { Enemy } from './battle/Enemy';
 import { PSLibEnemy, PS1Enemy } from './game/PSLibEnemy';
 import { OriginalItem } from './game/PSLibItem';
 import { PS1Sound } from './game/PSLibSound';
+import { PS1Music } from './game/PSLibMusic';
 import { PartyMember, Gender } from './game/PartyMember';
 import { Specie } from './game/Specie';
 import { Job } from './game/Job';
@@ -220,10 +221,10 @@ export class PhantasyArena {
       }
 
       // The arena has no overworld location, so the battle's post-fight
-      // findAndPlayMusic() falls back to the title theme. Silence it: the
-      // pauses between arena battles (companion dialogs, reward menu) play no
-      // music; the next battle restarts the battle theme itself.
-      PSGame.stopMusic();
+      // findAndPlayMusic() falls back to the title theme. Play the story
+      // theme instead during the pauses between arena battles (companion
+      // dialogs, reward menu); the next battle restarts the battle theme.
+      await PSGame.playMusic(PS1Music.STORY);
 
       if (scheduled.skipReward) {
         continue; // Java case 172 skips the outcome check and reward

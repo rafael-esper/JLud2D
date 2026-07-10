@@ -3,7 +3,7 @@
 // Thin static wrapper over the vgm2 VGMMusicManager, preserving the surface the
 // app already calls through ScriptEngine.
 
-import { VGMMusicManager, MusicManifest, VGMInfo } from './VGMMusicManager';
+import { VGMMusicManager, VGMInfo } from './VGMMusicManager';
 
 export class VGMPlayerAPI {
   private static initialized = false;
@@ -28,24 +28,15 @@ export class VGMPlayerAPI {
     }
   }
 
-  static async preloadMusicManifest(manifest: MusicManifest): Promise<void> {
-    if (!VGMPlayerAPI.initialized) await VGMPlayerAPI.initialize();
-    try {
-      await VGMMusicManager.getInstance().preloadMusicManifest(manifest);
-    } catch (error) {
-      console.error('VGMPlayerAPI: Failed to preload manifest:', error);
-    }
-  }
-
-  static playMusic(key: string): boolean {
+  static playMusic(key: string, loop?: boolean): boolean {
     if (!VGMPlayerAPI.initialized) {
       VGMPlayerAPI.initialize()
-        .then(() => VGMPlayerAPI.playMusic(key))
+        .then(() => VGMPlayerAPI.playMusic(key, loop))
         .catch(console.error);
       return false;
     }
     VGMMusicManager.getInstance()
-      .playMusic(key)
+      .playMusic(key, loop)
       .then((ok) => {
         if (!ok) console.error(`VGMPlayerAPI: Failed to play '${key}'`);
       })
