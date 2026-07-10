@@ -69,6 +69,11 @@ export class GameScene extends Phaser.Scene {
     PSGame.setCurrentScene(this);
     MainEngine.setCurrentScene(this, this.config);
 
+    // Expose the live instances for console debugging and automated tests
+    // (page-side ES imports can get separate module copies under Vite HMR)
+    (window as any).PSGame = PSGame;
+    (window as any).MainEngine = MainEngine;
+
     // Load the map for the current location (use override if provided)
     const mapName = this.mapNameOverride || 'Camineet.map.json';
     const mapBasePath = this.mapBasePath;
@@ -114,6 +119,16 @@ export class GameScene extends Phaser.Scene {
    */
   private async startmap(): Promise<void> {
     console.log("PS::startmap");
+
+    // Dungeon maps are driven by PSDungeon.startDungeon() (black cover, loading
+    // box, first-person renderer). The generic city startmap below would fade
+    // the raw dungeon tilemap in - this is the fallback path for dungeon maps
+    // whose script hasn't been ported yet.
+    const { PSDungeon } = await import('./PSDungeon');
+    if (PSDungeon.getIsInsideDungeon()) {
+      console.log("GameScene.startmap: Inside dungeon - skipping generic city startmap");
+      return;
+    }
 
     // Enable camera tracking (equivalent to Java cameratracking=1)
     MainEngine.setCameraTracking(1);

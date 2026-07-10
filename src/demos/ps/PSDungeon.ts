@@ -29,6 +29,7 @@ export class PSDungeon {
   // Static flag to track if player is inside a dungeon
   private static isInsideDungeon: boolean = false;
 
+  private started: boolean = false;
   private isDark: boolean = true;
   private showDungeon: boolean = true;
   walkingBack: boolean = false;
@@ -132,23 +133,53 @@ export class PSDungeon {
     console.log(`PSDungeon: isInsideDungeon set to ${value}`);
   }
 
+  public hasStarted(): boolean {
+    return this.started;
+  }
+
+  /**
+   * Clear darkness - direct port of Java setLight(), called by the
+   * LIGHT effect (Flash item / light spell) via PSGame.currentDungeon
+   */
+  public setLight(): void {
+    this.isDark = false;
+  }
+
   public async startDungeon(): Promise<void> {
     const currentDungeon = PSGame.getCurrentDungeon();
     if (!currentDungeon) {
       console.error("PSDungeon: No current dungeon set");
       return;
     }
+    this.started = true;
 
     this.currentScene = MainEngine.getCurrentScene();
 
     this.inputManager = (this.currentScene as any).inputManager;
     if (!this.inputManager) return;
 
+    // Hide all tilemap layers up front - dungeons should never show map layers.
+    // (Java instead covers the whole screen with a fresh black PSMenu back VImage.)
+    const currentMap = MainEngine.getCurrentMap();
+    if (currentMap && typeof currentMap.setLayersVisible === 'function') {
+      currentMap.setLayersVisible(false);
+    }
+
+    // Black cover + "Loading..." box while dungeon images load
+    // (Java: instance.back = new VImage(...); push(createOneLabelBox(100, 100,
+    //  Dungeon_Loading, false)); waitDelay(2); initDungeonImages(...); pop())
+    this.initBackBuffer();
+    this.paintBlack();
+    PSMenu.instance.push(PSMenu.instance.createOneLabelBox(100, 100, PSGame.getString("Dungeon_Loading"), false));
+    await PSMenu.instance.waitDelay(2);
+
     const dungeonType = DungeonHelper.getType(currentDungeon);
     if (dungeonType) {
       this.dungeonPath = DungeonTypeHelper.getImagePath(dungeonType);
       await this.preloadDungeonImages();
     }
+
+    PSMenu.instance.pop();
 
     const spawnX = PSGame.getgotox();
     const spawnY = PSGame.getgotoy();
@@ -157,12 +188,6 @@ export class PSDungeon {
     await PSGame.getParty().allocate(spawnX, spawnY);
     const player = MainEngine.getPlayer();
     player?.setFace(dungeonDir);
-
-    // Hide all tilemap layers - dungeons should never show map layers
-    const currentMap = MainEngine.getCurrentMap();
-    if (currentMap && typeof currentMap.setLayersVisible === 'function') {
-      currentMap.setLayersVisible(false);
-    }
 
     // Hide ALL entities immediately after allocation - dungeons render in 3D overlay only
     const allEntities = MainEngine.getEntities();
@@ -179,29 +204,39 @@ export class PSDungeon {
     MainEngine.setCameraTracking(1);
     MainEngine.setupCamera();
 
-    // Init render texture and draw the first dungeon frame BEFORE fadein,
-    // so the camera fades into the dungeon view instead of popping it in.
-    this.initBackBuffer();
-    if (player) {
-      this.drawDungeon(player, 0);
-      this.drawImageToScreen();
-    }
-
-    await ScriptEngine.fadein(5, false);
-
+    // Java determines isDark right after fadeIn and never draws the dungeon
+    // while dark (the main loop paints black instead). Determine it before the
+    // first frame so the pre-fadein draw below matches.
     if (this.getAlreadyInside()) {
       player?.setFace(PSGame.getDungeonFace());
       this.isDark = false;
     } else {
-      const hasLightPendant = PSGame.getParty().hasQuestItem(PSGame.getItem(OriginalItem.Inventory_Light_Pendant));
+      // Java: PSGame.findItemWithParty(Inventory_Light_Pendant, false) - the
+      // pendant is a member inventory item, not a quest item
+      const hasLightPendant = PSGame.findItemWithParty(OriginalItem.Inventory_Light_Pendant, false);
       this.isDark = DungeonHelper.isDark(currentDungeon) && !hasLightPendant;
+    }
 
-      if (this.isDark) {
-        await PSMenu.startScene(PSSceneType.BLACK, SpecialEntity.NONE);
-        await PSMenu.Stext(PSGame.getString("Dungeon_Black"));
-        PSGame.menuOn();
-        await PSMenu.endScene();
-      }
+    // Draw the first frame BEFORE fadein, so the camera fades into the dungeon
+    // view instead of popping it in. When dark: black, like Java's paintBlack().
+    if (!this.isDark && player) {
+      this.drawDungeon(player, 0);
+      this.drawImageToScreen();
+    } else {
+      this.paintBlack();
+    }
+
+    await ScriptEngine.fadein(5, false);
+
+    // IT'S PITCHY BLACK ROUTINE (Java runs it right after fadeIn).
+    // Java deliberately does NOT call endScene here: the BLACK scene's outcome
+    // is FADE_HOUSE, and endScene would fade out/in and regroup(0, 1) - stepping
+    // the player one tile south onto the entrance's exit zone. Stext pops its
+    // own text box, so there is nothing to clean up.
+    if (this.isDark) {
+      await PSMenu.startScene(PSSceneType.BLACK, SpecialEntity.NONE);
+      await PSMenu.Stext(PSGame.getString("Dungeon_Black"));
+      PSGame.menuOn();
     }
 
     MainEngine.setScriptActive(true);
@@ -217,8 +252,40 @@ export class PSDungeon {
     const currentMap = MainEngine.getCurrentMap();
 
     while (PSDungeon.getIsInsideDungeon()) {
+      // Java: setentitiespaused(true) at the top of every iteration
+      MainEngine.setEntitiesPaused(true);
+
+      // Show Dungeon (Java: drawDungeon(e, pos) / screen.paintBlack() is the
+      // first draw of every iteration)
+      if (!this.isAnimating) {
+        if (this.showDungeon) {
+          if (!this.isDark) {
+            this.drawDungeon(player, 0);
+            this.drawImageToScreen();
+          } else {
+            this.paintBlack();
+          }
+          this.hideTilemapLayers();
+        } else {
+          this.showTilemapLayers();
+          if (this.dungeonRenderTexture) {
+            this.dungeonRenderTexture.setVisible(false);
+          }
+        }
+      }
 
       if (this.inputManager) this.inputManager.updateControls();
+
+      // Java: hookbutton(4, PSMenuMain.menu) stays live inside the dungeon loop -
+      // this is how the Flash item / light spell can be used in the dark.
+      // Level check + unpress like Java: justPressed edges are unreliable here
+      // because GameScene.update also calls updateControls() every frame.
+      if (PSMenu.isMenuHooked() && this.inputManager!.b4) {
+        this.inputManager!.unpress(8); // b4 (Java: unpress(4))
+        const { PSMenuMain } = await import('./PSMenuMain');
+        await PSMenuMain.menu();
+      }
+
       if (this.zoneCheck) {
         this.zoneCheck = false;
         await this.callZone(player, 1);
@@ -232,6 +299,7 @@ export class PSDungeon {
       if (this.isDark && (this.inputManager!.up || this.inputManager!.left || this.inputManager!.right || this.inputManager!.down)) {
         const zone = this.getfrontzone(player, -1);
         const scriptName = currentMap.getScriptZone(zone);
+        console.log(`PSDungeon: dark exit - input pressed, behind zone ${zone} script '${scriptName}'`);
         if (scriptName) {
           MainEngine.callScriptFunction(scriptName);
         }
@@ -316,25 +384,8 @@ export class PSDungeon {
         this.zoneCheck = true;
       }
 
-      // Exit may have been triggered this iteration — skip idle draw and delay
+      // Exit may have been triggered this iteration — skip the delay
       if (!PSDungeon.getIsInsideDungeon()) break;
-
-      if (!this.isAnimating) {
-        if (this.showDungeon) {
-          if (!this.isDark) {
-            this.drawDungeon(player, 0);
-            this.drawImageToScreen();
-          } else {
-            this.paintBlack();
-          }
-          this.hideTilemapLayers();
-        } else {
-          this.showTilemapLayers();
-          if (this.dungeonRenderTexture) {
-            this.dungeonRenderTexture.setVisible(false);
-          }
-        }
-      }
 
       // Java ran this loop once per 20 ms engine frame
       await this.delay(GameSpeed.scaleDelay(20));
@@ -906,6 +957,7 @@ export class PSDungeon {
   }
 
   private async invokeScriptAsync(functionName: string): Promise<void> {
+    console.log(`PSDungeon: invoking zone script '${functionName}'`);
     const scriptContext = MainEngine.getScriptContext();
     if (scriptContext && typeof scriptContext[functionName] === 'function') {
       const result = scriptContext[functionName]();
@@ -1154,4 +1206,4 @@ export class PSDungeon {
   public setZoneCheck(): void {
     this.zoneCheck = true;
   }
-}
+}

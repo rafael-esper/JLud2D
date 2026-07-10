@@ -8,6 +8,7 @@ import { Battler } from './Battler';
 import { EnemyBattler } from '../battle/EnemyBattler';
 import { CanRope, CanTalk, CanChat, EnemyType } from '../battle/Enemy';
 import { PS1Sound } from './PSLibSound';
+import { Dungeon } from './Dungeon';
 import { PSGame } from '../PSGame';
 import { Action, PSBattle as PSBattleClass } from '../battle/PSBattle';
 import { PSMenu } from '../PSMenu';
@@ -194,18 +195,13 @@ export class PSEffect {
         return EffectOutcome.NONE;
 
       case Effect.LIGHT:
-        // Note: Would need PSGame.getCurrentDungeon implementation
-        /*
-        if (PSGame.getCurrentDungeon().equals(Dungeon.NONE)) {
+        if (PSGame.getCurrentDungeon() === Dungeon.NONE) {
           return EffectOutcome.FAIL;
         } else {
           PSGame.playSound(PS1Sound.LIGHT);
           PSGame.currentDungeon.setLight();
           return EffectOutcome.CLOSE_ALL;
         }
-        */
-        console.warn('LIGHT effect not fully implemented - requires dungeon system');
-        return EffectOutcome.SUCCESS;
 
       case Effect.RUN:
       case Effect.ESCAPE:

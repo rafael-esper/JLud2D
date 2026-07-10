@@ -672,14 +672,20 @@ export class PSGame {
     const { PSDungeon } = await import('./PSDungeon');
     PSDungeon.setIsInsideDungeon(true);
 
+    // Initialize the dungeon instance BEFORE the map loads (Java: PSGame.currentDungeon
+    // already exists when the dungeon map's startmap script configures enemies
+    // and calls startDungeon() on it)
+    this.currentDungeon = new PSDungeon();
+    this.currentDungeon.setAlreadyInside(false);
+
     // Call base mapswitch with dungeon path - basePath should point to the dungeons directory
     const dungeonMusic = DungeonHelper.getMusic(dungeon);
     await this.mapswitch(mapPath, dungeonX, dungeonY, true, `${this.PS_DEMO_BASE_PATH}/dungeons`, dungeonMusic ?? undefined);
 
-    // Initialize dungeon system
-    this.currentDungeon = new PSDungeon();
-    this.currentDungeon.setAlreadyInside(false);
-    await this.currentDungeon.startDungeon();
+    // Dungeons without a ported startmap script never call startDungeon() - do it here
+    if (!this.currentDungeon.hasStarted()) {
+      await this.currentDungeon.startDungeon();
+    }
   }
 
   /**
