@@ -194,48 +194,48 @@ export class DungeonHelper {
    * Get dungeon X coordinate
    */
   public static getX(dungeon: Dungeon): number {
-    return this.dungeonConfigs.get(dungeon)?.x || 0;
+    return this.dungeonConfigs.get(dungeon)?.x ?? 0;
   }
 
   /**
    * Get dungeon Y coordinate
    */
   public static getY(dungeon: Dungeon): number {
-    return this.dungeonConfigs.get(dungeon)?.y || 0;
+    return this.dungeonConfigs.get(dungeon)?.y ?? 0;
   }
 
   /**
    * Get dungeon direction
    */
   public static getDir(dungeon: Dungeon): EntityDirection {
-    return this.dungeonConfigs.get(dungeon)?.dir || EntityDirection.NORTH;
+    return this.dungeonConfigs.get(dungeon)?.dir ?? EntityDirection.NORTH;
   }
 
   /**
    * Get dungeon type
    */
   public static getType(dungeon: Dungeon): DungeonType | null {
-    return this.dungeonConfigs.get(dungeon)?.type || null;
+    return this.dungeonConfigs.get(dungeon)?.type ?? null;
   }
 
   /**
    * Get dungeon map path
    */
   public static getPath(dungeon: Dungeon): string | null {
-    return this.dungeonConfigs.get(dungeon)?.mapPath || null;
+    return this.dungeonConfigs.get(dungeon)?.mapPath ?? null;
   }
 
   /**
    * Check if dungeon is dark
    */
   public static isDark(dungeon: Dungeon): boolean {
-    return this.dungeonConfigs.get(dungeon)?.isDark || false;
+    return this.dungeonConfigs.get(dungeon)?.isDark ?? false;
   }
 
   /**
    * Get dungeon music
    */
   public static getMusic(dungeon: Dungeon): PS1Music | null {
-    return this.dungeonConfigs.get(dungeon)?.music || null;
+    return this.dungeonConfigs.get(dungeon)?.music ?? null;
   }
 }

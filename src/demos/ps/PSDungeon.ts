@@ -198,8 +198,9 @@ export class PSDungeon {
     PSMenu.instance.push(PSMenu.instance.createOneLabelBox(100, 100, PSGame.getString("Dungeon_Loading"), false));
     await PSMenu.instance.waitDelay(2);
 
+    // Note: DungeonType.FIRE === 0, so a truthiness check would skip it
     const dungeonType = DungeonHelper.getType(currentDungeon);
-    if (dungeonType) {
+    if (dungeonType !== undefined && dungeonType !== null) {
       this.dungeonPath = DungeonTypeHelper.getImagePath(dungeonType);
       await this.preloadDungeonImages();
     }
@@ -534,7 +535,7 @@ export class PSDungeon {
   private putwallimage(img: Phaser.GameObjects.Image): void {
     let offset = this.putimage(this.img_dungeon_wall1, 0, 0);
     offset = this.putimage(img, offset, 0);
-    this.putimage(img, this.img_dungeon_wall1.displayWidth, 1);
+    this.putimage(img, this.img_dungeon_wall1?.displayWidth ?? 64, 1);
     this.putimage(this.img_dungeon_wall1, 0, 1);
   }
 
@@ -1221,6 +1222,20 @@ export class PSDungeon {
 
   public setOpen(): void {
     this.openEffect = true;
+  }
+
+  /**
+   * Push the player one step away from a detected trap - direct port of Java
+   * turnBack(). Sets the input flag consumed by this loop iteration's
+   * movement handling (Java: Script.down/up = true).
+   */
+  public turnBack(): void {
+    if (!this.inputManager) return;
+    if (!this.walkingBack) {
+      this.inputManager.down = true;
+    } else {
+      this.inputManager.up = true;
+    }
   }
 
   public getTrapEffect(): boolean {

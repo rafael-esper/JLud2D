@@ -27,7 +27,7 @@ import { I18nManager } from './game/I18nManager';
 import { Enemy } from './battle/Enemy';
 import { BattleOutcome } from './battle/PSBattle';
 import { PSSceneType } from './PSMenu';
-import { Trapped } from './game/GameData';
+import { Trapped, Trap } from './game/GameData';
 import { MenuCHR } from './menu/MenuCHR';
 import { MenuState } from './menu/MenuType';
 
@@ -527,6 +527,39 @@ export class PSGame {
    * Warp the player to a tile position within the current dungeon - direct port of
    * Java PSGame.warp(). Delegates to the active dungeon instance's renderer.
    */
+  /**
+   * Dungeon floor trap - direct port of Java PSGame.trapRoutine().
+   * First contact: fall through to (warpx, warpy) one floor down. Once the
+   * info flag is set, the party is warned and pushed back instead. A trap
+   * spell/effect (setTrapEffect) disarms it permanently.
+   */
+  public static async trapRoutine(trap: Trap, infoTrap: Trap, warpx: number, warpy: number): Promise<void> {
+    // If cast spell
+    if (this.currentDungeon?.getTrapEffect()) {
+      // Disarm trap
+      if (!this.gameData.trapFlags.has(trap)) {
+        await PSMenu.Stext(this.getString("Dungeon_Trap"));
+        this.gameData.trapFlags.add(trap);
+        this.currentDungeon.setTrapEffect(false);
+      }
+      return;
+    }
+
+    // If didn't cast spell
+    if (this.gameData.trapFlags.has(trap)) {
+      return;
+    } else if (this.gameData.trapFlags.has(infoTrap)) {
+      await PSMenu.Stext(this.getString("Dungeon_Trap_Info"));
+      this.currentDungeon?.turnBack();
+    } else {
+      this.gameData.trapFlags.add(infoTrap);
+      this.playSound(PS1Sound.TRAP_FALL);
+      this.gameData.dungeonFloor--;
+      await this.warp(warpx, warpy, false);
+      this.currentDungeon?.setZoneCheck();
+    }
+  }
+
   public static async warp(i: number, j: number, rendermap: boolean): Promise<void> {
     const dungeon = this.getCurrentDungeonInstance();
     if (dungeon && typeof dungeon.warpTo === 'function') {
@@ -1486,4 +1519,4 @@ export class PSGame {
     }
   }
 
-}
+}

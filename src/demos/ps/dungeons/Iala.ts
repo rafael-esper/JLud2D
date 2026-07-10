@@ -4,7 +4,7 @@
  */
 
 import { PSGame } from '../PSGame';
-import { Chest, Trapped, Flags } from '../game/GameData';
+import { Chest, Trapped, Trap, Flags } from '../game/GameData';
 import { Planet } from '../game/City';
 import { OriginalItem } from '../game/PSLibItem';
 import { PS1Enemy } from '../game/PSLibEnemy';
@@ -143,24 +143,20 @@ export class Iala {
     await PSGame.warp(11, 27, false);
   }
 
-  public static trap1(): void {
-    // TODO: trapRoutine (Trap enum + trap animation/battle) not implemented yet
-    console.log("Iala: trap1 (trapRoutine) not implemented yet");
+  public static async trap1(): Promise<void> {
+    await PSGame.trapRoutine(Trap.IALA_TRAP1, Trap.INFO_IALA_TRAP1, 25, 3);
   }
 
-  public static trap2(): void {
-    // TODO: trapRoutine not implemented yet
-    console.log("Iala: trap2 (trapRoutine) not implemented yet");
+  public static async trap2(): Promise<void> {
+    await PSGame.trapRoutine(Trap.IALA_TRAP2, Trap.INFO_IALA_TRAP2, 9, 18);
   }
 
-  public static trap3(): void {
-    // TODO: trapRoutine not implemented yet
-    console.log("Iala: trap3 (trapRoutine) not implemented yet");
+  public static async trap3(): Promise<void> {
+    await PSGame.trapRoutine(Trap.IALA_TRAP3, Trap.INFO_IALA_TRAP3, 27, 18);
   }
 
-  public static trap4(): void {
-    // TODO: trapRoutine not implemented yet
-    console.log("Iala: trap4 (trapRoutine) not implemented yet");
+  public static async trap4(): Promise<void> {
+    await PSGame.trapRoutine(Trap.IALA_TRAP4, Trap.INFO_IALA_TRAP4, 29, 19);
   }
 
   public static async exit(): Promise<void> {
