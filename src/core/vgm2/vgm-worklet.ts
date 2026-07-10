@@ -18,10 +18,21 @@ interface LoadMessage {
 interface StopMessage {
   type: 'stop';
 }
-type InMessage = LoadMessage | StopMessage;
+interface PauseMessage {
+  type: 'pause';
+}
+interface ResumeMessage {
+  type: 'resume';
+}
+type InMessage = LoadMessage | StopMessage | PauseMessage | ResumeMessage;
 
 class VgmProcessor extends AudioWorkletProcessor {
   private stream: VgmStream | null = null;
+  // Paused stream, shelved by 'pause' and restored by 'resume'. Holding the
+  // whole VgmStream keeps the exact playback position and chip state, so an
+  // interrupted track (e.g. overworld music during a battle) resumes from
+  // the very sample it stopped at.
+  private saved: VgmStream | null = null;
 
   constructor() {
     super();
@@ -31,6 +42,16 @@ class VgmProcessor extends AudioWorkletProcessor {
         this.stream = new VgmStream(new Uint8Array(msg.data), sampleRate, msg.loop);
       } else if (msg.type === 'stop') {
         this.stream = null;
+      } else if (msg.type === 'pause') {
+        if (this.stream) {
+          this.saved = this.stream;
+          this.stream = null;
+        }
+      } else if (msg.type === 'resume') {
+        if (this.saved) {
+          this.stream = this.saved;
+          this.saved = null;
+        }
       }
     };
   }

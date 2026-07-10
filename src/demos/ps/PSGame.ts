@@ -39,6 +39,7 @@ export class PSGame {
   private static gotox: number = 0;
   private static gotoy: number = 0;
   private static currentMusic: PS1Music | null = null; // Track currently playing music
+  private static pausedMusic: PS1Music | null = null; // Track shelved by pauseMusic()
   private static i18nManager: I18nManager = I18nManager.getInstance();
   public static currentDungeon: any = null; // Current dungeon instance
   private static readonly PS_DEMO_BASE_PATH = 'src/demos/ps'; // Base path for PS demo
@@ -79,8 +80,29 @@ export class PSGame {
     }
 
     ScriptEngine.setMusicVolume(this.gameData.musicVolume);
-    ScriptEngine.playmusic(music as string);
+
+    // If this is the track shelved by pauseMusic() (interrupted by a battle),
+    // continue it from where it stopped instead of restarting it
+    if (this.pausedMusic === music && ScriptEngine.resumemusic(music as string)) {
+      this.pausedMusic = null;
+    } else {
+      ScriptEngine.playmusic(music as string);
+    }
     this.currentMusic = music;
+  }
+
+  /**
+   * Shelve the current track (exact position) so the next playMusic() of the
+   * same track resumes where it was interrupted. Used at battle start so the
+   * overworld/dungeon music picks up mid-song after the fight.
+   */
+  public static pauseMusic(): void {
+    if (this.currentMusic === null) {
+      return;
+    }
+    ScriptEngine.pausemusic();
+    this.pausedMusic = this.currentMusic;
+    this.currentMusic = null;
   }
 
   /**

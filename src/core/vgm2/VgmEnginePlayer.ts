@@ -101,6 +101,19 @@ export class VgmEnginePlayer {
     this.playing = false;
   }
 
+  /** Shelve the current track (exact position + chip state) for resume(). */
+  pause(): void {
+    if (this.node) this.node.port.postMessage({ type: 'pause' });
+    this.playing = false;
+  }
+
+  /** Restore the track shelved by pause(), continuing where it stopped. */
+  resume(): void {
+    if (this.node) this.node.port.postMessage({ type: 'resume' });
+    this.playing = true;
+    if (this.ctx?.state === 'suspended') this.ctx.resume();
+  }
+
   isPlaying(): boolean {
     return this.playing;
   }

@@ -54,6 +54,22 @@ export class ScriptEngine {
   }
 
   /**
+   * Shelve the current track (exact position) so a later resumemusic() of
+   * the same track continues where it was interrupted.
+   */
+  public static pausemusic(): void {
+    VGMPlayerAPI.pauseMusic();
+  }
+
+  /**
+   * Resume the shelved track if it matches; returns false when the caller
+   * should fall back to playmusic().
+   */
+  public static resumemusic(key: string): boolean {
+    return VGMPlayerAPI.resumeMusic(key);
+  }
+
+  /**
    * Set master music volume (0-100, matching Java Script.setMusicVolume)
    */
   public static setMusicVolume(volume: number): void {

@@ -48,6 +48,15 @@ export class VGMPlayerAPI {
     VGMMusicManager.getInstance().stopMusic();
   }
 
+  static pauseMusic(): void {
+    VGMMusicManager.getInstance().pauseMusic();
+  }
+
+  /** Resume the paused track if it matches `key`; false → play it fresh. */
+  static resumeMusic(key: string): boolean {
+    return VGMMusicManager.getInstance().resumeMusic(key);
+  }
+
   static isPlaying(): boolean {
     return VGMMusicManager.getInstance().isPlaying();
   }

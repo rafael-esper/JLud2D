@@ -154,6 +154,9 @@ export class PSBattle {
       enemyBattler.naturalOrder = index++;
     }
 
+    // Shelve the current map/story track so it resumes mid-song after the
+    // battle instead of restarting from the beginning
+    PSGame.pauseMusic();
     await PSGame.playMusic(music);
 
     return this.startBattleWithBattlers(battlerList);

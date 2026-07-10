@@ -41,6 +41,11 @@ export class VGMMusicManager {
   // override a newer play/stop).
   private playRequestId = 0;
 
+  // Path of the track currently loaded in the player, and of the track
+  // shelved by pauseMusic() (resumable mid-track via resumeMusic()).
+  private currentPath: string | null = null;
+  private pausedPath: string | null = null;
+
   private constructor() {}
 
   static getInstance(): VGMMusicManager {
@@ -122,16 +127,49 @@ export class VGMMusicManager {
 
     try {
       await this.player.play(cached.data, effectiveLoop);
-      return requestId === this.playRequestId;
+      if (requestId === this.playRequestId) {
+        this.currentPath = path;
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error(`VGMMusicManager: Failed to play '${key}':`, error);
       return false;
     }
   }
 
+  /**
+   * Shelve the current track so a later resumeMusic() of the same track
+   * continues from the exact point it was interrupted (battle interludes).
+   */
+  pauseMusic(): void {
+    if (!this.player || !this.currentPath || !this.player.isPlaying()) return;
+    this.player.pause();
+    this.pausedPath = this.currentPath;
+    this.currentPath = null;
+  }
+
+  /**
+   * Resume the shelved track, but only if it is the one being requested.
+   * Returns false when there is nothing (or a different track) shelved —
+   * the caller should fall back to a normal playMusic().
+   */
+  resumeMusic(key: string): boolean {
+    const path = this.keyToPath.get(key) ?? key;
+    if (!this.player || this.pausedPath !== path) return false;
+    this.playRequestId++; // invalidate any pending async play
+    this.player.resume();
+    this.currentPath = path;
+    this.pausedPath = null;
+    return true;
+  }
+
   stopMusic(): void {
     this.playRequestId++; // invalidate any pending async play
     this.player?.stop();
+    // pausedPath is kept: a stop between pause and resume (e.g. silencing
+    // a battle jingle) must not discard the shelved overworld track
+    this.currentPath = null;
   }
 
   isPlaying(): boolean {
