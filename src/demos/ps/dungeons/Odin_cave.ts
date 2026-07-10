@@ -66,13 +66,16 @@ export class Odin_cave {
     if (!PSGame.hasFlag(Flags.GOT_ODIN)) {
 
       const odinStatue = new MenuCHR(currentScene, 140, 100, await PSGame.getCHR(PS1CHR.ODIN_STATUE));
+      odinStatue.setDepth(1995); // above dungeon texture (1990), below menu text boxes (2000+)
       PSMenu.instance.push(odinStatue);
       const alsuline = PSGame.getItem(OriginalItem.Quest_Alsuline);
 
       if (!PSGame.getParty().hasQuestItem(alsuline)) {
         await PSMenu.instance.waitB1();
         await PSMenu.Stext(PSGame.getString("Odin_Stone"));
-        PSMenu.instance.pop(); // statue
+        // Keep the statue on screen so the player can use items or walk
+        // back; the dungeon pops it on the next movement or turn
+        PSGame.getCurrentDungeonInstance()?.setLingeringMenu(odinStatue);
         return;
       }
 
@@ -118,6 +121,7 @@ export class Odin_cave {
 
       const attacker = new EnemyBattler(medusa);
       const enemySprite = new MenuCHR(currentScene, PSMenu.instance.entityX, PSMenu.instance.entityY, medusa.getChr());
+      enemySprite.setDepth(1995); // above dungeon texture (1990), below menu text boxes (2000+)
       PSMenu.instance.push(enemySprite);
 
       const attackSound = attacker.getEnemy().attackSound;
@@ -134,6 +138,7 @@ export class Odin_cave {
       PSMenu.instance.pop();
 
       const odinStatue = new MenuCHR(currentScene, 140, 100, await PSGame.getCHR(PS1CHR.ODIN_STATUE));
+      odinStatue.setDepth(1995); // above dungeon texture (1990), below menu text boxes (2000+)
       PSMenu.instance.push(odinStatue);
 
       await PSMenu.StextFirst(PSGame.getString("Odin_Cave_Alis_Help"));

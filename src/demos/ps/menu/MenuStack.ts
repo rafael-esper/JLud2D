@@ -91,6 +91,26 @@ export class MenuStack {
     this.menus.push(menu);
   }
 
+  public peek(): MenuType | undefined {
+    return this.menus[this.menus.length - 1];
+  }
+
+  /**
+   * Remove a menu from the stack without destroying its display objects -
+   * for scene sprites that must stay visible after their script returns
+   * (e.g. the Odin statue). The caller owns the menu and must destroy() it.
+   */
+  public removeKeepAlive(menu: MenuType): void {
+    const index = this.menus.indexOf(menu);
+    console.log(`MenuStack.removeKeepAlive: index=${index} stack=${this.menus.length}`);
+    if (index === -1) return;
+    this.menus.splice(index, 1);
+    const layer = this.layers[this.menus.length];
+    if (layer) {
+      layer.clear();
+    }
+  }
+
   public pop(): MenuType | undefined {
     const menu = this.menus.pop();
     if (menu && typeof (menu as any).destroy === 'function') {
@@ -654,4 +674,4 @@ export class MenuStack {
     }
   }
 
-}
+}

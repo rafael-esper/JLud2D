@@ -145,6 +145,32 @@ export class PSDungeon {
     this.isDark = false;
   }
 
+  // A scene sprite (e.g. the Odin statue) kept on screen after its zone
+  // script returned; popped automatically on the next player movement/turn
+  private lingeringMenu: any = null;
+
+  /**
+   * Keep a menu sprite on screen after its zone script returns. The sprite
+   * is taken off the menu stack (the main menu clears any stacked menus when
+   * it opens) but its display object stays visible, so the player can open
+   * the game menu or use items with it showing. It is destroyed when they
+   * move or turn away.
+   */
+  public setLingeringMenu(menu: any): void {
+    console.log('PSDungeon: keeping scene sprite visible off-stack (lingering)');
+    PSMenu.instance.removeKeepAlive(menu);
+    this.lingeringMenu = menu;
+  }
+
+  private clearLingeringMenu(): void {
+    if (this.lingeringMenu) {
+      if (typeof this.lingeringMenu.destroy === 'function') {
+        this.lingeringMenu.destroy();
+      }
+      this.lingeringMenu = null;
+    }
+  }
+
   public async startDungeon(): Promise<void> {
     const currentDungeon = PSGame.getCurrentDungeon();
     if (!currentDungeon) {
@@ -319,11 +345,13 @@ export class PSDungeon {
       }
 
       if (this.inputManager!.left || this.inputManager!.right) {
+        this.clearLingeringMenu();
         await this.turnRoutine(player, this.inputManager!.right); // Java: right key = counter = true = LEFT turn
         this.zoneCheck = true;
       }
 
       if (this.inputManager!.up) {
+        this.clearLingeringMenu();
         const tile = this.getfronttile(player, 1);
 
         if (this.showDungeon && tile === FLOOR) {
@@ -352,6 +380,7 @@ export class PSDungeon {
       }
 
       if (this.inputManager!.down) {
+        this.clearLingeringMenu();
         const tile = this.getfronttile(player, -1);
         let movedTile = tile;
 
