@@ -6,14 +6,9 @@
 import { MainEngine } from '../../../core/MainEngine';
 import { ScriptEngine } from '../../../core/ScriptEngine';
 import { PSGame } from '../PSGame';
-import { PSMenu } from '../PSMenu';
 import { City } from '../game/City';
 import { Dungeon } from '../game/Dungeon';
-import { PSSceneType, SpecialEntity } from '../PSMenu';
-import { PS1Enemy, PS4Enemy } from '../game/PSLibEnemy';
-import { OriginalItem } from '../game/PSLibItem';
 import { EntityDirection } from '../../../domain/Entity';
-import { Flags } from '../game/GameData';
 
 export class Motavia {
 

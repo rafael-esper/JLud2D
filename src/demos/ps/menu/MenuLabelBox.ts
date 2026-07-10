@@ -11,7 +11,7 @@ export class MenuLabelBox extends MenuType {
   private colors: number[]; // Using hex color values for Phaser compatibility
   private x: number;
   private y: number;
-  private wx: number;
+  private wx!: number;
   private wy: number;
   private menuStack: MenuStack;
   private scene: Phaser.Scene;
@@ -127,7 +127,7 @@ export class MenuLabelBox extends MenuType {
     }
   }
 
-  public draw(active: boolean): void {
+  public draw(_active: boolean): void {
     if (this.drawDelay > 0) {
       this.drawDelay--;
       const specwx = ((MenuType.MAX_DELAY - this.drawDelay) / MenuType.MAX_DELAY) * this.wx;
@@ -260,4 +260,4 @@ export class MenuLabelBox extends MenuType {
   public getSize(): { wx: number, wy: number } {
     return { wx: this.wx, wy: this.wy };
   }
-}
+}

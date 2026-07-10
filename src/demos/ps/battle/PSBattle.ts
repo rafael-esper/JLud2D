@@ -4,7 +4,6 @@
  */
 
 import { PSGame } from '../PSGame';
-import { MainEngine } from '../../../core/MainEngine';
 import { Battler } from '../game/Battler';
 import { PartyMember } from '../game/PartyMember';
 import { EnemyBattler } from './EnemyBattler';
@@ -19,7 +18,7 @@ import { PS1Music } from '../game/PSLibMusic';
 import { PS1Sound } from '../game/PSLibSound';
 import { PS1CHR } from '../game/PSLibCHR';
 import { PSEffect, Effect, EffectOutcome, EffectTarget, EffectPlace, EffectHelper } from '../game/PSEffect';
-import { PSLibSpell, Spell } from '../game/PSLibSpell';
+import { PSLibSpell } from '../game/PSLibSpell';
 import { PSLibItem } from '../game/PSLibItem';
 import { Item, EquipPlace, ItemType } from '../game/Item';
 import { OriginalItem } from '../game/PSLibItem';
@@ -147,7 +146,7 @@ export class PSBattle {
     // Add enemies and load their CHR
     for (const enemy of enemies) {
       // Load CHR for enemy if not already loaded
-      await enemy.loadCHR(PSGame.getCurrentScene());
+      await enemy.loadCHR(PSGame.getCurrentScene()!);
 
       const enemyBattler = new EnemyBattler(enemy);
       battlerList.push(enemyBattler);
@@ -1480,4 +1479,4 @@ export class PSBattle {
     }
   }
 
-}
+}

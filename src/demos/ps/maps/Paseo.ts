@@ -9,7 +9,6 @@ import { Planet, City, CityHelper } from '../game/City';
 import { Dungeon } from '../game/Dungeon';
 import { OriginalItem } from '../game/PSLibItem';
 import { PS1Sound } from '../game/PSLibSound';
-import { PS1Image } from '../game/PSLibImage';
 import { PS1Music } from '../game/PSLibMusic';
 import { PSSceneType, SpecialEntity, PSMenu, EntityType, EntityClothes, LargeEntity } from '../PSMenu';
 import { PSMenuShop } from '../PSMenuShop';
@@ -139,11 +138,11 @@ export class Paseo {
   }
 
   public static async tunnel_1(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.GOVERNOR_IN);
+    await PSGame.mapswitchToDungeon(Dungeon.GOVERNOR_IN);
   }
 
   public static async tunnel_2(): Promise<void> {
-    await PSGame.mapswitch(Dungeon.GOVERNOR_OUT);
+    await PSGame.mapswitchToDungeon(Dungeon.GOVERNOR_OUT);
   }
 
   public static async rest_house(): Promise<void> {
@@ -183,7 +182,7 @@ export class Paseo {
       // TODO: VImage system not implemented yet
       // PSMenu.instance.back = new VImage(screen.width, screen.height);
 
-      await PSGame.mapswitch(Dungeon.DARKFALZ_DUNGEON);
+      await PSGame.mapswitchToDungeon(Dungeon.DARKFALZ_DUNGEON);
       return;
     }
 

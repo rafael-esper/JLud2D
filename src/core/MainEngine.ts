@@ -371,9 +371,10 @@ export class MainEngine {
         }
 
         // Execute entity's activation script
-        if (targetEntity.getActivationScript && targetEntity.getActivationScript()) {
-          console.log(`MainEngine: Activating entity ${entityIndex} with script: ${targetEntity.getActivationScript()}`);
-          MainEngine.callEntityScript(targetEntity.getActivationScript());
+        const activationScript = targetEntity.getActivationScript && targetEntity.getActivationScript();
+        if (activationScript) {
+          console.log(`MainEngine: Activating entity ${entityIndex} with script: ${activationScript}`);
+          MainEngine.callEntityScript(activationScript);
         } else {
           console.log(`MainEngine: Entity ${entityIndex} has no activation script`);
         }
@@ -819,7 +820,7 @@ export class MainEngine {
   /**
    * Perform animated screen transition like Java implementation
    */
-  private static performScreenTransition(scrollX: number, scrollY: number, direction: string): void {
+  private static performScreenTransition(scrollX: number, scrollY: number, _direction: string): void {
     if (!MainEngine.current_scene) return;
 
     const player = MainEngine.getPlayer();
@@ -1134,7 +1135,7 @@ export class MainEngine {
       console.log(`Loading script context from: ${absoluteScriptPath}`);
 
       // Dynamically import the script module using relative path
-      const scriptModule = await import(relativePath);
+      const scriptModule = await import(/* @vite-ignore */ relativePath);
 
       // Look for a class with the same name as the script
       if (scriptModule[scriptName]) {

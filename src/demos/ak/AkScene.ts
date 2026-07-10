@@ -10,22 +10,21 @@ import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { DemoUI } from '../../utils/DemoUI';
 import { AkActions } from './AkActions';
-import { AkMovement, Condition, Status, Action } from './AkMovement';
+import { AkMovement, Condition } from './AkMovement';
 import { AkEnemies } from './AkEnemies';
 import { AkCore } from './AkCore';
 import { AkSprites } from './AkSprites';
 import { CHR } from '../../domain/CHR';
-import { Scene } from 'phaser';
 import { AkBaseScene } from './AkBaseScene';
 
 export class AkScene extends AkBaseScene {
   private mapFilename: string = 'level01.map.json';
   private mapKey: string = 'level01-map';
   private levelInfo: any = null;
-  private fpsDisplay: FPSDisplay;
+  private fpsDisplay!: FPSDisplay;
   private tiledMap: any = null;
   private debugGraphics: Phaser.GameObjects.Graphics | null = null;
-  private movement: AkMovement;
+  private movement!: AkMovement;
 
   // Slow motion logic variables
   private logicAccumulator = 0;
@@ -149,7 +148,7 @@ export class AkScene extends AkBaseScene {
     this.fpsDisplay.setVisible(this.config.showFPS);
   }
 
-   update(time: number, delta: number): void {
+   update(_time: number, delta: number): void {
     // Get current game speed from movement system and accumulate time
     const currentGameSpeed = this.movement ? this.movement.getGameSpeed() : 1.0;
     this.logicAccumulator += delta * currentGameSpeed;

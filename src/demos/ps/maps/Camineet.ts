@@ -5,14 +5,11 @@
 
 import { PSGame } from '../PSGame';
 import { GameType, Flags } from '../game/GameData';
-import { Planet, City } from '../game/City';
+import { Planet } from '../game/City';
 import { Dungeon } from '../game/Dungeon';
 import { PS1Sound } from '../game/PSLibSound';
-import { PS1Image } from '../game/PSLibImage';
-import { Item } from '../game/Item';
 import { OriginalItem } from '../game/PSLibItem';
-import { PSSceneType, SpecialEntity, PSMenu, EntityType, EntityClothes, LargeEntity } from '../PSMenu';
-import { PSCancellable } from '../menu/MenuStack';
+import { PSSceneType, SpecialEntity, PSMenu, EntityType, EntityClothes } from '../PSMenu';
 import { PSMenuShop } from '../PSMenuShop';
 import { PS1Enemy } from '../game/PSLibEnemy';
 

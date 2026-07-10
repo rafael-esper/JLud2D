@@ -9,10 +9,8 @@ import { PSGame } from './PSGame';
 import { ScreenSize, GameType } from './game/GameData';
 import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
-import { MenuPromptBox } from './menu/MenuPromptBox';
 import { PSCancellable } from './menu/MenuStack';
 import { Planet, City } from './game/City';
-import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
 
 export class TitleScene extends PSScene {
@@ -257,7 +255,7 @@ export class TitleScene extends PSScene {
       await this.showScrollingText(credit.text);
 
       // Fade out
-      await this.screenFade(25, false);
+      await ScriptEngine.fadeout(25, false);
       creditImage.destroy();
     }
   }
@@ -299,6 +297,5 @@ export class TitleScene extends PSScene {
   destroy() {
     // Stop music when scene is destroyed
     PSGame.stopMusic();
-    super.destroy();
   }
-}
+}

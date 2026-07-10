@@ -160,14 +160,13 @@ export class GameConfig implements IGameConfig {
       physics: {
         default: 'arcade',
         arcade: {
-          gravity: { y: 0 },
+          gravity: { x: 0, y: 0 },
           debug: this.debug
         }
       },
 
       audio: {
-        disableWebAudio: false,
-        context: false
+        disableWebAudio: false
       },
 
       input: {
@@ -196,4 +195,4 @@ export class GameConfig implements IGameConfig {
   }
 }
 
-export default GameConfig;
+export default GameConfig;

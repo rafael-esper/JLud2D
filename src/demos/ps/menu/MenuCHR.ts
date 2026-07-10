@@ -5,7 +5,6 @@
 
 import { CHR } from '../../../domain/CHR';
 import { MenuType, MenuState, MenuStateHelper } from './MenuType';
-import { ScriptEngine } from '../../../core/ScriptEngine';
 
 export class MenuCHR extends MenuType {
   public static readonly DONE: number = 2;
@@ -63,7 +62,7 @@ export class MenuCHR extends MenuType {
     }
   }
 
-  public draw(active: boolean): void {
+  public draw(_active: boolean): void {
     if (this.beginDelay-- > 0) {
       return;
     }
@@ -180,4 +179,4 @@ export class MenuCHR extends MenuType {
     }
   }
 
-}
+}

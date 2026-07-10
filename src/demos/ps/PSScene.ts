@@ -7,18 +7,15 @@ import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { PSGame } from './PSGame';
 import { ScreenSize } from './game/GameData';
-import { PS1Image } from './game/PSLibImage';
-import { MenuStack, PSCancellable } from './menu/MenuStack';
-import { MenuPromptBox } from './menu/MenuPromptBox';
-import { MenuTextBox } from './menu/MenuTextBox';
+import { MenuStack } from './menu/MenuStack';
 import { PSSceneType, SpecialEntity } from './PSMenu';
 
 
 
 export abstract class PSScene extends Phaser.Scene {
-  protected config: GameConfig;
-  protected inputManager: InputManager;
-  protected menuStack: MenuStack;
+  protected config!: GameConfig;
+  protected inputManager!: InputManager;
+  protected menuStack!: MenuStack;
 
   constructor(key: string) {
     super({ key });
@@ -85,7 +82,7 @@ export abstract class PSScene extends Phaser.Scene {
   /**
    * Start a scene with background (equivalent to Java startScene)
    */
-  protected startScene(sceneType: PSSceneType, specialEntity: SpecialEntity = SpecialEntity.NONE): void {
+  protected startScene(sceneType: PSSceneType, _specialEntity: SpecialEntity = SpecialEntity.NONE): void {
     console.log(`PSScene: Starting scene ${PSSceneType[sceneType]}`);
 
     // Clear any existing menu stack
@@ -148,4 +145,4 @@ export abstract class PSScene extends Phaser.Scene {
     PSGame.stopMusic();
     this.scene.start('MenuScene', { config: this.config });
   }
-}
+}

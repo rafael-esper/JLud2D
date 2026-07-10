@@ -8,8 +8,8 @@ import { GameConfig } from '../config/GameConfig';
 import { InputManager, ControlsConfig } from '../config/Controls';
 
 export class SettingsScene extends Phaser.Scene {
-  private config: GameConfig;
-  private inputManager: InputManager;
+  private config!: GameConfig;
+  private inputManager!: InputManager;
   private selectedOption: number = 0;
   private menuItems: Array<{
     label: string,
@@ -184,7 +184,6 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   private createMenu() {
-    const width = this.cameras.main.width;
     const startY = 60;
     const spacing = 20;
 
@@ -263,8 +262,6 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   private toggleOption(item: any) {
-    const currentValue = this.config[item.key as keyof GameConfig];
-
     switch (item.key) {
       case 'noSound':
         this.config.noSound = !this.config.noSound;
@@ -395,7 +392,7 @@ export class SettingsScene extends Phaser.Scene {
     });
   }
 
-  private showUpdateMessage(text: string) {
+  showUpdateMessage(text: string) {
     const message = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2, text, {
       fontSize: '12px',
       fontFamily: 'monospace',
@@ -458,4 +455,4 @@ export class SettingsScene extends Phaser.Scene {
     // Go back to menu
     this.scene.start('MenuScene', { config: this.config });
   }
-}
+}

@@ -4,7 +4,6 @@
  * Shows title image with rectangles that disappear over time
  */
 
-import { GameConfig } from '../../config/GameConfig';
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { AkBaseScene } from './AkBaseScene';
@@ -13,8 +12,9 @@ import { AkMusic } from './music';
 export class TitleScene extends AkBaseScene {
 
   // Title screen elements
-  private titleImage: Phaser.GameObjects.Image;
-  private graphics: Phaser.GameObjects.Graphics;
+  private titleImage!: Phaser.GameObjects.Image;
+  private graphics!: Phaser.GameObjects.Graphics;
+  mainConfig: any; // Main config for returning to menu
   private timer: number = 0;
 
   // Background color RGB (255, 255, 170)
@@ -56,7 +56,7 @@ export class TitleScene extends AkBaseScene {
     console.log('TitleScene: Title screen initialized');
   }
 
-  update(delta: number): void {
+  update(_delta: number): void {
     // Handle common input (includes menu/ESC handling)
     this.handleCommonInput();
 
@@ -117,7 +117,7 @@ export class TitleScene extends AkBaseScene {
     });
   }
 
-  private exitGame(): void {
+  exitGame(): void {
     console.log('TitleScene: Exiting Alex Kidd demo...');
     this.backToMainMenu();
   }

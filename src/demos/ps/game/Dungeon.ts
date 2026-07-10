@@ -51,7 +51,7 @@ export enum EntityDirection {
   EAST = 4
 }
 
-enum Dark {
+export enum Dark {
   TRUE,
   FALSE
 }

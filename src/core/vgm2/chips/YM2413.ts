@@ -14,7 +14,7 @@
 var YM2413_SCALE = 1.30;
 
 function YM2413() {
-	if (!this instanceof YM2413) return new YM2413();
+	if (!(this instanceof YM2413)) return new YM2413();
 	this.version = 0x100;
 	this.start = 0;
 	this.count = 0;

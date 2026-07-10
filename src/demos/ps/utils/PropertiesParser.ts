@@ -149,7 +149,7 @@ export class PropertiesParser {
 
     return value
       // Unicode escapes like \u2019
-      .replace(/\\u([0-9a-fA-F]{4})/g, (match, hex) => {
+      .replace(/\\u([0-9a-fA-F]{4})/g, (_match, hex) => {
         return String.fromCharCode(parseInt(hex, 16));
       })
       // Standard escape sequences

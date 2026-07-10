@@ -5,7 +5,6 @@
 
 import { PSGame } from '../PSGame';
 import { Planet, City, CityHelper } from '../game/City';
-import { Item } from '../game/Item';
 import { OriginalItem } from '../game/PSLibItem';
 import { PSSceneType, EntityType, EntityClothes, PSMenu } from '../PSMenu';
 import { PSMenuShop } from '../PSMenuShop';

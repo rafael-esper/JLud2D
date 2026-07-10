@@ -138,6 +138,8 @@ export class AkSprites {
    * Create a single sprite
    */
   private static createSingleSprite(x: number, y: number, type: number, energy: number, textureKey: string): void {
+    if (!this.scene) return;
+
     // Find empty sprite slot
     let i = 0;
     while (this.sprites[i].energy > 0 && i < this.maxSprites - 1) {
@@ -145,8 +147,9 @@ export class AkSprites {
     }
 
     // Clear any existing sprite at this slot
-    if (this.sprites[i].sprite) {
-      this.sprites[i].sprite.destroy();
+    const existingSprite = this.sprites[i].sprite;
+    if (existingSprite) {
+      existingSprite.destroy();
       this.sprites[i].sprite = null;
     }
 
@@ -158,9 +161,10 @@ export class AkSprites {
 
     // Create Phaser sprite
     try {
-      this.sprites[i].sprite = this.scene.add.sprite(x, y, textureKey);
-      this.sprites[i].sprite.setDepth(500); // High depth to render on top
-      this.sprites[i].sprite.setOrigin(0, 0); // Set origin to top-left like original
+      const newSprite = this.scene.add.sprite(x, y, textureKey);
+      newSprite.setDepth(500); // High depth to render on top
+      newSprite.setOrigin(0, 0); // Set origin to top-left like original
+      this.sprites[i].sprite = newSprite;
     } catch (error) {
       console.warn(`AkSprites: Failed to create sprite with texture '${textureKey}':`, error);
       // Create a placeholder rectangle if texture is missing
@@ -181,17 +185,12 @@ export class AkSprites {
     if (!this.scene) return;
 
     const currentMap = MainEngine.getCurrentMap();
-    const camera = MainEngine.getCurrentScene()?.cameras.main;
 
     for (let i = 0; i < this.maxSprites; i++) {
       const spriteData = this.sprites[i];
 
       if (spriteData.energy > 0 && spriteData.sprite) {
         spriteData.energy--;
-
-        // Calculate camera offset
-        const xwin = camera ? camera.scrollX : 0;
-        const ywin = camera ? camera.scrollY : 0;
 
         if (spriteData.type <= 9) { // rock fragments and effects
           // All fragments (including star effects) use physics
@@ -255,8 +254,9 @@ export class AkSprites {
           spriteData.sprite.y = spriteData.y;
 
           // Check for hits
-          const hit = this.processFireAt(spriteData.x, spriteData.y) ||
-                     this.processFireAt(spriteData.x, spriteData.y + 8);
+          if (!this.processFireAt(spriteData.x, spriteData.y)) {
+            this.processFireAt(spriteData.x, spriteData.y + 8);
+          }
 
           // Check for obstacles
           if (currentMap && (
@@ -316,8 +316,9 @@ export class AkSprites {
    */
   public static cleanup(): void {
     for (let i = 0; i < this.maxSprites; i++) {
-      if (this.sprites[i].sprite) {
-        this.sprites[i].sprite.destroy();
+      const sprite = this.sprites[i].sprite;
+      if (sprite) {
+        sprite.destroy();
         this.sprites[i].sprite = null;
         this.sprites[i].energy = 0;
       }
@@ -357,4 +358,4 @@ export class AkSprites {
       this.sprites[index].energy = 0;
     }
   }
-}
+}

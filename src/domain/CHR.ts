@@ -263,11 +263,12 @@ export class CHR {
       // Create frame manually since we need specific extraction
       const frameKey = `${imageKey}_frame_${i}`;
 
-      if (!texture.frames[frameKey]) {
+      const textureFrames = texture.frames as Record<string, Phaser.Textures.Frame>;
+      if (!textureFrames[frameKey]) {
         texture.add(frameKey, 0, x, y, this.fxsize, this.fysize);
       }
 
-      this.frames[i] = texture.frames[frameKey];
+      this.frames[i] = textureFrames[frameKey];
     }
 
     console.log(`CHR: extractFrames - Created ${this.frames.length} frames`);
@@ -427,4 +428,4 @@ export class CHR {
   public getFrameCount(): number {
     return this.frames.length;
   }
-}
+}

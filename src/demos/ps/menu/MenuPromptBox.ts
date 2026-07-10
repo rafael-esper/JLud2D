@@ -3,7 +3,7 @@
  * Direct port of MenuPromptBox.java - Creates selectable menu with grey circles and red cursor
  */
 
-import { MenuType, MenuState } from './MenuType';
+import { MenuType } from './MenuType';
 import { MenuStack } from './MenuStack';
 
 export class MenuPromptBox extends MenuType {
@@ -183,4 +183,4 @@ export class MenuPromptBox extends MenuType {
     this.graphics.destroy();
     this.cleanupTextObjects();
   }
-}
+}

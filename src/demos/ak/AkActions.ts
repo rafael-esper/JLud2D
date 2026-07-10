@@ -7,7 +7,7 @@
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { AkMusic } from './music';
-import { Condition, Status, Action, AkMovement } from './AkMovement';
+import { Condition, Status, Action } from './AkMovement';
 import { AkCore } from './AkCore';
 import { AkSprites } from './AkSprites';
 import { Sound } from '../../domain/Sound';
@@ -114,7 +114,7 @@ export class AkActions {
    * Get punch collision detection (Java getpunch method)
    * Returns an object with zone and actual coordinates where the zone was found
    */
-  public static getpunch(HoOffset: number, condition: Condition, zx: number, zy: number): { zone: number, actualZx: number, actualZy: number } {
+  public static getpunch(_HoOffset: number, condition: Condition, zx: number, zy: number): { zone: number, actualZx: number, actualZy: number } {
 
     let a: number, UpOffset: number;
     UpOffset = 12;
@@ -152,7 +152,7 @@ export class AkActions {
     const currentMap = MainEngine.getCurrentMap();
     if (!currentMap) {
       console.error('AkActions: No current map for event handling');
-      return;
+      return null;
     }
 
     console.log(`AkActions: Event ${num} triggered at (${zx}, ${zy})`);
@@ -406,7 +406,7 @@ export class AkActions {
   /**
    * Add sprite (bracelet, shot, etc.) (Java addSprite method)
    */
-  private static addSprite(x: number, y: number, spriteId: number): void {
+  static addSprite(x: number, y: number, spriteId: number): void {
     AkSprites.addSprite(x, y, spriteId);
   }
 
@@ -531,7 +531,7 @@ export class AkActions {
   /**
    * Perform death sequence with Angel animation (Java hitPlayer death code)
    */
-  private static performDeathSequence(type: number): void {
+  private static performDeathSequence(_type: number): void {
     const player = MainEngine.getPlayer();
     if (!player) return;
 
@@ -624,7 +624,7 @@ export class AkActions {
   /**
    * Game Over screen (Java gameOver method)
    */
-  private static gameOver(): void {
+  static gameOver(): void {
     if (this.gameOverActive) return; // Prevent multiple game over screens
     this.gameOverActive = true;
 

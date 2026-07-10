@@ -8,15 +8,14 @@ import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { FPSDisplay } from '../../utils/FPSDisplay';
 import { MainEngine } from '../../core/MainEngine';
-import { ScriptEngine } from '../../core/ScriptEngine';
 import { DemoUI } from '../../utils/DemoUI';
-import { Entity, EntityDirection } from '../../domain/Entity';
+import { EntityDirection } from '../../domain/Entity';
 
 export class Demo2Scene extends Phaser.Scene {
-  private config: GameConfig;
-  private mainConfig: GameConfig;
-  private inputManager: InputManager;
-  private fpsDisplay: FPSDisplay;
+  private config!: GameConfig;
+  private mainConfig!: GameConfig;
+  private inputManager!: InputManager;
+  private fpsDisplay!: FPSDisplay;
   private tiledMap: any = null;
 
   // Demo2 specific constants
@@ -156,7 +155,7 @@ export class Demo2Scene extends Phaser.Scene {
     this.scene.start('MenuScene', { config: this.mainConfig || this.config });
   }
 
-  update(time: number, delta: number): void {
+  update(_time: number, delta: number): void {
     this.inputManager.updateControls();
 
     // Handle tree cutting with b1
@@ -286,6 +285,5 @@ export class Demo2Scene extends Phaser.Scene {
     if (this.axeSwing) {
       this.axeSwing.destroy();
     }
-    super.destroy();
   }
-}
+}

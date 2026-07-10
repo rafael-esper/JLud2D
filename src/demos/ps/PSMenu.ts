@@ -140,7 +140,7 @@ export class PSMenu {
     } else if (typeof param1 === 'string') {
       // Handle string character case - startScene(scene, strChar)
       if (PSGame.gameData.getScreenSize() === ScreenSize.SCREEN_640_480) {
-        PSMenu.instance.npc = CHR.loadChr(param1);
+        PSMenu.instance.npc = await CHR.loadChr(PSGame.getCurrentScene()!, param1, 'ps');
         PSMenu.instance.showPlayers = true;
       } else {
         PSMenu.instance.npc = null;
@@ -215,10 +215,10 @@ export class PSMenu {
         // For half sprites: crop to show only top 51 pixels (characters behind counter)
         // Take only the top portion of the source image
         const cropHeight = 51;
-        ctx.drawImage(frame.source.image, frame.cutX, frame.cutY, frame.cutWidth, cropHeight, 0, 0, spriteWidth, spriteHeight);
+        ctx.drawImage(frame.source.image as CanvasImageSource, frame.cutX, frame.cutY, frame.cutWidth, cropHeight, 0, 0, spriteWidth, spriteHeight);
       } else {
         // For full sprites: draw the entire frame
-        ctx.drawImage(frame.source.image, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, spriteWidth, spriteHeight);
+        ctx.drawImage(frame.source.image as CanvasImageSource, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, spriteWidth, spriteHeight);
       }
 
       // Add as texture to Phaser
@@ -285,7 +285,7 @@ export class PSMenu {
         if (ctx) {
           canvas.width = 56;
           canvas.height = 112;
-          ctx.drawImage(frame.source.image, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, 56, 112);
+          ctx.drawImage(frame.source.image as CanvasImageSource, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, 56, 112);
           currentScene.textures.addCanvas(textureKey, canvas);
         }
       }
@@ -311,7 +311,7 @@ export class PSMenu {
     }
 
     const currentScene = PSGame.getCurrentScene()!;
-    const textureKey = `chr_${chr.imageName}`;
+    const textureKey = `chr_${chr.getImageName()}`;
 
     // Create texture if not exists
     if (!currentScene.textures.exists(textureKey) && chr.getFrameCount() > 0) {
@@ -322,7 +322,7 @@ export class PSMenu {
         if (ctx) {
           canvas.width = chr.getFxsize();
           canvas.height = chr.getFysize();
-          ctx.drawImage(frame.source.image, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, chr.getFxsize(), chr.getFysize());
+          ctx.drawImage(frame.source.image as CanvasImageSource, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, chr.getFxsize(), chr.getFysize());
           currentScene.textures.addCanvas(textureKey, canvas);
         }
       }
@@ -778,4 +778,4 @@ export class PSMenu {
     // MST display stays on screen until explicitly removed
     // The Church routine or other systems will pop it when done
   }
-}
+}

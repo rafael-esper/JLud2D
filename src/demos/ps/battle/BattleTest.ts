@@ -4,12 +4,11 @@
  */
 
 import { PSGame } from '../PSGame';
-import { PSBattle, BattleOutcome } from './PSBattle';
+import { PSBattle } from './PSBattle';
 import { Enemy } from './Enemy';
 import { BattlePosition, SceneType } from './BattlePosition';
-import { PSSceneType } from '../PSMenu';
-import { PS1Sound } from '../game/PSLibSound';
 import { GameType } from '../game/GameData';
+import { PSLibEnemy, PS1Enemy } from '../game/PSLibEnemy';
 
 export class BattleTest {
   /**
@@ -19,7 +18,7 @@ export class BattleTest {
     console.log("BattleTest: Testing enemy creation...");
 
     // Test builder pattern
-    const sworm = Enemy.createSworm();
+    const sworm = PSLibEnemy.getEnemyByEnum(PS1Enemy.SWORM)!;
     console.log(`Created enemy: ${sworm.getName()} (HP: ${sworm.hp}, ATK: ${sworm.atk})`);
 
     // Test custom enemy
@@ -68,13 +67,13 @@ export class BattleTest {
 
     try {
       // Create a test battle instance
-      const battle = new PSBattle();
+      new PSBattle();
       console.log("PSBattle instance created successfully");
 
       // Test enemy array creation
       const enemies = [
-        Enemy.createSworm(),
-        Enemy.createRedSlime()
+        PSLibEnemy.getEnemyByEnum(PS1Enemy.SWORM)!,
+        PSLibEnemy.getEnemyByEnum(PS1Enemy.RD_SLIME)!
       ];
 
       console.log(`Created enemy array with ${enemies.length} enemies`);
@@ -124,9 +123,9 @@ export class BattleTest {
       await PSGame.initPSGame(GameType.PS_ORIGINAL);
 
       // Create test enemies
-      const testEnemies = [Enemy.createSworm()];
+      const testEnemies = [PSLibEnemy.getEnemyByEnum(PS1Enemy.SWORM)!];
 
-      console.log("Battle integration test setup complete");
+      console.log(`Battle integration test setup complete (${testEnemies.length} test enemies)`);
       console.log("Note: Full battle test requires UI context and scene setup");
 
       console.log("BattleTest: Battle integration test completed!");
@@ -158,8 +157,9 @@ export class BattleTest {
     console.log("=== Battle System Example Usage ===");
 
     // Example 1: Create enemies
-    const sworm = Enemy.createSworm();
-    const redSlime = Enemy.createRedSlime();
+    const sworm = PSLibEnemy.getEnemyByEnum(PS1Enemy.SWORM)!;
+    const redSlime = PSLibEnemy.getEnemyByEnum(PS1Enemy.RD_SLIME)!;
+    console.log(`Example enemies: ${sworm.getName()}, ${redSlime.getName()}`);
 
     // Example 2: Start a fixed battle (requires scene context)
     // const outcome = await PSGame.fixedBattle(PSSceneType.OPEN, [sworm, redSlime]);
@@ -174,4 +174,4 @@ export class BattleTest {
 
     console.log("Example usage documentation complete");
   }
-}
+}

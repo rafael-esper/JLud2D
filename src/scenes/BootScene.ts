@@ -6,7 +6,7 @@
 import { GameConfig } from '../config/GameConfig';
 
 export class BootScene extends Phaser.Scene {
-  private config: GameConfig;
+  private config!: GameConfig;
 
   constructor() {
     super({ key: 'BootScene' });
@@ -111,4 +111,4 @@ export class BootScene extends Phaser.Scene {
     this.load.image('pixel', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
 
   }
-}
+}

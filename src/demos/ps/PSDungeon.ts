@@ -5,7 +5,7 @@ import { ScriptEngine } from '../../core/ScriptEngine';
 import { PSGame } from './PSGame';
 import { PSMenu } from './PSMenu';
 import { PSSceneType, SpecialEntity } from './PSMenu';
-import { Dungeon, DungeonHelper, DungeonTypeHelper } from './game/Dungeon';
+import { DungeonHelper, DungeonTypeHelper } from './game/Dungeon';
 import { OriginalItem } from './game/PSLibItem';
 import { PS1Sound } from './game/PSLibSound';
 import { EntityDirection } from '../../domain/Entity';
@@ -31,7 +31,7 @@ export class PSDungeon {
 
   private isDark: boolean = true;
   private showDungeon: boolean = true;
-  private walkingBack: boolean = false;
+  walkingBack: boolean = false;
   private alreadyInside: boolean = false;
   private zoneCheck: boolean = true;
   private isAnimating: boolean = false;
@@ -508,14 +508,16 @@ export class PSDungeon {
   private initBackBuffer(): void {
     if (!this.currentScene) return;
 
-    this.backBuffer = this.currentScene.add.graphics();
-    this.backBuffer.setDepth(1980);
-    this.backBuffer.setScrollFactor(0);
+    const backBuffer = this.currentScene.add.graphics();
+    backBuffer.setDepth(1980);
+    backBuffer.setScrollFactor(0);
+    this.backBuffer = backBuffer;
 
-    this.dungeonRenderTexture = this.currentScene.add.renderTexture(0, 0, this.TOTAL_XSIZE, this.TOTAL_YSIZE);
-    this.dungeonRenderTexture.setDepth(1990); // Above entities/tilemap but below PSMenu (2000+)
-    this.dungeonRenderTexture.setScrollFactor(0);
-    this.dungeonRenderTexture.setOrigin(0, 0); // Important: set origin to top-left
+    const renderTexture = this.currentScene.add.renderTexture(0, 0, this.TOTAL_XSIZE, this.TOTAL_YSIZE);
+    renderTexture.setDepth(1990); // Above entities/tilemap but below PSMenu (2000+)
+    renderTexture.setScrollFactor(0);
+    renderTexture.setOrigin(0, 0); // Important: set origin to top-left
+    this.dungeonRenderTexture = renderTexture;
 
   }
 
@@ -664,10 +666,11 @@ export class PSDungeon {
         if (this.dungeonRenderTexture) {
           this.dungeonRenderTexture.destroy();
         }
-        this.dungeonRenderTexture = (scene as any).add.renderTexture(0, 0, this.TOTAL_XSIZE, this.TOTAL_YSIZE);
-        this.dungeonRenderTexture.setDepth(1990);
-        this.dungeonRenderTexture.setScrollFactor(0);
-        this.dungeonRenderTexture.setOrigin(0, 0);
+        const newRenderTexture = (scene as any).add.renderTexture(0, 0, this.TOTAL_XSIZE, this.TOTAL_YSIZE);
+        newRenderTexture.setDepth(1990);
+        newRenderTexture.setScrollFactor(0);
+        newRenderTexture.setOrigin(0, 0);
+        this.dungeonRenderTexture = newRenderTexture;
 
         resolve();
       };
@@ -733,7 +736,7 @@ export class PSDungeon {
 
   private cleanupFlippedImages(): void {
     this.flippedImageCache.forEach((flippedImg) => {
-      if (flippedImg && !flippedImg.scene?.scene?.isDestroyed) {
+      if (flippedImg && flippedImg.scene) {
         flippedImg.destroy();
       }
     });
@@ -806,7 +809,7 @@ export class PSDungeon {
   }
 
   private nextDirection(currentDirection: number, counter: boolean): number {
-    let pos = this.directions.indexOf(currentDirection);
+    let pos = (this.directions as number[]).indexOf(currentDirection);
     if (pos === -1) pos = 0;
 
     if (counter) {
@@ -1151,4 +1154,4 @@ export class PSDungeon {
   public setZoneCheck(): void {
     this.zoneCheck = true;
   }
-}
+}

@@ -11,10 +11,10 @@ import { MainEngine } from '../../core/MainEngine';
 import { DemoUI } from '../../utils/DemoUI';
 
 export class Demo1Scene extends Phaser.Scene {
-  private config: GameConfig;
-  private mainConfig: GameConfig;
-  private inputManager: InputManager;
-  private fpsDisplay: FPSDisplay;
+  private config!: GameConfig;
+  private mainConfig!: GameConfig;
+  private inputManager!: InputManager;
+  private fpsDisplay!: FPSDisplay;
   private tiledMap: any = null;
 
   constructor() {
@@ -78,4 +78,4 @@ export class Demo1Scene extends Phaser.Scene {
       this.scene.start('MenuScene', { config: this.mainConfig || this.config });
     }
   }
-}
+}

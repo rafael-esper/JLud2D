@@ -146,7 +146,7 @@ export class MenuTextBox extends MenuType {
       // Check if this is the most recent text box (to avoid overlapping old text)
       const thisIndex = menus.indexOf(this);
       const isLatestTextBox = thisIndex === menus.length - 1 ||
-                              !menus.slice(thisIndex + 1).some(m => m.constructor.name === 'MenuTextBox');
+                              !menus.slice(thisIndex + 1).some((m: MenuType) => m.constructor.name === 'MenuTextBox');
 
       // Always update text content and animation
       const firstLineText = ScriptEngine.left(this.text[0], this.textDelay);
@@ -191,4 +191,4 @@ export class MenuTextBox extends MenuType {
     // Clean up text objects using the standard method
     this.cleanupTextObjects();
   }
-}
+}

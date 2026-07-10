@@ -6,7 +6,7 @@
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { GameSpeed } from '../../config/GameSpeed';
-import { Entity, EntityDirection } from '../../domain/Entity';
+import { Entity, EntityDirection, Direction } from '../../domain/Entity';
 import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
 import { PS1Sound } from './game/PSLibSound';
@@ -657,7 +657,6 @@ export class PSGame {
     // Get dungeon coordinates and direction
     const dungeonX = DungeonHelper.getX(dungeon);
     const dungeonY = DungeonHelper.getY(dungeon);
-    const dungeonDir = DungeonHelper.getDir(dungeon);
 
     // Set goto coordinates for dungeon spawn
     this.setgotoxy(dungeonX, dungeonY);
@@ -708,14 +707,14 @@ export class PSGame {
   /**
    * Get dungeon face direction (for dungeon re-entry)
    */
-  public static getDungeonFace(): EntityDirection {
-    return this.gameData.dungeonFace || EntityDirection.NORTH;
+  public static getDungeonFace(): Direction {
+    return (this.gameData.dungeonFace as Direction) || EntityDirection.NORTH;
   }
 
   /**
    * Set dungeon face direction
    */
-  public static setDungeonFace(direction: EntityDirection): void {
+  public static setDungeonFace(direction: Direction): void {
     this.gameData.dungeonFace = direction;
   }
 
@@ -1226,7 +1225,6 @@ export class PSGame {
     }
 
     const { PSBattle } = await import('./battle/PSBattle');
-    const { BattleOutcome } = await import('./battle/PSBattle');
 
     const battle = new PSBattle();
     return await battle.battleSceneWithEnemies(scene, enemyInstances);
@@ -1263,7 +1261,6 @@ export class PSGame {
     const quantity = Math.floor(Math.random() * effectiveMax) + 1;
 
     const { PSBattle } = await import('./battle/PSBattle');
-    const { BattleOutcome } = await import('./battle/PSBattle');
 
     const battle = new PSBattle();
     return await battle.battleScene(scene, selectedEnemy, quantity);
@@ -1276,7 +1273,6 @@ export class PSGame {
     console.log(`PSGame.startBattle: Starting battle with ${quantity} ${enemy.getName()}(s)`);
 
     const { PSBattle } = await import('./battle/PSBattle');
-    const { BattleOutcome } = await import('./battle/PSBattle');
 
     const battle = new PSBattle();
     return await battle.battleScene(scene, enemy, quantity);
@@ -1435,7 +1431,7 @@ export class PSGame {
       }
 
       if (item) {
-        this.getParty().addItem(item);
+        this.getParty().checkForFullAndAddItem(item);
         await PSMenu.StextNext(this.getString("Chest_Item", "<item>", item.getName()));
       }
     }
@@ -1484,4 +1480,4 @@ export class PSGame {
     }
   }
 
-}
+}

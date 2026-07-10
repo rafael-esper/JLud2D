@@ -7,8 +7,8 @@ import { GameConfig } from '../config/GameConfig';
 import { InputManager, ControlsConfig } from '../config/Controls';
 
 export class MenuScene extends Phaser.Scene {
-  private config: GameConfig;
-  private inputManager: InputManager;
+  private config!: GameConfig;
+  private inputManager!: InputManager;
   private selectedDemo: number = 0;
   private menuItems: string[] = ['Demo 1 - Island World', 'Demo 2 - Golden Axe Warrior', 'Demo 3 - VGM Player', 'Demo 4 - Alex Kidd', 'Demo 5 - Phantasy Star', 'Settings', 'Exit'];
   private menuTexts: Phaser.GameObjects.Text[] = [];
@@ -54,7 +54,7 @@ export class MenuScene extends Phaser.Scene {
 
 
     // Configuration info
-    const configInfo = this.add.text(10, height - 40, `Resolution: ${this.config.xRes}x${this.config.yRes} | Window Mode: ${this.config.windowMode ? 'ON' : 'OFF'} | Sound: ${this.config.noSound ? 'OFF' : 'ON'}`, {
+    this.add.text(10, height - 40, `Resolution: ${this.config.xRes}x${this.config.yRes} | Window Mode: ${this.config.windowMode ? 'ON' : 'OFF'} | Sound: ${this.config.noSound ? 'OFF' : 'ON'}`, {
       fontSize: '10px',
       fontFamily: 'monospace',
       color: '#666666'
@@ -156,4 +156,4 @@ export class MenuScene extends Phaser.Scene {
         break;
     }
   }
-}
+}

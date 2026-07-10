@@ -14,9 +14,8 @@ import { AkCore } from './AkCore';
 import { AkBaseScene } from './AkBaseScene';
 
 export class MapScene extends AkBaseScene {
-  private mapImage: Phaser.GameObjects.Image;
-  private levelText: Phaser.GameObjects.Text;
-  private redCircle: Phaser.GameObjects.Graphics;
+  private mapImage!: Phaser.GameObjects.Image;
+  private redCircle!: Phaser.GameObjects.Graphics;
 
   // Animation state
   private bullet: number = 0;
@@ -89,7 +88,7 @@ export class MapScene extends AkBaseScene {
     }
 
     // Create level text at bottom
-    this.levelText = this.add.text(10, 225, `Level ${MapScene.LevelId}: ${this.displayLevel}`, {
+    this.add.text(10, 225, `Level ${MapScene.LevelId}: ${this.displayLevel}`, {
       fontFamily: 'monospace',
       fontSize: '16px',
       color: '#ffffff'

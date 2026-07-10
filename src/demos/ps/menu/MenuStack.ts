@@ -69,8 +69,8 @@ export class MenuStack {
   public entitySprite: Phaser.GameObjects.Image | null = null;
   public entityX: number = 0;
   public entityY: number = 0;
+  delayTimer: number = 0;
 
-  private delayTimer: number = 0;
   public showPlayers: boolean = false;
   public outcome: PSOutcome = PSOutcome.NO_FADE;
 
@@ -440,7 +440,7 @@ export class MenuStack {
   }
 
   // PS1 Player order matrix - direct port from Java
-  private static readonly playerOrder: number[][] = [
+  static readonly playerOrder: number[][] = [
     [0],
     [0, 1],
     [1, 0, 2],
@@ -654,4 +654,4 @@ export class MenuStack {
     }
   }
 
-}
+}

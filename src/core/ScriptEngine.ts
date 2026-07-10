@@ -193,7 +193,7 @@ export class ScriptEngine {
    * @param text Text to display
    * @param color Optional color (default: white)
    */
-  public static printString(x: number, y: number, fontStyle: any, text: string, color?: {r: number, g: number, b: number}): void {
+  public static printString(x: number, y: number, _fontStyle: any, text: string, color?: {r: number, g: number, b: number}): void {
     const currentScene = MainEngine.getCurrentScene();
     if (!currentScene) return;
 
@@ -459,4 +459,4 @@ export class ScriptEngine {
 
     ScriptEngine.clearUITexts();
   }
-}
+}

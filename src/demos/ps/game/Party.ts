@@ -4,7 +4,7 @@
  */
 
 import { PartyMember, Gender } from './PartyMember';
-import { Item, ItemType } from './Item';
+import { Item } from './Item';
 import { Job } from './Job';
 import { Specie } from './Specie';
 import { GameType } from './GameData';
@@ -156,6 +156,10 @@ export class Party {
 
   public getMembers(): PartyMember[] {
     return this.members;
+  }
+
+  public hasMember(name: string): boolean {
+    return this.members.some(m => m.getName() === name);
   }
 
   public listMembers(): string[] {
@@ -315,7 +319,7 @@ export class Party {
     */
   }
 
-  public embark(x: number, y: number, strChar: string): void {
+  public embark(_x: number, _y: number, _strChar: string): void {
     // Note: This would need full Entity system implementation
     console.warn('Party.embark() not fully implemented - requires Entity system');
 
@@ -332,7 +336,7 @@ export class Party {
     */
   }
 
-  public disembark(x: number, y: number): void {
+  public disembark(_x: number, _y: number): void {
     // Note: This would need full Entity system implementation
     console.warn('Party.disembark() not fully implemented - requires Entity system');
 
@@ -418,4 +422,4 @@ export class Party {
   public getMesetas(): number {
     return this.mst;
   }
-}
+}

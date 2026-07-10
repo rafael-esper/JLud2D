@@ -15,9 +15,9 @@ import { PSMenu } from './PSMenu';
 import { PSMenuMain } from './PSMenuMain';
 
 export class GameScene extends Phaser.Scene {
-  private config: GameConfig;
-  private inputManager: InputManager;
-  private menuStack: MenuStack;
+  private config!: GameConfig;
+  private inputManager!: InputManager;
+  private menuStack!: MenuStack;
   private tiledMap: any = null;
   private mapNameOverride: string | null = null;
   public mapBasePath: string = 'src/demos/ps/maps';
@@ -144,7 +144,7 @@ export class GameScene extends Phaser.Scene {
   /**
    * Main game loop - handles input, entity updates, and map animations
    */
-  update(time: number, delta: number): void {
+  update(_time: number, delta: number): void {
     // Update input controls FIRST (like Demo1)
     this.inputManager.updateControls();
 
@@ -197,6 +197,5 @@ export class GameScene extends Phaser.Scene {
    */
   destroy(): void {
     console.log("GameScene: Shutting down");
-    super.destroy();
   }
-}
+}

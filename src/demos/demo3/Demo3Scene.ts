@@ -5,8 +5,6 @@
 
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
-import { DemoUI } from '../../utils/DemoUI';
-import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
 
 interface VGMFile {
@@ -18,9 +16,8 @@ interface VGMFile {
 }
 
 export class Demo3Scene extends Phaser.Scene {
-  private config: GameConfig;
-  private inputManager: InputManager;
-  private demoUI: DemoUI;
+  private config!: GameConfig;
+  private inputManager!: InputManager;
 
   // State
   private selectedFile: number = 0;
@@ -41,13 +38,11 @@ export class Demo3Scene extends Phaser.Scene {
   ];
 
   // UI elements
-  private titleText: Phaser.GameObjects.Text;
-  private statusText: Phaser.GameObjects.Text;
-  private instructionsText: Phaser.GameObjects.Text;
+  private statusText!: Phaser.GameObjects.Text;
   private fileListTexts: Phaser.GameObjects.Text[] = [];
   private fileStatusTexts: Phaser.GameObjects.Text[] = [];
-  private playButton: Phaser.GameObjects.Text;
-  private stopButton: Phaser.GameObjects.Text;
+  private playButton!: Phaser.GameObjects.Text;
+  private stopButton!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'Demo3Scene' });
@@ -61,7 +56,6 @@ export class Demo3Scene extends Phaser.Scene {
     // Initialize controls
     const controlsConfig = new ControlsConfig();
     this.inputManager = new InputManager(this, controlsConfig);
-    this.demoUI = new DemoUI(this);
 
     // Demo3 uses b1 for play, b2 for stop
     this.inputManager.setMobileButtons(['b1', 'b2']);
@@ -321,7 +315,6 @@ export class Demo3Scene extends Phaser.Scene {
 
   destroy() {
     this.stopMusic();
-    super.destroy();
   }
 }
 

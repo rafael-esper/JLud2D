@@ -60,7 +60,6 @@ export interface MapData {
 export class TiledMap {
   // Java constants ported from MapTiledJSON.java
   private static readonly META_LAYER = 2; // Meta layer offset from end
-  private static readonly ENTITY_LAYER = 1; // Entity layer offset from end
   private static readonly ZONE_OFFSET = 19; // Obs offset for tile IDs
 
   // Map properties
@@ -298,8 +297,6 @@ export class TiledMap {
       }
     }
 
-    // For backward compatibility, store the first tileset
-    this.tileset = this.tilemap.tilesets[0] || null;
   }
 
   /**
@@ -380,7 +377,7 @@ export class TiledMap {
     }
 
     // If no 'E' found, default to middle of layers
-    return Math.floor(this.mapData?.layers.length / 2) || 1;
+    return Math.floor((this.mapData ? this.mapData.layers.length : 0) / 2) || 1;
   }
 
   /**
@@ -532,6 +529,14 @@ export class TiledMap {
   public getRenderstring(): string { return this.renderstring; }
 
   // Setters for wrapping properties
+  public isHorizontalWrappable(): boolean {
+    return this.horizontalWrappable;
+  }
+
+  public isVerticalWrappable(): boolean {
+    return this.verticalWrappable;
+  }
+
   public setHorizontalWrappable(wrappable: boolean): void {
     this.horizontalWrappable = wrappable;
   }
@@ -893,7 +898,7 @@ export class TiledMap {
 
   private getMetaTileset(): { getFirstGid(): number } {
     // The meta tileset should be the last tileset
-    const lastTileset = this.mapData.tilesets[this.mapData.tilesets.length - 1];
+    const lastTileset = this.mapData ? this.mapData.tilesets[this.mapData.tilesets.length - 1] : null;
 
     return {
       getFirstGid: () => lastTileset ? lastTileset.firstgid : 1
@@ -970,4 +975,4 @@ export class TiledMap {
     this.animatedTileCount = 0;
     this.obstructionMap.clear();
   }
-}
+}

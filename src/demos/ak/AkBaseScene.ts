@@ -5,14 +5,12 @@
 
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
-import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { MapScene } from './MapScene';
-import { AkCore } from './AkCore';
 
 export abstract class AkBaseScene extends Phaser.Scene {
-  protected config: GameConfig;
-  protected inputManager: InputManager;
+  protected config!: GameConfig;
+  protected inputManager!: InputManager;
 
   constructor(sceneKey: string) {
     super({ key: sceneKey });
@@ -68,6 +66,5 @@ export abstract class AkBaseScene extends Phaser.Scene {
   destroy(): void {
     // Stop music when scene is destroyed
     ScriptEngine.stopmusic();
-    super.destroy();
   }
 }

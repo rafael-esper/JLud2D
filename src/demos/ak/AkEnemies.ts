@@ -5,7 +5,7 @@
  */
 
 import { MainEngine } from '../../core/MainEngine';
-import { Condition, Status, Action, AkMovement } from './AkMovement';
+import { Condition, Action } from './AkMovement';
 import { AkActions } from './AkActions';
 import { AkCore } from './AkCore';
 import { AkSprites } from './AkSprites';
@@ -14,7 +14,6 @@ export class AkEnemies {
   private static monsterframe: number = 0;
 
   // Constants for enemy types and effects
-  private static readonly DUST = 0;
 
   /**
    * Main enemy processing method (Java processEnemies)
@@ -398,7 +397,7 @@ export class AkEnemies {
   /**
    * Process Dust death animation (Java Dust processing)
    */
-  private static processDust(entityIndex: number, entity: any): void {
+  private static processDust(_entityIndex: number, entity: any): void {
     const face = entity.getFace();
 
     if (face === 0) {
@@ -420,7 +419,7 @@ export class AkEnemies {
   /**
    * Process BigDust death animation (Java BigDust processing)
    */
-  private static processBigDust(entityIndex: number, entity: any): void {
+  private static processBigDust(_entityIndex: number, entity: any): void {
     const face = entity.getFace();
 
     if (face === 0) {
@@ -446,7 +445,7 @@ export class AkEnemies {
   /**
    * Process Fire enemy behavior with circular motion
    */
-  private static processFire(entityIndex: number, entity: any): void {
+  private static processFire(_entityIndex: number, entity: any): void {
     // Use entity properties to store initial center position and internal counter
     if (!entity.hasOwnProperty('_fireCenterX')) {
       entity._fireCenterX = entity.getx();
@@ -609,7 +608,7 @@ export class AkEnemies {
   /**
    * Check collision between Alex Kidd and enemy (Java akiddCollision method)
    */
-  private static akiddCollision(type: number, mx: number, my: number, wx: number, wy: number): boolean {
+  private static akiddCollision(_type: number, mx: number, my: number, wx: number, wy: number): boolean {
     // ho=0;if (State=Status.DUCKING) ho+=8;
     // px = entity.get(player).x+12;
     // py = entity.get(player).y+6;

@@ -287,6 +287,8 @@ export class InputManager {
   }
 
   private setupGamepad(): void {
+    if (!this.scene.input.gamepad) return;
+
     this.scene.input.gamepad.on('connected', (pad: Phaser.Input.Gamepad.Gamepad) => {
       this.gamepad = pad;
       console.log('Gamepad connected:', pad.id);
@@ -435,12 +437,13 @@ export class InputManager {
     this.b2 = this.b2 || this.gamepad.B;      // Secondary
     this.b3 = this.b3 || this.gamepad.X;      // Tertiary
     this.b4 = this.b4 || this.gamepad.Y;      // Fourth
-    this.b5 = this.b5 || this.gamepad.L1;     // Fifth (left shoulder)
-    this.b6 = this.b6 || this.gamepad.R1;     // Sixth (right shoulder)
+    this.b5 = this.b5 || this.gamepad.L1 > 0; // Fifth (left shoulder)
+    this.b6 = this.b6 || this.gamepad.R1 > 0; // Sixth (right shoulder)
 
     // System buttons
-    this.start = this.start || this.gamepad.start || this.gamepad.menu;
-    this.menu = this.menu || this.gamepad.select || this.gamepad.back;
+    // Standard gamepad mapping: button 9 = start/menu, button 8 = select/back
+    this.start = this.start || (this.gamepad.buttons[9]?.pressed ?? false);
+    this.menu = this.menu || (this.gamepad.buttons[8]?.pressed ?? false);
   }
 
   private updateMobileControls(): void {
@@ -603,4 +606,4 @@ export class InputManager {
 
 }
 
-export default ControlsConfig;
+export default ControlsConfig;

@@ -77,7 +77,6 @@ export class AkMovement {
   setAction(action: Action): void { AkCore.setAction(action); }
 
   getVelocity(): number { return this.velocity; }
-  getGameSpeed(): number { return this.gameSpeed; }
   setVelocity(velocity: number): void { this.velocity = velocity; }
 
   getFriction(): number { return this.friction; }
@@ -511,8 +510,8 @@ export class AkMovement {
 
     // Debug mode toggle (O key)
     if (this.inputManager.justPressed('O')) {
-      AkMovement.debug = !AkMovement.debug;
-      console.log(`Debug mode ${AkMovement.debug ? 'activated' : 'deactivated'}`);
+      AkMovement.setDebug(!AkMovement.getDebug());
+      console.log(`Debug mode ${AkMovement.getDebug() ? 'activated' : 'deactivated'}`);
     }
 
     // Enable bracelet (B key)
@@ -537,7 +536,7 @@ export class AkMovement {
 
     // Invincibility (I key)
     if (this.inputManager.justPressed('I')) {
-      AkMovement.invencible = 100000;
+      AkMovement.setInvencible(100000);
       console.log("Invincibility activated");
     }
 

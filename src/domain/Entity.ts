@@ -53,11 +53,10 @@ export class Entity {
   private waypointx: number = 0;
   private waypointy: number = 0;
   private speedct: number = 0;
-  private delay: number = 0;
+  delay: number = 0;
   private framect: number = 0;
   private specframe: number = -1;
   private frame: number = 0;
-  private idleTimer: number = 0;
 
   // Character rendering
   private chr: CHR | null = null;
@@ -586,4 +585,4 @@ export class Entity {
     }
     this.active = false;
   }
-}
+}

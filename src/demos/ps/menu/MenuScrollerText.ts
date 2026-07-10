@@ -13,11 +13,8 @@ export class MenuScrollerText extends MenuType {
   private y: number;
   private textPos: number; // current text position
   private textDelay: number; // max text delay
-  private scene: Phaser.Scene;
+  scene: Phaser.Scene;
   private textObjects: Phaser.GameObjects.Text[] = [];
-
-  // Color constants
-  private static readonly WHITE = 0xFFFFFF;
 
   constructor(scene: Phaser.Scene, x: number, y: number, text: string[]) {
     super();
@@ -36,7 +33,7 @@ export class MenuScrollerText extends MenuType {
     this.textPos = 0;
   }
 
-  public draw(active: boolean): void {
+  public draw(_active: boolean): void {
     // Clear previous text objects
     this.clearTextObjects();
 
@@ -126,4 +123,4 @@ export class MenuScrollerText extends MenuType {
   public destroy(): void {
     this.clearTextObjects();
   }
-}
+}

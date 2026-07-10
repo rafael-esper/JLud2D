@@ -131,7 +131,7 @@ export class PSMenuShop {
             }
 
             // Check if party member is full
-            if (p.getMember(buyToWhom - 1).isFull() && !chosenItem.isQuest()) {
+            if (p.getMember(buyToWhom - 1)!.isFull() && !chosenItem.isQuest()) {
               await PSMenu.StextNext(PSGame.getString("Shop_Full"));
               if (p.partySize() === 1) {
                 await PSMenu.StextLast(PSGame.getString("Shop_Full_Exit"));
@@ -148,29 +148,29 @@ export class PSMenuShop {
               if (chosenItem.isQuest()) {
                 p.addQuestItem(chosenItem);
               } else {
-                p.getMember(buyToWhom - 1).addItem(chosenItem);
+                p.getMember(buyToWhom - 1)!.addItem(chosenItem);
                 PSGame.playSound(PS1Sound.ITEM);
               }
             } else {
-              if (p.getMember(buyToWhom - 1).canEquip(chosenItem.type)) {
+              if (p.getMember(buyToWhom - 1)!.canEquip(chosenItem.type)) {
                 const wantToEquip = await PSMenu.PromptNext(
                   PSGame.getString("Shop_Equip_Item", "<item>", chosenItem.getName()),
                   PSGame.getYesNo()
                 );
 
                 if (wantToEquip === 1) {
-                  p.getMember(buyToWhom - 1).equipItem(chosenItem);
+                  p.getMember(buyToWhom - 1)!.equipItem(chosenItem);
                   PSGame.playSound(PS1Sound.ITEM);
                   await PSMenu.StextLast(
-                    PSGame.getString("Item_Equip", "<item>", chosenItem.getName(), "<player>", p.getMember(buyToWhom - 1).getName())
+                    PSGame.getString("Item_Equip", "<item>", chosenItem.getName(), "<player>", p.getMember(buyToWhom - 1)!.getName())
                   );
                 } else {
-                  p.getMember(buyToWhom - 1).addItem(chosenItem);
+                  p.getMember(buyToWhom - 1)!.addItem(chosenItem);
                   PSGame.playSound(PS1Sound.ITEM);
                 }
               } else {
                 const buyAnyway = await PSMenu.PromptNext(
-                  PSGame.getString("Shop_Cant_Equip", "<player>", p.getMember(buyToWhom - 1).getName(), "<item>", chosenItem.getName()),
+                  PSGame.getString("Shop_Cant_Equip", "<player>", p.getMember(buyToWhom - 1)!.getName(), "<item>", chosenItem.getName()),
                   PSGame.getYesNo()
                 );
 
@@ -179,7 +179,7 @@ export class PSMenuShop {
                   continue;
                 }
 
-                p.getMember(buyToWhom - 1).addItem(chosenItem);
+                p.getMember(buyToWhom - 1)!.addItem(chosenItem);
                 PSGame.playSound(PS1Sound.ITEM);
               }
             }
@@ -213,7 +213,7 @@ export class PSMenuShop {
 
       if (sellFromWhom > 0) {
         // Check for empty item list
-        if (p.getMember(sellFromWhom - 1).items.length === 0) {
+        if (p.getMember(sellFromWhom - 1)!.items.length === 0) {
           await PSMenu.StextLast(PSGame.getString("Shop_Tool_Item_SellNoItem"));
           if (p.partySize() === 1) { // Cancel if only party member
             return;
@@ -221,7 +221,7 @@ export class PSMenuShop {
           continue;
         }
 
-        const itemList = p.getMember(sellFromWhom - 1).items;
+        const itemList = p.getMember(sellFromWhom - 1)!.items;
         const sellWhatItem = await PSMenu.PromptNext(
           PSGame.getString("Shop_Tool_Item_Sell_What"),
           Item.toString(itemList, false)
@@ -247,7 +247,7 @@ export class PSMenuShop {
             if (confirmSell === 1) {
               p.mst += Math.floor(itemList[sellWhatItem - 1].getCost() / 2);
               PSMenuShop.mstBox?.updateText(0, `MST ${p.mst}`);
-              p.getMember(sellFromWhom - 1).removeItem(sellWhatItem - 1);
+              p.getMember(sellFromWhom - 1)!.removeItem(sellWhatItem - 1);
 
               await PSMenu.StextLast(PSGame.getString("Shop_Tool_Item_Sold"));
             }
