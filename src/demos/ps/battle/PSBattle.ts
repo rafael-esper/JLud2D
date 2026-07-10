@@ -117,7 +117,7 @@ export class PSBattle {
     }
 
     if (PSGame.getCurrentDungeon() === Dungeon.NONE && !PSGame.isOnTransport()) {
-      PSGame.getParty().reallocate();
+      await PSGame.getParty().reallocate();
     }
 
     PSMenu.endScene();

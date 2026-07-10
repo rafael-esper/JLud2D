@@ -1471,9 +1471,6 @@ export class PSGame {
   public static async Church(costMultiplier: number): Promise<void> {
     console.log(`PSGame: Church routine started with cost multiplier ${costMultiplier}`);
 
-    // Store current music to restore later
-    const previousMusic = this.currentMusic;
-
     // Play church music
     await this.playMusic(PS1Music.CHURCH);
 
@@ -1560,11 +1557,8 @@ export class PSGame {
     // Remove MST display
     PSMenu.instance.pop();
 
-    // Restore previous music
-    if (previousMusic) {
-      await this.playMusic(previousMusic);
-      console.log(`PSGame: Restored previous music: ${previousMusic}`);
-    }
+    // Java: restore the city/village music on exit
+    this.findAndPlayMusic();
 
     console.log("PSGame: Church routine completed");
   }

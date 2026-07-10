@@ -9,6 +9,7 @@ import { Party } from './game/Party';
 import { Item, ItemType } from './game/Item';
 import { MenuLabelBox } from './menu/MenuLabelBox';
 import { PS1Sound } from './game/PSLibSound';
+import { PS1Music } from './game/PSLibMusic';
 import { Flags } from './game/GameData';
 import { OriginalItem } from './game/PSLibItem';
 
@@ -19,6 +20,10 @@ export class PSMenuShop {
    * Main shop function - handles greeting, buy/sell options, and farewell
    */
   public static async Shop(greetings: string, sellOption: boolean, p: Party, items: Item[]): Promise<void> {
+    // Java: PSGame.Shop wrapper plays the shop theme and restores the
+    // city/village music on exit
+    await PSGame.playMusic(PS1Music.SHOP);
+
     PSMenuShop.mstBox = PSMenu.instance.createOneLabelBox(200, 10, `MST ${p.mst}`, true);
     PSMenu.instance.push(PSMenuShop.mstBox);
 
@@ -49,6 +54,8 @@ export class PSMenuShop {
     }
 
     PSMenu.instance.pop(); // mstBox
+
+    PSGame.findAndPlayMusic();
   }
 
   /**

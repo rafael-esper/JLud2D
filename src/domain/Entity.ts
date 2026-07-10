@@ -108,6 +108,8 @@ export class Entity {
           // Set blend mode to handle transparency better
           this.sprite.setBlendMode(Phaser.BlendModes.NORMAL);
 
+          this.sprite.setVisible(this.visible);
+
           // Set initial frame
           this.updateFrame();
 
@@ -422,6 +424,7 @@ export class Entity {
       this.sprite = currentScene.add.sprite(this.x, this.y, textureKey);
       this.sprite.setOrigin(0, 0);
       this.sprite.setDepth(5); // Default entity depth
+      this.sprite.setVisible(this.visible);
 
       console.log(`Entity: Created sprite with texture key: ${textureKey}`);
     } catch (error) {
@@ -457,6 +460,7 @@ export class Entity {
     this.sprite = scene.add.sprite(currentX, currentY, textureKey);
     this.sprite.setDepth(currentDepth);
     this.sprite.setOrigin(0, 0);
+    this.sprite.setVisible(this.visible);
 
     console.log(`Entity: Recreated sprite with texture key: ${textureKey}`);
   }
@@ -521,7 +525,12 @@ export class Entity {
   public setActive(active: boolean): void { this.active = active; }
 
   public isVisible(): boolean { return this.visible; }
-  public setVisible(visible: boolean): void { this.visible = visible; }
+  public setVisible(visible: boolean): void {
+    this.visible = visible;
+    // The Java engine repainted every frame and simply skipped invisible
+    // entities; the Phaser sprite persists on screen, so hide it explicitly
+    this.sprite?.setVisible(visible);
+  }
 
   public getId(): number { return this.id; }
   public setId(id: number): void { this.id = id; }
