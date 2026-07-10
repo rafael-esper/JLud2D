@@ -184,6 +184,14 @@ export class GameScene extends Phaser.Scene {
       this.menuStack.drawMenus();
     }
 
+    // Board/leave vehicles (Java: hookbutton(1, "PSGame.verifyTransport"))
+    if (!isMenuActive && PSGame.canTransport && !MainEngine.isScriptActive()) {
+      if (this.inputManager.justPressed('b1')) {
+        this.inputManager.unpress(1); // b1 (Java: unpress(1))
+        PSGame.verifyTransport().catch(error => console.error('GameScene: verifyTransport error:', error));
+      }
+    }
+
     // Open the main game menu (Java: hookbutton(4, "PSMenuMain.menu"))
     if (!isMenuActive && PSMenu.isMenuHooked() && !MainEngine.isScriptActive()) {
       if (this.inputManager.justPressed('b4')) {

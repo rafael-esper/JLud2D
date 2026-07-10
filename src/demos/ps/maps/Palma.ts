@@ -8,8 +8,9 @@ import { ScriptEngine } from '../../../core/ScriptEngine';
 import { PSGame } from '../PSGame';
 import { City } from '../game/City';
 import { Dungeon, EntityDirection } from '../game/Dungeon';
-import { PSSceneType } from '../PSMenu';
-import { PS1Enemy } from '../game/PSLibEnemy';
+import { PSSceneType, SpecialEntity, PSMenu } from '../PSMenu';
+import { PS1Enemy, PS4Enemy } from '../game/PSLibEnemy';
+import { OriginalItem } from '../game/PSLibItem';
 
 export class Palma {
 
@@ -25,15 +26,13 @@ export class Palma {
       if (currentMap) {
         currentMap.setRenderstring("1,2,E,R");
       }
-      // PSGame.spaceshipRoutineAnimation("space/spaceship1.chr"); // TODO: Not implemented yet
+      await PSGame.spaceshipRoutineAnimation("space/spaceship1.chr");
       return;
     }
     if (PSGame.getgotox() === 52 && PSGame.getgotoy() === 56) { // Luveno Spaceship
-      // PSGame.spaceshipRoutineAnimation("space/spaceship2.chr"); // TODO: Not implemented yet
+      await PSGame.spaceshipRoutineAnimation("space/spaceship2.chr");
       return;
     }
-
-    // PSGame.planetAllocate(); // TODO: Not implemented yet
 
     console.log("Palma::mapinit");
 
@@ -59,8 +58,8 @@ export class Palma {
       console.log("Palma.startmap: No spaceport transition triggered for these coordinates");
       // Continue with normal Palma map initialization for regular coordinates
 
-      // Allocate party at goto position (spawn player)
-      await PSGame.getParty().allocate(PSGame.getgotox(), PSGame.getgotoy());
+      // Allocate party or re-board the vehicle at goto position (Java: planetAllocate)
+      await PSGame.planetAllocate();
 
       // Setup camera to center on player after spawning
       MainEngine.setupCamera();
@@ -71,10 +70,9 @@ export class Palma {
       MainEngine.setEntitiesPaused(false);
       MainEngine.setScriptActive(false);
       PSGame.menuOn();
-      PSGame.transportOff();
     }
 
-    // PSGame.transportOn(); // TODO: Not implemented yet
+    PSGame.transportOn();
   }
 
   public static async camineet(): Promise<void> {
@@ -166,18 +164,17 @@ export class Palma {
   }
 
   // *********************** BATTLE AREAS **********************************
-  // TODO: Battle system not implemented yet - commenting out all battle methods
 
   public static async parolit_forest(): Promise<void> {
-    // await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.SWORM, PS1Enemy.OWL_BEAR]); // TODO: Not implemented yet
+    await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.SWORM, PS1Enemy.OWL_BEAR]);
   }
 
   public static async owlbear_sworm(): Promise<void> {
-    // await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.SWORM, PS1Enemy.OWL_BEAR, PS1Enemy.OWL_BEAR]); // TODO: Not implemented yet
+    await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.SWORM, PS1Enemy.OWL_BEAR, PS1Enemy.OWL_BEAR]);
   }
 
   public static async owlbear_deadtree(): Promise<void> {
-    // await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.DEADTREE, PS1Enemy.OWL_BEAR, PS1Enemy.OWL_BEAR]); // TODO: Not implemented yet
+    await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.DEADTREE, PS1Enemy.OWL_BEAR, PS1Enemy.OWL_BEAR]);
   }
 
   public static async sworm_scorpion(): Promise<void> {
@@ -189,215 +186,200 @@ export class Palma {
   }
 
   public static async sworm_scorpion_maneater(): Promise<void> {
-    // TODO: Battle system not implemented yet
-    // if (ScriptEngine.random(1, 5) <= 4) {
-    //   await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.SWORM, PS1Enemy.SCORPION, PS1Enemy.MANEATER]);
-    // } else {
-    //   await PSGame.fixedBattle(PSSceneType.FIELDS, [PS1Enemy.SWORM, PS1Enemy.SCORPION, PS1Enemy.SWORM]);
-    // }
+    if (ScriptEngine.random(1, 5) <= 4) {
+      await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.SWORM, PS1Enemy.SCORPION, PS1Enemy.MANEATER]);
+    } else {
+      await PSGame.fixedBattle(PSSceneType.FIELDS, [PS1Enemy.SWORM, PS1Enemy.SCORPION, PS1Enemy.SWORM]);
+    }
   }
 
   public static async sworm_scorpion_deadtree(): Promise<void> {
-    // TODO: Battle system not implemented yet
-    // if (ScriptEngine.random(1, 5) <= 4) {
-    //   await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.SWORM, PS1Enemy.SCORPION, PS1Enemy.DEADTREE]);
-    // } else {
-    //   await PSGame.fixedBattle(PSSceneType.FIELDS, [PS1Enemy.SWORM, PS1Enemy.SCORPION, PS1Enemy.SCORPION, PS1Enemy.SWORM]);
-    // }
+    if (ScriptEngine.random(1, 5) <= 4) {
+      await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.SWORM, PS1Enemy.SCORPION, PS1Enemy.DEADTREE]);
+    } else {
+      await PSGame.fixedBattle(PSSceneType.FIELDS, [PS1Enemy.SWORM, PS1Enemy.SCORPION, PS1Enemy.SCORPION, PS1Enemy.SWORM]);
+    }
   }
 
   public static async beach_bigclub(): Promise<void> {
-    // await PSGame.randomBattle(PSSceneType.BEACH, [PS1Enemy.BIG_CLUB]); // TODO: Not implemented yet
+    await PSGame.randomBattle(PSSceneType.BEACH, [PS1Enemy.BIG_CLUB]);
   }
 
   public static async beach_shelfish(): Promise<void> {
-    // await PSGame.randomBattle(PSSceneType.BEACH, [PS1Enemy.SHELFISH]); // TODO: Not implemented yet
+    await PSGame.randomBattle(PSSceneType.BEACH, [PS1Enemy.SHELFISH]);
   }
 
   public static async tarantul_evildead(): Promise<void> {
-    // await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.TARANTUL, PS1Enemy.EVILDEAD]); // TODO: Not implemented yet
+    await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.TARANTUL, PS1Enemy.EVILDEAD]);
   }
 
   public static async evildead_owlbear(): Promise<void> {
-    // await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.EVILDEAD, PS1Enemy.OWL_BEAR]); // TODO: Not implemented yet
+    await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.EVILDEAD, PS1Enemy.OWL_BEAR]);
   }
 
   public static async wingeye_tarantul(): Promise<void> {
-    // await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.WING_EYE, PS1Enemy.TARANTUL]); // TODO: Not implemented yet
+    await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.WING_EYE, PS1Enemy.TARANTUL]);
   }
 
   public static async eppi_bushes(): Promise<void> {
-    // await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.WING_EYE, PS1Enemy.TARANTUL, PS1Enemy.TARANTUL]); // TODO: Not implemented yet
+    await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.WING_EYE, PS1Enemy.TARANTUL, PS1Enemy.TARANTUL]);
   }
 
   public static async eppi_forest(): Promise<void> {
-    // TODO: Quest and battle system not implemented yet
-    // if (!PSGame.getParty().hasQuestItem(PSGame.getItem(OriginalItem.Quest_Compass))) {
-    //   PSGame.transportOff();
-    //   PSMenu.startScene(PSSceneType.FOREST, SpecialEntity.NONE);
-    //   await PSMenu.Stext(PSGame.getString("Eppi_Lost_Woods"));
-    //
-    //   PSGame.getOutOfCurrentZone();
-    //
-    //   PSMenu.endScene();
-    //
-    //   PSGame.transportOn();
-    // } else if (ScriptEngine.random(0, 255) < 16) {
-    //   if (ScriptEngine.random(1, 6) === 1) {
-    //     // await PSGame.fixedBattle(PSSceneType.FOREST, [PS1Enemy.WING_EYE, PS1Enemy.WEREBAT, PS1Enemy.WING_EYE]);
-    //   } else {
-    //     // await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.WING_EYE, PS1Enemy.WEREBAT, PS1Enemy.WEREBAT]);
-    //   }
-    // }
+    if (!PSGame.getParty().hasQuestItem(PSGame.getItem(OriginalItem.Quest_Compass))) {
+      PSGame.transportOff();
+      await PSMenu.startScene(PSSceneType.FOREST, SpecialEntity.NONE);
+      await PSMenu.Stext(PSGame.getString("Eppi_Lost_Woods"));
+
+      PSGame.getOutOfCurrentZone();
+
+      await PSMenu.endScene();
+
+      PSGame.transportOn();
+    } else if (ScriptEngine.random(0, 255) < 16) {
+      if (ScriptEngine.random(1, 6) === 1) {
+        await PSGame.fixedBattle(PSSceneType.FOREST, [PS1Enemy.WING_EYE, PS1Enemy.WEREBAT, PS1Enemy.WING_EYE]);
+      } else {
+        await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.WING_EYE, PS1Enemy.WEREBAT, PS1Enemy.WEREBAT]);
+      }
+    }
   }
 
   public static async forest_tarantul_deadtree_giantfly_owlbear(): Promise<void> { // palma main continent hard forest
-    // TODO: ScriptEngine.random not implemented yet
-    // if (ScriptEngine.random(1, 6) === 1) {
-    //   await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.TARANTUL, PS1Enemy.DEADTREE, PS1Enemy.GIANTFLY, PS1Enemy.OWL_BEAR]);
-    // } else {
-    //   await PSGame.fixedBattle(PSSceneType.FOREST, [PS4Enemy.RED_SCORPION, PS4Enemy.RED_SCORPION]);
-    // }
+    if (ScriptEngine.random(1, 6) === 1) {
+      await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.TARANTUL, PS1Enemy.DEADTREE, PS1Enemy.GIANTFLY, PS1Enemy.OWL_BEAR]);
+    } else {
+      await PSGame.fixedBattle(PSSceneType.FOREST, [PS4Enemy.RED_SCORPION, PS4Enemy.RED_SCORPION]);
+    }
   }
 
   public static async beach_fishman(): Promise<void> {
-    // await PSGame.randomBattle(PSSceneType.BEACH, [PS1Enemy.FISHMAN]);
+    await PSGame.randomBattle(PSSceneType.BEACH, [PS1Enemy.FISHMAN]);
   }
 
   public static async beach_octopus(): Promise<void> {
-    // await PSGame.randomBattle(PSSceneType.BEACH, [PS1Enemy.OCTOPUS]);
+    await PSGame.randomBattle(PSSceneType.BEACH, [PS1Enemy.OCTOPUS]);
   }
 
   public static async forest_gaia(): Promise<void> { // baya malay area
-    // TODO: ScriptEngine.random not implemented yet
-    // if (ScriptEngine.random(1, 3) <= 2) {
-    //   await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.GAIA]);
-    // } else {
-    //   await PSGame.fixedBattle(PSSceneType.FOREST, [PS1Enemy.WIGHT, PS1Enemy.MARAUDER, PS1Enemy.WIGHT]);
-    // }
+    if (ScriptEngine.random(1, 3) <= 2) {
+      await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.GAIA]);
+    } else {
+      await PSGame.fixedBattle(PSSceneType.FOREST, [PS1Enemy.WIGHT, PS1Enemy.MARAUDER, PS1Enemy.WIGHT]);
+    }
   }
 
   public static async fields_marauder_horseman(): Promise<void> { // baya malay area
-    // TODO: ScriptEngine.random not implemented yet
-    // if (ScriptEngine.random(1, 4) <= 3) {
-    //   await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.MARAUDER, PS1Enemy.HORSEMAN]);
-    // } else {
-    //   await PSGame.fixedBattle(PSSceneType.FIELDS, [PS1Enemy.HORSEMAN, PS1Enemy.MARAUDER, PS1Enemy.HORSEMAN]);
-    // }
+    if (ScriptEngine.random(1, 4) <= 3) {
+      await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.MARAUDER, PS1Enemy.HORSEMAN]);
+    } else {
+      await PSGame.fixedBattle(PSSceneType.FIELDS, [PS1Enemy.HORSEMAN, PS1Enemy.MARAUDER, PS1Enemy.HORSEMAN]);
+    }
   }
 
   public static async sea_octopus(): Promise<void> { // sea near abion island
-    // await PSGame.randomBattle(PSSceneType.SEA, [PS1Enemy.OCTOPUS]);
+    await PSGame.randomBattle(PSSceneType.SEA, [PS1Enemy.OCTOPUS]);
   }
 
   public static async sea_shelfish(): Promise<void> { // river
-    // await PSGame.randomBattle(PSSceneType.SEA, [PS1Enemy.SHELFISH]);
+    await PSGame.randomBattle(PSSceneType.SEA, [PS1Enemy.SHELFISH]);
   }
 
   public static async sea_fishman_bigclub_evildead(): Promise<void> { // sea near main continent
-    // await PSGame.randomBattle(PSSceneType.SEA, [PS1Enemy.FISHMAN, PS1Enemy.BIG_CLUB, PS1Enemy.EVILDEAD]);
+    await PSGame.randomBattle(PSSceneType.SEA, [PS1Enemy.FISHMAN, PS1Enemy.BIG_CLUB, PS1Enemy.EVILDEAD]);
   }
 
   public static async sea_wyvern_evildead_octopus(): Promise<void> { // deep sea
-    // TODO: ScriptEngine.random not implemented yet
-    // if (ScriptEngine.random(1, 5) <= 4) {
-    //   await PSGame.randomBattle(PSSceneType.SEA, [PS1Enemy.WYVERN, PS1Enemy.WYVERN, PS1Enemy.WIGHT, PS1Enemy.OCTOPUS]);
-    // } else {
-    //   await PSGame.fixedBattle(PSSceneType.SEA, [PS1Enemy.WIGHT, PS1Enemy.WYVERN, PS1Enemy.WYVERN]);
-    // }
+    if (ScriptEngine.random(1, 5) <= 4) {
+      await PSGame.randomBattle(PSSceneType.SEA, [PS1Enemy.WYVERN, PS1Enemy.WYVERN, PS1Enemy.WIGHT, PS1Enemy.OCTOPUS]);
+    } else {
+      await PSGame.fixedBattle(PSSceneType.SEA, [PS1Enemy.WIGHT, PS1Enemy.WYVERN, PS1Enemy.WYVERN]);
+    }
   }
 
   public static async forest_tarantul_skeleton_giantfly_owlbear(): Promise<void> { // near gothic
-    // await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.TARANTUL, PS1Enemy.SKELETON, PS1Enemy.GIANTFLY, PS1Enemy.OWL_BEAR]);
+    await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.TARANTUL, PS1Enemy.SKELETON, PS1Enemy.GIANTFLY, PS1Enemy.OWL_BEAR]);
   }
 
   public static async fields_poisonplant_skeleton_evildead(): Promise<void> { // path to medusa
-    // await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.POISON_PLANT, PS1Enemy.SKELETON, PS1Enemy.EVILDEAD]);
+    await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.POISON_PLANT, PS1Enemy.SKELETON, PS1Enemy.EVILDEAD]);
   }
 
   public static async forest_serpent(): Promise<void> { // near triada/medusa
-    // await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.SERPENT]);
+    await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.SERPENT]);
   }
 
   public static async fields_poisonplant_manticor(): Promise<void> { // path to bortevo
-    // TODO: ScriptEngine.random not implemented yet
-    // if (ScriptEngine.random(1, 5) <= 4) {
-    //   await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.POISON_PLANT, PS1Enemy.POISON_PLANT, PS4Enemy.RED_SCORPION, PS1Enemy.MANTICORE]);
-    // } else {
-    //   await PSGame.fixedBattle(PSSceneType.FIELDS, [PS4Enemy.RED_SCORPION, PS4Enemy.RED_SCORPION, PS4Enemy.RED_SCORPION]);
-    // }
+    if (ScriptEngine.random(1, 5) <= 4) {
+      await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.POISON_PLANT, PS1Enemy.POISON_PLANT, PS4Enemy.RED_SCORPION, PS1Enemy.MANTICORE]);
+    } else {
+      await PSGame.fixedBattle(PSSceneType.FIELDS, [PS4Enemy.RED_SCORPION, PS4Enemy.RED_SCORPION, PS4Enemy.RED_SCORPION]);
+    }
   }
 
   public static async forest_ghoul_evildead_giantfly(): Promise<void> { // path to bortevo
-    // TODO: ScriptEngine.random not implemented yet
-    // if (ScriptEngine.random(1, 5) <= 4) {
-    //   await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.GHOUL, PS1Enemy.EVILDEAD, PS1Enemy.GIANTFLY]);
-    // } else {
-    //   await PSGame.fixedBattle(PSSceneType.FOREST, [PS1Enemy.SKELETON, PS1Enemy.GHOUL, PS1Enemy.EVILDEAD]);
-    // }
+    if (ScriptEngine.random(1, 5) <= 4) {
+      await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.GHOUL, PS1Enemy.EVILDEAD, PS1Enemy.GIANTFLY]);
+    } else {
+      await PSGame.fixedBattle(PSSceneType.FOREST, [PS1Enemy.SKELETON, PS1Enemy.GHOUL, PS1Enemy.EVILDEAD]);
+    }
   }
 
   public static async forest_vampire_manticor_skeleton_poisonplant(): Promise<void> { // abion island
-    // TODO: ScriptEngine.random not implemented yet
-    // if (ScriptEngine.random(1, 7) <= 6) {
-    //   await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.VAMPIRE, PS1Enemy.POISON_PLANT, PS1Enemy.MANTICORE, PS1Enemy.SKELETON]);
-    // } else {
-    //   await PSGame.fixedBattle(PSSceneType.FOREST, [PS1Enemy.SKELETON, PS1Enemy.VAMPIRE, PS1Enemy.VAMPIRE, PS1Enemy.SKELETON]);
-    // }
+    if (ScriptEngine.random(1, 7) <= 6) {
+      await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.VAMPIRE, PS1Enemy.POISON_PLANT, PS1Enemy.MANTICORE, PS1Enemy.SKELETON]);
+    } else {
+      await PSGame.fixedBattle(PSSceneType.FOREST, [PS1Enemy.SKELETON, PS1Enemy.VAMPIRE, PS1Enemy.VAMPIRE, PS1Enemy.SKELETON]);
+    }
   }
 
   public static async forest_vampire_skeleton_giantspider(): Promise<void> { // near abion
-    // await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.VAMPIRE, PS1Enemy.SKELETON, PS1Enemy.GIANT_SPIDER]);
+    await PSGame.randomBattle(PSSceneType.FOREST, [PS1Enemy.VAMPIRE, PS1Enemy.SKELETON, PS1Enemy.GIANT_SPIDER]);
   }
 
   public static async fields_elephant_giant_evildead(): Promise<void> { // abion island
-    // TODO: ScriptEngine.random not implemented yet
-    // if (ScriptEngine.random(1, 6) <= 5) {
-    //   await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.ELEPHANT, PS1Enemy.GIANT, PS1Enemy.EVILDEAD]);
-    // } else {
-    //   await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.ELEPHANT, PS1Enemy.GIANT, PS1Enemy.ELEPHANT]);
-    // }
+    if (ScriptEngine.random(1, 6) <= 5) {
+      await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.ELEPHANT, PS1Enemy.GIANT, PS1Enemy.EVILDEAD]);
+    } else {
+      await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.ELEPHANT, PS1Enemy.GIANT, PS1Enemy.ELEPHANT]);
+    }
   }
 
   public static async nest_giantspider_skeleton_giant(): Promise<void> { // abion island nest
-    // await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.GIANT_SPIDER, PS1Enemy.GIANT_SPIDER, PS1Enemy.SKELETON, PS1Enemy.GIANT]);
+    await PSGame.randomBattle(PSSceneType.FIELDS, [PS1Enemy.GIANT_SPIDER, PS1Enemy.GIANT_SPIDER, PS1Enemy.SKELETON, PS1Enemy.GIANT]);
   }
 
   public static async lava(): Promise<void> {
-    // TODO: Battle and random system not implemented yet
-    // const rand = ScriptEngine.random(0, 255);
-    // if (rand <= 16) {
-    //   if (ScriptEngine.random(1, 6) <= 5) {
-    //     await PSGame.randomBattle(PSSceneType.LAVA, [PS1Enemy.MARMAN, PS1Enemy.MARMAN, PS1Enemy.GIANTFLY, PS1Enemy.SERPENT]);
-    //   } else {
-    //     await PSGame.fixedBattle(PSSceneType.LAVA, [PS1Enemy.GIANTFLY, PS1Enemy.MARMAN, PS1Enemy.MARMAN, PS1Enemy.GIANTFLY]);
-    //   }
-    // }
+    const rand = ScriptEngine.random(0, 255);
+    if (rand <= 16) {
+      if (ScriptEngine.random(1, 6) <= 5) {
+        await PSGame.randomBattle(PSSceneType.LAVA, [PS1Enemy.MARMAN, PS1Enemy.MARMAN, PS1Enemy.GIANTFLY, PS1Enemy.SERPENT]);
+      } else {
+        await PSGame.fixedBattle(PSSceneType.LAVA, [PS1Enemy.GIANTFLY, PS1Enemy.MARMAN, PS1Enemy.MARMAN, PS1Enemy.GIANTFLY]);
+      }
+    }
 
-    // TODO: Transport system not implemented yet
-    // if (PSGame.isOnTransport()) {
-    //   return;
-    // }
+    if (PSGame.isOnTransport()) {
+      return;
+    }
 
-    // PSGame.damageParty(2, PSSceneType.LAVA);
+    await PSGame.damageParty(2, PSSceneType.LAVA);
   }
 
   public static async lava_baya(): Promise<void> {
-    // TODO: Battle and random system not implemented yet
-    // const rand = ScriptEngine.random(0, 255);
-    // if (rand <= 16) {
-    //   if (ScriptEngine.random(1, 4) <= 3) {
-    //     await PSGame.randomBattle(PSSceneType.LAVA, [PS1Enemy.MARMAN, PS1Enemy.TENTACLE]);
-    //   } else {
-    //     await PSGame.fixedBattle(PSSceneType.LAVA, [PS1Enemy.TENTACLE, PS1Enemy.MARMAN, PS1Enemy.MARMAN, PS1Enemy.GIANTFLY]);
-    //   }
-    // }
+    const rand = ScriptEngine.random(0, 255);
+    if (rand <= 16) {
+      if (ScriptEngine.random(1, 4) <= 3) {
+        await PSGame.randomBattle(PSSceneType.LAVA, [PS1Enemy.MARMAN, PS1Enemy.TENTACLE]);
+      } else {
+        await PSGame.fixedBattle(PSSceneType.LAVA, [PS1Enemy.TENTACLE, PS1Enemy.MARMAN, PS1Enemy.MARMAN, PS1Enemy.GIANTFLY]);
+      }
+    }
 
-    // TODO: Transport system not implemented yet
-    // if (PSGame.isOnTransport()) {
-    //   return;
-    // }
+    if (PSGame.isOnTransport()) {
+      return;
+    }
 
-    // PSGame.damageParty(5, PSSceneType.LAVA);
+    await PSGame.damageParty(5, PSSceneType.LAVA);
   }
 }

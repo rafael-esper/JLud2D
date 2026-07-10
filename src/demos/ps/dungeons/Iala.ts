@@ -9,6 +9,7 @@ import { Planet } from '../game/City';
 import { OriginalItem } from '../game/PSLibItem';
 import { PS1Enemy } from '../game/PSLibEnemy';
 import { PSSceneType, SpecialEntity, PSMenu } from '../PSMenu';
+import { BattleOutcome } from '../battle/PSBattle';
 import { MainEngine } from '../../../core/MainEngine';
 
 export class Iala {
@@ -101,14 +102,18 @@ export class Iala {
     await PSGame.chestFlag(Chest.IALA_CAVE_CHEST16, 0, Trapped.NO_TRAP, PSGame.getItem(OriginalItem.Inventory_Dimate));
   }
 
+  // Java comment: changed to Skeleton_Guard
   public static async skeleton(): Promise<void> {
+    let outcome = BattleOutcome.WIN;
     if (!PSGame.hasFlag(Flags.MONSTER_IALA_SKELETON)) {
-      // TODO: Battle system not implemented yet - would fight Skeleton/Skeleton_Guard/Skeleton here.
-      // On WIN: PSGame.setFlag(Flags.MONSTER_IALA_SKELETON) and grant the Saber Claw chest below.
-      console.log("Iala: Skeleton guard battle not implemented yet");
-      return;
+      outcome = await PSGame.fixedBattle(PSSceneType.CORRIDOR, [PS1Enemy.SKELETON, PS1Enemy.SKELETON_GUARD, PS1Enemy.SKELETON]);
+      if (outcome === BattleOutcome.WIN) {
+        PSGame.setFlag(Flags.MONSTER_IALA_SKELETON);
+      }
     }
-    await PSGame.chestFlag(Chest.IALA_CAVE_CHEST17, 0, Trapped.NO_TRAP, PSGame.getItem(OriginalItem.Weapon_Saber_Claw));
+    if (outcome === BattleOutcome.WIN) {
+      await PSGame.chestFlag(Chest.IALA_CAVE_CHEST17, 0, Trapped.NO_TRAP, PSGame.getItem(OriginalItem.Weapon_Saber_Claw));
+    }
   }
 
   public static async stairs_1_2(): Promise<void> {

@@ -12,6 +12,12 @@ import { PS1Sound } from '../game/PSLibSound';
 import { PS1Music } from '../game/PSLibMusic';
 import { PSSceneType, SpecialEntity, PSMenu, EntityType, EntityClothes, LargeEntity } from '../PSMenu';
 import { PSMenuShop } from '../PSMenuShop';
+import { PSLibEnemy, PS1Enemy } from '../game/PSLibEnemy';
+import { PS1Image } from '../game/PSLibImage';
+import { PSBattle } from '../battle/PSBattle';
+import { PartyMember, Gender } from '../game/PartyMember';
+import { Specie } from '../game/Specie';
+import { Job } from '../game/Job';
 import { ScriptEngine } from '../../../core/ScriptEngine';
 
 export class Paseo {
@@ -65,27 +71,23 @@ export class Paseo {
             PSGame.getParty().removeItem(PSGame.getItem(OriginalItem.Quest_Laconian_Pot));
             PSGame.setFlag(Flags.GOT_MYAU);
 
-            // TODO: Party member system not implemented yet
-            // PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.MUSK_CAT, Job.NATURER, PSGame.getString("Name_Myau"), PS1Image.PORTRAIT_MYAU, "chars/myau.chr"));
-            // PSGame.getParty().getMember(1).advanceLevel();
-            // PSGame.getParty().getMember(1).advanceLevel();
-            // PSGame.getParty().getMember(1).heal();
+            PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.MUSK_CAT, Job.NATURER, PSGame.getString("Name_Myau"), PS1Image.PORTRAIT_MYAU, "Myau.anim.json"));
+            PSGame.getParty().getMember(1)!.advanceLevel();
+            PSGame.getParty().getMember(1)!.advanceLevel();
+            PSGame.getParty().getMember(1)!.heal();
 
-            // TODO: Cinematic system not implemented yet
-            // PSMenu.instance.back = new VImage(screen.width, screen.height);
-            // PSMenu.instance.entitySprite = null;
-            // await PSGame.playMusic(PS1Music.STORY);
-            // await ScriptEngine.fadeout(75, false);
+            // Java: PSMenu.instance.back = new VImage(...) - black backdrop
+            PSMenu.instance.entitySprite = null;
+            await PSGame.playMusic(PS1Music.STORY);
+            await ScriptEngine.fadeout(75, false);
 
-            // PSMenu.cinematicText(PSGame.getImage(PS1Image.CINE_ALIS), [PSGame.getString("Cinematic_Myau_1")]);
-            // PSMenu.cinematicText(PSGame.getImage(PS1Image.CINE_MYAU), [PSGame.getString("Cinematic_Myau_2")]);
-            // PSMenu.cinematicText(PSGame.getImage(PS1Image.CINE_ALIS), [PSGame.getString("Cinematic_Myau_3")]);
-            // PSMenu.cinematicText(PSGame.getImage(PS1Image.CINE_MYAU), [PSGame.getString("Cinematic_Myau_4")]);
-            // PSMenu.cinematicText(PSGame.getImage(PS1Image.CINE_ALIS), [PSGame.getString("Cinematic_Myau_5")]);
-            // await PSGame.findAndPlayMusic();
-            // PSGame.getParty().reallocate();
-
-            console.log("Paseo: Myau recruited - party member and cinematic system not implemented yet");
+            await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_ALIS), [PSGame.getString("Cinematic_Myau_1")]);
+            await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_MYAU), [PSGame.getString("Cinematic_Myau_2")]);
+            await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_ALIS), [PSGame.getString("Cinematic_Myau_3")]);
+            await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_MYAU), [PSGame.getString("Cinematic_Myau_4")]);
+            await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_ALIS), [PSGame.getString("Cinematic_Myau_5")]);
+            PSGame.findAndPlayMusic();
+            await PSGame.getParty().reallocate();
           } else {
             await PSMenu.StextLast(PSGame.getString("Paseo_Shop_MyauTradeNo"));
           }
@@ -168,19 +170,14 @@ export class Paseo {
       }
       await PSMenu.StextLast(PSGame.getString("Paseo_Governor_EndOk"));
 
-      // TODO: End game routine not implemented yet
-      // PSGame.endGameRoutine();
-      console.log("Paseo: End game sequence triggered - endGameRoutine not implemented yet");
-      await PSMenu.endScene();
+      await PSGame.endGameRoutine();
       return;
     } else if (PSGame.hasFlag(Flags.DEFEAT_LASSIC)) {
       await PSMenu.startScene(PSSceneType.PALACE, SpecialEntity.NONE);
       await PSMenu.Stext(PSGame.getString("Paseo_Mansion_Darkfalz"));
       PSGame.playSound(PS1Sound.TRAP_FALL);
       await ScriptEngine.fadeout(25, false);
-
-      // TODO: VImage system not implemented yet
-      // PSMenu.instance.back = new VImage(screen.width, screen.height);
+      // Java: PSMenu.instance.back = new VImage(...) - black backdrop
 
       await PSGame.mapswitchToDungeon(Dungeon.DARKFALZ_DUNGEON);
       return;
@@ -197,28 +194,21 @@ export class Paseo {
       PSGame.playSound(PS1Sound.RESTHOUSE);
       await ScriptEngine.fadeout(50, false);
 
-      // TODO: VImage and scene management system not implemented yet
-      // const palace = PSMenu.instance.back;
-      // PSMenu.instance.back = new VImage(screen.width, screen.height);
+      // Java: saved PSMenu.instance.back and set a black VImage backdrop here;
+      // the Phaser port rebuilds scene backgrounds on each startScene instead
 
       await PSMenu.startScene(PSSceneType.SCREEN, SpecialEntity.NONE);
       await PSMenu.StextLast(PSGame.getString("Paseo_Governor_Dream"));
 
-      // TODO: Battle system not implemented yet
-      // const battle = new PSBattle();
-      // await battle.startBattle([PSGame.getEnemy(PS1Enemy.SACCUBUS)], PS1Music.BATTLE);
+      const battle = new PSBattle();
+      await battle.startBattle([PSLibEnemy.getEnemyByEnum(PS1Enemy.SACCUBUS)!], PS1Music.BATTLE);
 
       PSGame.getParty().healAll(true);
       await PSMenu.StextLast(PSGame.getString("Paseo_Governor_BadDream"));
 
-      // TODO: Scene restoration not implemented yet
-      // PSMenu.instance.back = palace;
-
       await PSMenu.startSceneWithLargeEntity(PSSceneType.SCREEN, LargeEntity.GOVERNOR);
       await PSMenu.StextLast(PSGame.getString("Paseo_Governor_Greet"));
       PSGame.setFlag(Flags.MET_GOVERNOR);
-
-      console.log("Paseo: Governor dream sequence - battle system and scene management not implemented yet");
     } else {
       if (PSGame.hasFlag(Flags.GOT_NOAH)) {
         await PSMenu.StextNext(PSGame.getString("Paseo_Governor_Return"));

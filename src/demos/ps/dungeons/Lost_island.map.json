@@ -681,8 +681,8 @@
                         {
                          "name":"activationEvent",
                          "type":"string",
-                         "value":"255"
-                        }, 
+                         "value":"trap1"
+                        },
                         {
                          "name":"isObstruction",
                          "type":"bool",

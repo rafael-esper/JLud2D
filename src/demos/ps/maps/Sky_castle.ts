@@ -7,6 +7,8 @@ import { PSGame } from '../PSGame';
 import { Flags } from '../game/GameData';
 import { Dungeon } from '../game/Dungeon';
 import { PSSceneType, EntityType, EntityClothes, SpecialEntity, PSMenu } from '../PSMenu';
+import { PSLibEnemy, PS1Enemy } from '../game/PSLibEnemy';
+import { BattleOutcome, PSBattle } from '../battle/PSBattle';
 
 export class Sky_castle {
 
@@ -36,14 +38,11 @@ export class Sky_castle {
 
   public static async house5(): Promise<void> {
     if (!PSGame.hasFlag(Flags.MONSTER_SKY_SERPENT)) {
-      // TODO: Battle system not implemented yet - would fight PS1Enemy.SERPENT here
-      // const battle = new PSBattle();
-      // const outcome = battle.battleScene(PSSceneType.BLUE_HOUSE, PSGame.getEnemy(PS1Enemy.SERPENT), 1);
-      // if (outcome === BattleOutcome.WIN) PSGame.setFlag(Flags.MONSTER_SKY_SERPENT);
-      console.log("Sky_castle: Sky Serpent battle not implemented yet");
-      await PSMenu.startScene(PSSceneType.BLUE_HOUSE, SpecialEntity.NONE);
-      await PSMenu.instance.waitAnyButton();
-      await PSMenu.endScene();
+      const battle = new PSBattle();
+      const outcome = await battle.battleScene(PSSceneType.BLUE_HOUSE, PSLibEnemy.getEnemyByEnum(PS1Enemy.SERPENT)!, 1);
+      if (outcome === BattleOutcome.WIN) {
+        PSGame.setFlag(Flags.MONSTER_SKY_SERPENT);
+      }
     } else {
       await PSMenu.startScene(PSSceneType.BLUE_HOUSE, SpecialEntity.NONE);
       await PSMenu.instance.waitAnyButton();

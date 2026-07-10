@@ -91,8 +91,7 @@ export class Uzo {
 
   public static async spaceship(): Promise<void> {
     await PSMenu.startSceneWithLargeEntity(PSSceneType.DESERT, LargeEntity.HAPSBY);
-    // TODO: hapsbyRoutine (spaceship travel menu) not implemented yet
-    console.log("Uzo: Hapsby spaceship routine not implemented yet");
+    await PSGame.hapsbyRoutine(City.UZO);
     await PSMenu.endSceneWithOutcome(PSOutcome.FADE_HOUSE);
   }
 }

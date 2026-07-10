@@ -43,8 +43,9 @@ src/
       game/             # Data: Party, Item, Enemy, Spell, Lib* classes
       battle/           # Battle system (framework only)
       menu/             # MenuStack, MenuPromptBox, MenuTextBox, etc.
-      maps/             # City/world map classes (8 of 24 done)
-      dungeons/         # Dungeon classes (1 of 36 done)
+      maps/             # City/world map classes (all 24 done)
+      dungeons/         # Dungeon classes (all 32 done)
+      space/            # Interplanetary travel map (Space.ts: Hapsby flights + new-game intro)
       utils/            # PropertiesParser, I18nManager
 
 public/ps/              # All original Java source + map JSON + art assets

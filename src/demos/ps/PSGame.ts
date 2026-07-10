@@ -10,7 +10,7 @@ import { Entity, EntityDirection, Direction } from '../../domain/Entity';
 import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
 import { PS1Sound } from './game/PSLibSound';
-import { PSMenu } from './PSMenu';
+import { PSMenu, SpecialEntity } from './PSMenu';
 import { Party } from './game/Party';
 import { Planet, City, CityHelper, PlanetHelper } from './game/City';
 import { ScreenSize, GameType, Flags, GameData } from './game/GameData';
@@ -38,6 +38,13 @@ export class PSGame {
   private static party: Party | null = null;
   private static gotox: number = 0;
   private static gotoy: number = 0;
+  private static canTransportFlag: boolean = false;
+  private static fromCity: City | null = null;
+  private static toCity: City | null = null;
+
+  // Weak-ice tiles on Dezoris (Java PSGame constants)
+  public static readonly ICE_FLOCK = 165;
+  public static readonly WEAK_ICE_ZONE = 1;
   private static currentMusic: PS1Music | null = null; // Track currently playing music
   private static pausedMusic: PS1Music | null = null; // Track shelved by pauseMusic()
   private static i18nManager: I18nManager = I18nManager.getInstance();
@@ -198,9 +205,7 @@ export class PSGame {
    * Check if player is on transport
    */
   public static isOnTransport(): boolean {
-    // For now, assume player is not on transport
-    // TODO: Implement proper transport detection
-    return false;
+    return this.gameData.onGroundVehicle || this.gameData.onWaterVehicle;
   }
 
   /**
@@ -758,11 +763,536 @@ export class PSGame {
   }
 
   /**
-   * Transport off - direct port from Java transportOff()
+   * Transport off - direct port from Java transportOff().
+   * Java hooked/unhooked button 1 to verifyTransport; in the Phaser port
+   * GameScene.update checks canTransport and calls verifyTransport().
    */
   public static transportOff(): void {
-    console.log("PSGame: Transport off");
-    // In full implementation, this would disable transport mode
+    this.canTransportFlag = false;
+  }
+
+  /**
+   * Board/leave vehicles on button 1 - direct port of Java verifyTransport()
+   */
+  public static async verifyTransport(): Promise<void> {
+    if (this.getCurrentDungeon() !== Dungeon.NONE || this.gameData.current_city !== null || PSMenu.instance.hasMenu()) {
+      return;
+    }
+
+    if (this.gameData.current_planet === Planet.DEZORIS) {
+      if (!this.gameData.onGroundVehicle) {
+        if (!await this.icedigger()) {
+          await this.landrover();
+        }
+      } else {
+        await this.disembarkTransport();
+        MainEngine.getCurrentMap()?.setMethodZone(this.WEAK_ICE_ZONE, true);
+      }
+      return;
+    }
+
+    if (this.gameData.onWaterVehicle) {
+      await this.hovercraft(false); // try to disembark
+    } else if (!await this.hovercraft(true)) {
+      if (!this.gameData.onGroundVehicle) {
+        await this.landrover();
+      } else {
+        await this.disembarkTransport();
+      }
+    }
+  }
+
+  private static async disembarkTransport(): Promise<void> {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+    await this.getParty().disembark(Math.floor(player.getx() / 16), Math.floor(player.gety() / 16));
+    this.gameData.onGroundVehicle = false;
+    this.findAndPlayMusic();
+  }
+
+  /**
+   * Board the Landrover - direct port of Java landrover()
+   */
+  public static async landrover(): Promise<boolean> {
+    if (!this.getParty().hasQuestItem(this.getItem(OriginalItem.Vehicle_LandMaster))) {
+      return false;
+    }
+
+    const player = MainEngine.getPlayer();
+    let x = 0, y = 0;
+    if (player) {
+      x = Math.floor(player.getx() / 16);
+      y = Math.floor(player.gety() / 16);
+    } else {
+      // Just loaded the game
+      x = this.gameData.gotox;
+      y = this.gameData.gotoy;
+    }
+
+    if (this.isWater(x, y) || this.isWater(x + 1, y) || this.isWater(x - 1, y) || this.isWater(x, y - 1) || this.isWater(x, y + 1)) {
+      return false;
+    }
+
+    await this.getParty().embark(x, y, 'Landrover.anim.json');
+    this.gameData.onGroundVehicle = true;
+    await this.playMusic(PS1Music.VEHICLE);
+    return true;
+  }
+
+  /**
+   * Board/leave the Hovercraft - direct port of Java hovercraft()
+   */
+  public static async hovercraft(enter: boolean): Promise<boolean> {
+    if (!this.getParty().hasQuestItem(this.getItem(OriginalItem.Vehicle_FlowMover))) {
+      return false;
+    }
+
+    const player = MainEngine.getPlayer();
+    let x = 0, y = 0;
+    if (player) {
+      switch (player.getFace()) {
+        case EntityDirection.NORTH: x = Math.floor(player.getx() / 16); y = Math.floor((player.gety() - 17) / 16); break;
+        case EntityDirection.WEST: x = Math.floor((player.getx() - 17) / 16); y = Math.floor(player.gety() / 16); break;
+        case EntityDirection.SOUTH: x = Math.floor(player.getx() / 16); y = Math.floor((player.gety() + 40) / 16); break;
+        case EntityDirection.EAST: x = Math.floor((player.getx() + 33) / 16); y = Math.floor(player.gety() / 16); break;
+      }
+    } else {
+      // Just loaded the game
+      x = this.gameData.gotox;
+      y = this.gameData.gotoy;
+    }
+
+    if (enter && this.isWater(x, y)) {
+      await this.getParty().embark(x, y, 'Hover.anim.json');
+      this.gameData.onWaterVehicle = true;
+      this.gameData.onGroundVehicle = false;
+      await this.playMusic(PS1Music.VEHICLE);
+      return true;
+    }
+
+    if (!enter && !this.isWater(x, y) && !MainEngine.getCurrentMap()?.getobs(x, y)) {
+      await this.getParty().disembark(x, y);
+      this.gameData.onWaterVehicle = false;
+      this.findAndPlayMusic();
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Board the Ice Digger - direct port of Java icedigger()
+   */
+  public static async icedigger(): Promise<boolean> {
+    if (!this.getParty().hasQuestItem(this.getItem(OriginalItem.Vehicle_IceDecker))) {
+      return false;
+    }
+
+    const player = MainEngine.getPlayer();
+    let x = 0, y = 0;
+    if (player) {
+      x = Math.floor(player.getx() / 16);
+      y = Math.floor(player.gety() / 16);
+    } else {
+      // Just loaded the game
+      x = this.gameData.gotox;
+      y = this.gameData.gotoy;
+    }
+
+    await this.getParty().embark(x, y, 'IceDigger.anim.json');
+    MainEngine.getCurrentMap()?.setMethodZone(this.WEAK_ICE_ZONE, false);
+    this.gameData.onGroundVehicle = true;
+    await this.playMusic(PS1Music.VEHICLE);
+    return true;
+  }
+
+  /**
+   * Water tile check - direct port of Java isWater()
+   */
+  public static isWater(x: number, y: number): boolean {
+    const currentMap = MainEngine.getCurrentMap();
+    if (!currentMap) return false;
+    const tile = currentMap.gettile(x, y, 0) - 1;
+    return tile === 7 || tile === 230 || tile === 231 || tile === 250 || tile === 251 ||
+      (tile >= 180 && tile <= 189) ||
+      (tile >= 200 && tile <= 209) ||
+      (tile >= 260 && tile <= 269) ||
+      (tile >= 280 && tile <= 289) ||
+      (tile >= 554 && tile <= 557) ||
+      (tile >= 574 && tile <= 577);
+  }
+
+  /**
+   * Break weak ice ahead of the Ice Digger - direct port of Java breakIce()
+   */
+  public static breakIce(): void {
+    if (!this.gameData.onGroundVehicle || !this.getParty().hasQuestItem(this.getItem(OriginalItem.Vehicle_IceDecker))) {
+      return;
+    }
+
+    const e = MainEngine.getPlayer();
+    const currentMap = MainEngine.getCurrentMap();
+    if (!e || !currentMap) return;
+
+    let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+    switch (e.getFace()) {
+      case EntityDirection.NORTH:
+        x1 = Math.floor(e.getx() / 16); y1 = Math.floor(e.gety() / 16) - 1;
+        x2 = Math.floor(e.getx() / 16) + 1; y2 = Math.floor(e.gety() / 16) - 1;
+        break;
+      case EntityDirection.WEST:
+        x1 = Math.floor(e.getx() / 16) - 1; y1 = Math.floor(e.gety() / 16);
+        x2 = Math.floor(e.getx() / 16) - 1; y2 = Math.floor(e.gety() / 16) + 1;
+        break;
+      case EntityDirection.SOUTH:
+        x1 = Math.floor(e.getx() / 16); y1 = Math.floor(e.gety() / 16) + 2;
+        x2 = Math.floor(e.getx() / 16) + 1; y2 = Math.floor(e.gety() / 16) + 2;
+        break;
+      case EntityDirection.EAST:
+        x1 = Math.floor(e.getx() / 16) + 2; y1 = Math.floor(e.gety() / 16);
+        x2 = Math.floor(e.getx() / 16) + 2; y2 = Math.floor(e.gety() / 16) + 1;
+        break;
+    }
+
+    let sound = false;
+    if (currentMap.getzone(x1, y1) === this.WEAK_ICE_ZONE) {
+      currentMap.settile(x1, y1, 0, this.ICE_FLOCK);
+      sound = true;
+    }
+    if (currentMap.getzone(x2, y2) === this.WEAK_ICE_ZONE) {
+      currentMap.settile(x2, y2, 0, this.ICE_FLOCK);
+      sound = true;
+    }
+    if (sound) {
+      this.playSound(PS1Sound.TCHAC);
+    }
+  }
+
+  /**
+   * Allocate on transport or normal party (called by Palma, Motavia and
+   * Dezoris startmaps) - direct port of Java planetAllocate()
+   */
+  public static async planetAllocate(): Promise<void> {
+    if (this.gameData.onGroundVehicle) {
+      this.gameData.onGroundVehicle = false;
+      await this.verifyTransport();
+    } else if (this.gameData.onWaterVehicle) {
+      this.gameData.onWaterVehicle = false;
+      await this.verifyTransport();
+    } else {
+      await this.getParty().allocate(this.getgotox(), this.getgotoy());
+    }
+  }
+
+  /**
+   * Step out of the current event zone - direct port of Java getOutOfCurrentZone()
+   */
+  public static getOutOfCurrentZone(): void {
+    const player = MainEngine.getPlayer();
+    const currentMap = MainEngine.getCurrentMap();
+    if (!player || !currentMap) return;
+
+    let curx = Math.floor(player.getx() / 16);
+    let cury = Math.floor(player.gety() / 16);
+    const curz = MainEngine.getEventZone();
+
+    if (currentMap.getzone(curx, cury) !== curz) {
+      // Do nothing
+    } else if (currentMap.getzone(curx, cury + 1) !== curz) {
+      cury = cury + 1;
+    } else if (currentMap.getzone(curx - 1, cury + 1) !== curz) {
+      curx = curx - 1;
+      cury = cury + 1;
+    } else if (currentMap.getzone(curx - 1, cury) !== curz) {
+      curx = curx - 1;
+    } else if (currentMap.getzone(curx - 1, cury - 1) !== curz) {
+      curx = curx - 1;
+      cury = cury - 1;
+    } else if (currentMap.getzone(curx, cury - 1) !== curz) {
+      cury = cury - 1;
+    } else if (currentMap.getzone(curx + 1, cury - 1) !== curz) {
+      curx = curx + 1;
+      cury = cury - 1;
+    } else if (currentMap.getzone(curx + 1, cury) !== curz) {
+      curx = curx + 1;
+    } else if (currentMap.getzone(curx + 1, cury + 1) !== curz) {
+      curx = curx + 1;
+      cury = cury + 1;
+    }
+    player.setxy(curx * 16, cury * 16);
+  }
+
+  /**
+   * Environmental damage for lava and gas - direct port of Java damageParty()
+   */
+  public static async damageParty(damage: number, scene: PSSceneType): Promise<void> {
+    // Java flashed the screen white for one frame
+    this.currentScene?.cameras.main.flash(100, 255, 255, 255);
+
+    let sceneStarted = false;
+    for (const p of this.getParty().getMembers()) {
+      if (p.getHp() > 0) {
+        if (p.getHp() <= damage) {
+          p.setHp(0);
+          if (!sceneStarted) {
+            await PSMenu.startScene(scene, SpecialEntity.NONE);
+            sceneStarted = true;
+          }
+          await PSMenu.StextLast(this.getString("Battle_Player_Died", "<player>", p.getName()));
+        } else {
+          p.setHp(p.getHp() - damage);
+        }
+      }
+    }
+
+    if (sceneStarted) {
+      await PSMenu.endScene();
+
+      if (!this.checkAlive()) {
+        await this.gameOverRoutine();
+      } else if (!this.gameData.onGroundVehicle) {
+        await this.getParty().reallocate();
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Spaceship travel (Hapsby) - direct port of the Java routines
+  // ------------------------------------------------------------------
+
+  public static getFromCity(): City | null { return this.fromCity; }
+  public static setFromCity(city: City | null): void { this.fromCity = city; }
+  public static getToCity(): City | null { return this.toCity; }
+  public static setToCity(city: City | null): void { this.toCity = city; }
+
+  /** Wait a number of engine frames (~16ms each) outside the menu system */
+  public static waitFrames(frames: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const scene = this.currentScene;
+      if (!scene) { resolve(); return; }
+      let count = 0;
+      const step = () => {
+        if (++count >= frames) { resolve(); return; }
+        scene.time.delayedCall(16, step);
+      };
+      scene.time.delayedCall(16, step);
+    });
+  }
+
+  /**
+   * Hapsby travel menu - direct port of Java hapsbyRoutine()
+   */
+  public static async hapsbyRoutine(city: City): Promise<void> {
+    let numCity = 0;
+    switch (city) {
+      case City.GOTHIC: numCity = 1; break;
+      case City.UZO: numCity = 2; break;
+      case City.SKURE: numCity = 3; break;
+    }
+
+    const options = [
+      this.getString("City_Gothic"),
+      this.getString("City_Uzo"),
+      this.getString("City_Skure")
+    ];
+
+    let opt = 0;
+    while (true) {
+      opt = await PSMenu.PromptNext(this.getString("Hapsby_Travel"), options);
+      if (opt === 0) {
+        break;
+      }
+      if (opt === numCity) {
+        switch (city) {
+          case City.GOTHIC: await PSMenu.StextNext(this.getString("Hapsby_Already_Gothic")); break;
+          case City.UZO: await PSMenu.StextNext(this.getString("Hapsby_Already_Uzo")); break;
+          case City.SKURE: await PSMenu.StextNext(this.getString("Hapsby_Already_Skure")); break;
+        }
+      } else if (opt === 1) {
+        if (await PSMenu.PromptNext(this.getString("Hapsby_Choice_Gothic"), this.getYesNo()) === 1) {
+          break;
+        }
+      } else if (opt === 2) {
+        if (await PSMenu.PromptNext(this.getString("Hapsby_Choice_Uzo"), this.getYesNo()) === 1) {
+          break;
+        }
+      } else if (opt === 3) {
+        if (await PSMenu.PromptNext(this.getString("Hapsby_Choice_Skure"), this.getYesNo()) === 1) {
+          break;
+        }
+      }
+    }
+
+    if (opt !== 0) {
+      switch (opt) {
+        case 1: await this.spaceshipRoutineStart(city, City.GOTHIC); break;
+        case 2: await this.spaceshipRoutineStart(city, City.UZO); break;
+        case 3: await this.spaceshipRoutineStart(city, City.SKURE); break;
+      }
+    }
+  }
+
+  /**
+   * Leave the current city for the launch pad on the planet map -
+   * direct port of Java spaceshipRoutineStart()
+   */
+  public static async spaceshipRoutineStart(from: City, to: City): Promise<void> {
+    this.setFromCity(from);
+    this.setToCity(to);
+
+    switch (from) {
+      case City.CAMINEET:
+        await this.mapswitchShip(Planet.PALMA, 70, 46);
+        break;
+      case City.PASEO:
+        await this.mapswitchShip(Planet.MOTAVIA, 79, 43);
+        break;
+      case City.GOTHIC:
+        await this.mapswitchShip(Planet.PALMA, 52, 56);
+        break;
+      case City.UZO:
+        await this.mapswitchShip(Planet.MOTAVIA, 92, 64);
+        break;
+      case City.SKURE:
+        await this.mapswitchShip(Planet.DEZORIS, 171, 72);
+        break;
+    }
+  }
+
+  /**
+   * Switch to a planet map for the spaceship launch - direct port of
+   * Java mapswitchShip() (no fade, no music; the launch animation follows)
+   */
+  public static async mapswitchShip(planet: Planet, x: number, y: number): Promise<void> {
+    this.gameData.current_dungeon = Dungeon.NONE;
+    this.gameData.current_city = null;
+    this.gameData.current_planet = planet;
+
+    PSMenu.setMapOff();
+    if (!ScriptEngine.screenFadedOut) {
+      await ScriptEngine.fadeout(1, true); // Java: screen.paintBlack()
+    }
+
+    await this.mapswitch(PlanetHelper.getMapPath(planet), x, y, false);
+    this.stopMusic(); // don't play music - the launch animation starts it
+  }
+
+  /**
+   * Spaceship launch animation - direct port of Java spaceshipRoutineAnimation().
+   * The ship rises from the launch pad, the screen fades, and the Space map loads.
+   */
+  public static async spaceshipRoutineAnimation(chrSpaceship: string): Promise<void> {
+    // Java chr paths: "space/spaceship1.chr" / "space/spaceship2.chr"
+    const chrName = chrSpaceship.includes('2') ? 'Spaceship2.anim.json' : 'Spaceship1.anim.json';
+    await this.getParty().embark(this.getgotox(), this.getgotoy(), chrName, 'src/demos/ps/space');
+    this.playSound(PS1Sound.SPACESHIP);
+    MainEngine.setEntitiesPaused(true);
+    PSMenu.menuOff();
+    this.transportOff();
+    await ScriptEngine.fadein(1, true);
+
+    const e = MainEngine.getPlayer();
+    const inputManager = (this.currentScene as any)?.inputManager;
+
+    let velocity = 0;
+    while (velocity++ < 320) {
+      if (velocity > 150 && inputManager?.b1) {
+        inputManager.unpress(1);
+        break;
+      }
+
+      e?.incy(-Math.floor(velocity / 25));
+      if (velocity % 5 === 0 || velocity % 16 === 0) {
+        velocity++;
+      }
+
+      await this.waitFrames(1);
+    }
+
+    await ScriptEngine.fadeout(20, true);
+    this.setgotoxy(9, 93);
+    await this.playMusic(PS1Music.VEHICLE);
+    await this.mapswitch('Space.map', 9, 93, false, 'src/demos/ps/space');
+  }
+
+  /**
+   * Spaceship arrival - direct port of Java spaceshipRoutineEnd().
+   * Called by the Space map script; the ship flies up to the destination
+   * planet, then the destination city map loads.
+   */
+  public static async spaceshipRoutineEnd(): Promise<void> {
+    const chrName = (this.getFromCity() === City.CAMINEET || this.getFromCity() === City.PASEO)
+      ? 'Spaceship1.anim.json' : 'Spaceship2.anim.json';
+    await this.getParty().embark(this.getgotox(), this.getgotoy(), chrName, 'src/demos/ps/space');
+
+    await ScriptEngine.fadein(30, true);
+    const e = MainEngine.getPlayer();
+    const inputManager = (this.currentScene as any)?.inputManager;
+
+    let count = 0;
+    while (count++ < 300) {
+      if (inputManager?.b1) {
+        inputManager.unpress(1);
+        break;
+      }
+      if (count > 15) {
+        e?.incy(-5);
+      }
+      await this.waitFrames(1);
+    }
+
+    switch (this.getToCity()) {
+      case City.CAMINEET:
+        await this.mapswitchToCity(City.SPACEPORT1, 7, 6);
+        break;
+      case City.PASEO:
+        this.gameData.visitedCities.add(City.PASEO);
+        await this.mapswitchToCity(City.SPACEPORT2, 17, 18);
+        break;
+      case City.GOTHIC:
+        await this.mapswitchToCity(City.GOTHIC, 4, 21);
+        break;
+      case City.UZO:
+        await this.mapswitchToCity(City.UZO, 30, 19);
+        break;
+      case City.SKURE:
+        this.gameData.visitedCities.add(City.SKURE);
+        await this.mapswitchToCity(City.SKURE_ENTRANCE, 20, 14);
+        break;
+    }
+  }
+
+  /**
+   * Ending sequence - direct port of Java endGameRoutine()
+   */
+  public static async endGameRoutine(): Promise<void> {
+    await PSMenu.startScene(PSSceneType.BAYA, SpecialEntity.NONE);
+    await this.playMusic(PS1Music.ENDING);
+
+    // Java: palette-swap of the sky from dark to bright blue - approximated
+    // with background tints since the Phaser port has no per-pixel recolor
+    for (let i = 0; i < 24; i++) {
+      PSMenu.instance.back?.setTint((0 << 16) | (Math.min(255, (i + 1) * 10) << 8) | 255);
+      await PSMenu.instance.waitDelay(3);
+    }
+    PSMenu.instance.back?.clearTint();
+
+    await PSMenu.Stext(this.getString("Cinematic_Ending_1"));
+
+    await PSMenu.startScene(PSSceneType.CORRIDOR, SpecialEntity.NONE);
+    await PSMenu.cinematicText(await this.getVImage(PS1Image.CINE_ALIS), [this.getString("Cinematic_Ending_2")]);
+    await PSMenu.cinematicText(await this.getVImage(PS1Image.CINE_ODIN), [this.getString("Cinematic_Ending_3")]);
+    await PSMenu.cinematicText(await this.getVImage(PS1Image.CINE_NOAH), [this.getString("Cinematic_Ending_4")]);
+    await PSMenu.cinematicText(await this.getVImage(PS1Image.CINE_MYAU), [this.getString("Cinematic_Ending_5")]);
+    await PSMenu.cinematicText(await this.getVImage(PS1Image.CINE_ALIS), [this.getString("Cinematic_Ending_6")]);
+    await PSMenu.endScene();
+
+    await PSMenu.startScene(PSSceneType.ENDING, SpecialEntity.NONE);
+    await PSMenu.instance.waitAnyButton();
+    await PSMenu.endScene();
+
+    PSMenu.setMapOff();
+    await this.exitToTitle();
   }
 
 
@@ -1250,6 +1780,11 @@ export class PSGame {
   public static async fixedBattle(scene: PSSceneType, enemies: any[]): Promise<BattleOutcome> {
     console.log(`PSGame.fixedBattle: Starting fixed battle in ${scene} with ${enemies.length} enemies`);
 
+    // Diminish battle frequency when on transport (Java parity)
+    if (this.isOnTransport() && ScriptEngine.random(1, 2) === 1) {
+      return BattleOutcome.WIN;
+    }
+
     // Convert enemy enums to Enemy instances
     const { PSLibEnemy } = await import('./game/PSLibEnemy');
     const enemyInstances: any[] = [];
@@ -1258,6 +1793,7 @@ export class PSGame {
       const enemyInstance = PSLibEnemy.getEnemyByEnum(enemyEnum);
       if (enemyInstance) {
         enemyInstances.push(enemyInstance);
+        this.gameData.visitedEnemies.add(enemyEnum);
       } else {
         console.error(`PSGame.fixedBattle: Could not find enemy for enum ${enemyEnum}`);
       }
@@ -1279,6 +1815,11 @@ export class PSGame {
       throw new Error("Enemy pool cannot be empty for random battle");
     }
 
+    // Diminish battle frequency when on transport (Java parity)
+    if (this.isOnTransport() && ScriptEngine.random(1, 2) === 1) {
+      return BattleOutcome.WIN;
+    }
+
     // Select random enemy from pool
     const randomIndex = Math.floor(Math.random() * enemyPool.length);
     const selectedEnemyEnum = enemyPool[randomIndex];
@@ -1289,6 +1830,12 @@ export class PSGame {
 
     if (!selectedEnemy) {
       throw new Error(`Could not find enemy for enum ${selectedEnemyEnum}`);
+    }
+    this.gameData.visitedEnemies.add(selectedEnemyEnum);
+
+    // Remove easy fights when on transport (Java parity)
+    if (this.isOnTransport() && selectedEnemy.hp < 40) {
+      return BattleOutcome.WIN;
     }
 
     // Determine random quantity based on party size (original PS1 rule: party.size * 2)
@@ -1356,16 +1903,14 @@ export class PSGame {
    * Check if party can transport (for battle system)
    */
   public static get canTransport(): boolean {
-    // TODO: Implement transport availability check
-    return false;
+    return this.canTransportFlag;
   }
 
   /**
-   * Transport on - enable transport mode
+   * Transport on - direct port from Java transportOn()
    */
   public static transportOn(): void {
-    console.log("PSGame: Transport activated");
-    // TODO: Implement transport mode activation
+    this.canTransportFlag = true;
   }
 
   /**

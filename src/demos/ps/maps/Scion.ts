@@ -55,6 +55,8 @@ export class Scion {
     await PSMenu.endScene();
   }
 
+  // Java's secret_item() lives in PSMenuShop.ts here - the shop's buy flow
+  // handles the ItemType.SECRET "hack" inline instead of Script.callfunction
 
   public static async house1(): Promise<void> {
     await PSMenu.startScene(PSSceneType.YELLOW_HOUSE, EntityType.CITY_MAN_BLOND, EntityClothes.BLUE);

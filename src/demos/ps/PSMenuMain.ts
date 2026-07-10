@@ -56,8 +56,6 @@ export class PSMenuMain {
     ], true);
     PSMenu.instance.push(mainMenu);
 
-    // Disable talk option for PS Original
-    mainMenu.setDisabled(4);
 
     // Main menu loop
     while (true) {
@@ -89,7 +87,13 @@ export class PSMenuMain {
       }
 
       if (opt === 5) {
-        // Talk - not implemented for PS Original
+        // Talk - TESTING ONLY: adds Dungeon Key + 5 Search-lights
+        const party = PSGame.getParty();
+        party.addQuestItem(PSGame.getItem(OriginalItem.Quest_Dungeon_Key));
+        const member = party.getMember(0)!;
+        for (let i = 0; i < 5; i++) {
+          member.items.push(PSGame.getItem(OriginalItem.Inventory_Flash));
+        }
       }
 
       if (opt === 6) { // Options

@@ -37,9 +37,9 @@ export class Warehouse {
   }
 
   public static trap(): void {
-    // TODO: Implement trap routine
+    // Java's trap() is empty - all its contents are commented out in the original:
     // PSGame.chestFlag(Chest.WAREHOUSE_CHEST1, 50, Trapped.EXPLOSION, null);
-    // PSGame.randomBattle(PSSceneType.CORRIDOR, [PS1Enemy.SWORM]);
+    // PSGame.randomBattle(Scene.CORRIDOR, [PS1Enemy.SWORM]);
     // PSGame.trapRoutine(Trap.NAHARU_TRAP, Trap.INFO_NAHARU_TRAP, 11, 6);
   }
 }

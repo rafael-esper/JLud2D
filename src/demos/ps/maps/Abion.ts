@@ -4,12 +4,15 @@
  */
 
 import { PSGame } from '../PSGame';
-import { Flags } from '../game/GameData';
+import { Flags, Chest, Trapped } from '../game/GameData';
 import { Planet, City, CityHelper } from '../game/City';
 import { Dungeon } from '../game/Dungeon';
 import { OriginalItem } from '../game/PSLibItem';
 import { PSSceneType, EntityType, EntityClothes, SpecialEntity, PSMenu } from '../PSMenu';
 import { PSMenuShop } from '../PSMenuShop';
+import { PSLibEnemy, PS1Enemy } from '../game/PSLibEnemy';
+import { PS1Music } from '../game/PSLibMusic';
+import { BattleOutcome, PSBattle } from '../battle/PSBattle';
 
 export class Abion {
 
@@ -106,27 +109,36 @@ export class Abion {
   }
 
   public static async drmad(): Promise<void> {
+    let outcome = BattleOutcome.WIN;
     if (PSGame.hasFlag(Flags.DEFEAT_DRMAD)) {
       await PSMenu.startScene(PSSceneType.VILLAGE_HOUSE, SpecialEntity.NONE);
       await PSMenu.instance.waitAnyButton();
-      await PSMenu.endScene();
-      return;
-    }
-
-    // Pre-battle confrontation with Dr. Mad
-    await PSMenu.startScene(PSSceneType.VILLAGE_HOUSE, SpecialEntity.NONE);
-    if (await PSMenu.Prompt(PSGame.getString("Abion_DrMad"), PSGame.getYesNo()) === 1) {
-      await PSMenu.StextLast(PSGame.getString("Abion_DrMadYes"));
-      PSGame.getParty().getMember(1)?.setHp(0);
     } else {
-      await PSMenu.StextLast(PSGame.getString("Abion_DrMadNo"));
+      const currentScene = PSGame.getCurrentScene();
+      if (!currentScene) return;
+
+      const drmad = PSLibEnemy.getEnemyByEnum(PS1Enemy.DR_MAD)!;
+      await drmad.loadCHR(currentScene);
+      await PSMenu.startSceneWithCHR(PSSceneType.VILLAGE_HOUSE, drmad.getChr());
+      if (await PSMenu.Prompt(PSGame.getString("Abion_DrMad"), PSGame.getYesNo()) === 1) {
+        await PSMenu.StextLast(PSGame.getString("Abion_DrMadYes"));
+        PSGame.getParty().getMember(1)?.setHp(0);
+      } else {
+        await PSMenu.StextLast(PSGame.getString("Abion_DrMadNo"));
+      }
+      PSMenu.instance.entitySprite = null;
+      const battle = new PSBattle();
+      outcome = await battle.startBattle([drmad], PS1Music.BATTLE);
+      if (outcome === BattleOutcome.WIN) {
+        PSGame.setFlag(Flags.DEFEAT_DRMAD);
+      } else {
+        await PSGame.gameOverRoutine();
+      }
     }
-
-    // TODO: Battle system not implemented yet - would fight PS1Enemy.DR_MAD here.
-    // On WIN: PSGame.setFlag(Flags.DEFEAT_DRMAD) and grant the Laconian Pot chest.
-    console.log("Abion: Dr. Mad battle not implemented yet");
-
-    PSGame.getParty().reallocate();
+    if (outcome === BattleOutcome.WIN) {
+      await PSGame.chestFlag(Chest.DR_MAD_CHEST, 0, Trapped.NO_TRAP, PSGame.getItem(OriginalItem.Quest_Laconian_Pot));
+    }
+    await PSGame.getParty().reallocate();
     await PSMenu.endScene();
   }
 

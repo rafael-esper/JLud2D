@@ -13,6 +13,7 @@ import { PS1Sound } from './PSLibSound';
 import { OriginalItem } from './PSLibItem';
 import { PSGame } from '../PSGame';
 import { MainEngine } from '../../../core/MainEngine';
+import { EntityDirection } from '../../../domain/Entity';
 
 // Forward declarations for types that will be implemented later
 export interface Entity {
@@ -286,67 +287,63 @@ export class Party {
   /**
    * Reallocate party according to new order or after members killed
    */
-  public reallocate(): void {
-    // Note: This would need full Entity system implementation
-    console.warn('Party.reallocate() not fully implemented - requires Entity system');
-
-    /*
-    if (entities.isEmpty()) {
+  public async reallocate(): Promise<void> {
+    const player = MainEngine.getPlayer();
+    if (!player) {
       return;
     }
-    const x = Math.floor(entities.get(player).getx() / 16);
-    const y = Math.floor(entities.get(player).gety() / 16);
+    const x = Math.floor(player.getx() / 16);
+    const y = Math.floor(player.gety() / 16);
 
     this.deallocate();
-    this.allocate(x, y);
-    */
+    await this.allocate(x, y);
   }
 
   public deallocate(): void {
-    // Note: This would need full Entity system implementation
-    console.warn('Party.deallocate() not fully implemented - requires Entity system');
-
-    /*
-    if (player === -1) {
-      return;
-    }
-    let e = entities.get(player);
+    let e = MainEngine.getPlayer();
     while (e !== null) {
       e.setActive(false);
       e.setVisible(false);
       e = e.getFollower();
     }
-    */
   }
 
-  public embark(_x: number, _y: number, _strChar: string): void {
-    // Note: This would need full Entity system implementation
-    console.warn('Party.embark() not fully implemented - requires Entity system');
-
-    /*
-    const direction = player === -1 ? Entity.NORTH : entities.get(player).getFace();
+  /**
+   * Board a vehicle - direct port of Java embark(). The party entities are
+   * hidden and a single vehicle entity becomes the player.
+   * chrName is relative to basePath (default: the party chars folder).
+   */
+  public async embark(x: number, y: number, chrName: string, basePath: string = 'src/demos/ps/chars'): Promise<void> {
+    const currentPlayer = MainEngine.getPlayer();
+    const direction = currentPlayer ? currentPlayer.getFace() : EntityDirection.NORTH;
     this.deallocate();
 
-    playerdiagonals = false;
-    smoothdiagonals = false;
+    MainEngine.setPlayerDiagonals(false);
+    MainEngine.setSmoothDiagonals(false);
 
-    setplayer(entityspawn(x, y, strChar));
-    entities.get(player).setSpeed(Party.TRANSPORT_SPEED);
-    entities.get(player).setFace(direction);
-    */
+    const currentScene = PSGame.getCurrentScene();
+    if (!currentScene) {
+      console.error('Party.embark: No current scene available');
+      return;
+    }
+
+    const index = await MainEngine.entityspawn(currentScene, x, y, chrName, basePath);
+    const vehicle = MainEngine.setplayer(index);
+    if (vehicle) {
+      vehicle.setSpeed(Party.TRANSPORT_SPEED);
+      vehicle.setFace(direction);
+    }
   }
 
-  public disembark(_x: number, _y: number): void {
-    // Note: This would need full Entity system implementation
-    console.warn('Party.disembark() not fully implemented - requires Entity system');
+  public async disembark(x: number, y: number): Promise<void> {
+    const vehicle = MainEngine.getPlayer();
+    if (vehicle) {
+      vehicle.setSpeed(Party.WALKING_SPEED);
+      vehicle.setActive(false);
+      vehicle.setVisible(false);
+    }
 
-    /*
-    entities.get(player).setSpeed(Party.WALKING_SPEED);
-    entities.get(player).setActive(false);
-    entities.get(player).setVisible(false);
-
-    this.allocate(x, y);
-    */
+    await this.allocate(x, y);
   }
 
   public getFirstAlivePlayer(): number {

@@ -23,15 +23,12 @@ export class Dezoris {
     MainEngine.setCameraTracking(1);
 
     if (PSGame.getgotox() === 171 && PSGame.getgotoy() === 72) { // Luveno Spaceship
-      // TODO: spaceshipRoutineAnimation("space/spaceship2.chr") not implemented yet
-      console.log("Dezoris.startmap: Luveno spaceship arrival animation not implemented yet");
+      await PSGame.spaceshipRoutineAnimation("space/spaceship2.chr");
       return;
     }
 
-    // TODO: PSGame.planetAllocate() not implemented yet
-
-    // Allocate party at goto position (spawn player) and fade in
-    await PSGame.getParty().allocate(PSGame.getgotox(), PSGame.getgotoy());
+    // Allocate party or re-board the vehicle at goto position (Java: planetAllocate)
+    await PSGame.planetAllocate();
     MainEngine.setupCamera();
     await ScriptEngine.fadein(30, true);
 
@@ -62,7 +59,8 @@ export class Dezoris {
   }
 
   public static async weak_ice(): Promise<void> {
-    // TODO: PSGame.breakIce() (cracking-ice tile mechanic) not implemented yet
+    PSGame.breakIce();
+
     const rand = ScriptEngine.random(0, 255);
     if (rand <= 8) {
       await this.plains_mammoth_frostman();

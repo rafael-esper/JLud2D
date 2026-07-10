@@ -11,6 +11,8 @@ import { OriginalItem } from '../game/PSLibItem';
 import { PSSceneType, EntityType, EntityClothes, SpecialEntity, LargeEntity, NecroType, PSMenu } from '../PSMenu';
 import { PSMenuShop } from '../PSMenuShop';
 import { PSOutcome } from '../menu/MenuStack';
+import { MainEngine } from '../../../core/MainEngine';
+import { EntityDirection } from '../../../domain/Entity';
 
 // NecroType values act as the "clothes" frame offset, same numeric slot as EntityClothes.
 const necro = (n: NecroType): EntityClothes => n as unknown as EntityClothes;
@@ -19,11 +21,19 @@ export class Gothic {
 
   public static async startmap(): Promise<void> {
     // Base map initialization is handled by the engine when the map loads.
-    // TODO: When SPACESHIP_AREA is set, the Java original removes the obstacle at
-    // (13,14) and nudges the entity (current_map.setobs / entitymove) - the tile
-    // obstacle + scripted-move API is not ported yet.
+    // Java: when SPACESHIP_AREA is set, remove the obstacle at (13,14) and
+    // nudge entity 0 away (entitymove "L1 U1 F0" approximated with a direct offset)
     if (PSGame.hasFlag(Flags.SPACESHIP_AREA)) {
-      console.log("Gothic.startmap: spaceship-area obstacle removal not implemented yet");
+      MainEngine.getCurrentMap()?.setobs(13, 14, 0);
+      Gothic.nudgeSpaceshipEntity();
+    }
+  }
+
+  private static nudgeSpaceshipEntity(): void {
+    const e = MainEngine.getEntity(0);
+    if (e) {
+      e.setxy(e.getx() - 16, e.gety() - 16);
+      e.setFace(EntityDirection.NORTH);
     }
   }
 
@@ -129,8 +139,10 @@ export class Gothic {
       await PSMenu.Stext(PSGame.getString("Gothic_People_Ent3"));
     } else {
       await PSMenu.Stext(PSGame.getString("Gothic_People_Ent3_hapsby"));
-      // TODO: reveal the spaceship by removing the obstacle at (13,14) and nudging
-      // the entity - tile obstacle + scripted-move API not ported yet.
+      if (!PSGame.hasFlag(Flags.SPACESHIP_AREA)) {
+        MainEngine.getCurrentMap()?.setobs(13, 14, 0);
+        Gothic.nudgeSpaceshipEntity();
+      }
       PSGame.setFlag(Flags.SPACESHIP_AREA);
     }
     PSGame.EntFinish();
@@ -172,8 +184,7 @@ export class Gothic {
 
   public static async spaceship(): Promise<void> {
     await PSMenu.startSceneWithLargeEntity(PSSceneType.FOREST, LargeEntity.HAPSBY);
-    // TODO: hapsbyRoutine (spaceship travel menu) not implemented yet
-    console.log("Gothic: Hapsby spaceship routine not implemented yet");
+    await PSGame.hapsbyRoutine(City.GOTHIC);
     await PSMenu.endSceneWithOutcome(PSOutcome.FADE_HOUSE);
   }
 

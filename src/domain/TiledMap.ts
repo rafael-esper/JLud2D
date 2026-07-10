@@ -955,6 +955,46 @@ export class TiledMap {
     return this.getTileProperty(tileId, "isObstruction") ? 1 : 0;
   }
 
+  /**
+   * Enable/disable a zone's stand-on trigger (equivalent to Java setMethodZone,
+   * which flipped the zone's isObstruction property)
+   */
+  public setMethodZone(zone: number, value: boolean): void {
+    const tileId = this.zoneToTile(zone + 1);
+    this.setTileProperty(tileId, "isObstruction", value);
+  }
+
+  private setTileProperty(tileId: number, propertyName: string, value: any): void {
+    if (!this.mapData || !this.mapData.tilesets) {
+      return;
+    }
+
+    for (const tileset of this.mapData.tilesets as any[]) {
+      if (tileId >= tileset.firstgid && tileId < tileset.firstgid + tileset.tilecount) {
+        const localTileId = tileId - tileset.firstgid;
+
+        if (!tileset.tiles) {
+          tileset.tiles = [];
+        }
+        let tile: any = tileset.tiles.find((t: any) => t.id === localTileId);
+        if (!tile) {
+          tile = { id: localTileId, properties: [] };
+          tileset.tiles.push(tile);
+        }
+        if (!tile.properties) {
+          tile.properties = [];
+        }
+        const prop = tile.properties.find((p: any) => p.name === propertyName);
+        if (prop) {
+          prop.value = value;
+        } else {
+          tile.properties.push({ name: propertyName, type: "bool", value });
+        }
+        return;
+      }
+    }
+  }
+
 
   public destroy(): void {
     if (this.tilemap) {

@@ -21,8 +21,7 @@ export class Skure_entrance {
 
   public static async spaceship(): Promise<void> {
     await PSMenu.startSceneWithLargeEntity(PSSceneType.ARTIC, LargeEntity.HAPSBY);
-    // TODO: hapsbyRoutine (spaceship travel menu) not implemented yet
-    console.log("Skure_entrance: Hapsby spaceship routine not implemented yet");
+    await PSGame.hapsbyRoutine(City.SKURE);
     await PSMenu.endSceneWithOutcome(PSOutcome.FADE_HOUSE);
   }
 }

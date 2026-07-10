@@ -9,6 +9,12 @@ import { Planet, City, CityHelper } from '../game/City';
 import { OriginalItem } from '../game/PSLibItem';
 import { PSSceneType, EntityType, EntityClothes, SpecialEntity, PSMenu } from '../PSMenu';
 import { PSMenuShop } from '../PSMenuShop';
+import { PS1Image } from '../game/PSLibImage';
+import { PS1Music } from '../game/PSLibMusic';
+import { PartyMember, Gender } from '../game/PartyMember';
+import { Specie } from '../game/Specie';
+import { Job } from '../game/Job';
+import { ScriptEngine } from '../../../core/ScriptEngine';
 
 export class Eppi {
 
@@ -61,10 +67,22 @@ export class Eppi {
         await PSMenu.Stext(PSGame.getString("Eppi_House_Key_Myau"));
         PSGame.setFlag(Flags.GOT_MYAU);
 
-        // TODO: Party member recruitment + cinematic system not implemented yet.
-        // Java adds Myau (MUSK_CAT/NATURER), levels him twice, heals, then plays the
-        // Myau/Odin intro cinematics and reallocates the party.
-        console.log("Eppi: Myau recruitment (Odin quest) - party member and cinematic system not implemented yet");
+        PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.MUSK_CAT, Job.NATURER, PSGame.getString("Name_Myau"), PS1Image.PORTRAIT_MYAU, "Myau.anim.json"));
+        PSGame.getParty().getMember(1)!.advanceLevel();
+        PSGame.getParty().getMember(1)!.advanceLevel();
+        PSGame.getParty().getMember(1)!.heal();
+
+        // Java: PSMenu.instance.back = new VImage(...) - black backdrop
+        PSMenu.instance.entitySprite = null;
+
+        await ScriptEngine.fadeout(75, false);
+        await PSGame.playMusic(PS1Music.STORY);
+        await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_MYAU), [PSGame.getString("Cinematic_Myau_Odin1")]);
+        await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_ODIN), [PSGame.getString("Cinematic_Myau_Odin2")]);
+        await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_MYAU), [PSGame.getString("Cinematic_Myau_Odin3")]);
+        await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_ODIN), [PSGame.getString("Cinematic_Myau_Odin4")]);
+        PSGame.findAndPlayMusic();
+        await PSGame.getParty().reallocate();
       }
     }
     await PSMenu.endScene();
