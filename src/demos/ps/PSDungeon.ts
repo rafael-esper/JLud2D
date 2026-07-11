@@ -944,6 +944,13 @@ export class PSDungeon {
       if (tile === OPEN_DOOR || tile === OPEN_MAGIC_DOOR) {
         if (this.showDungeon) {
           await ScriptEngine.fadeout(25, false);
+          // ScriptEngine.fadeout re-enables controls (setScriptActive(false)) when
+          // the fade completes. Keep them paused through the rest of the door
+          // traversal — otherwise GameScene's overworld ProcessControls runs during
+          // walkup/redraw/fade-in and a held turn key changes the player's face and
+          // sets a slide waypoint, corrupting the first-person view/animation.
+          // Controls return to the player when the loop resumes after the fade-in.
+          MainEngine.setScriptActive(true);
         }
         await this.walkup(entity, 1);
 
@@ -1239,6 +1246,15 @@ export class PSDungeon {
       case EntityDirection.SOUTH: player.incy(-shift * 16); break;
       case EntityDirection.EAST: player.incx(-shift * 16); break;
     }
+
+    // incx/incy move x/y without touching the waypoint (unlike setxy, which every
+    // other dungeon move uses). Java has no waypoint interpolation, so this is
+    // harmless there; here it would leave the player ready()===false with a
+    // waypoint still pointing at the room tile it entered from, and the entity
+    // think()/moveTick would then drift the player 1px per frame back toward the
+    // room after the scene — re-triggering the event or stranding them on a wall.
+    // Snap the waypoint to the settled position so the player stays put.
+    player.clearWaypoints();
 
     if (this.showDungeon) {
       if (!this.isDark) {

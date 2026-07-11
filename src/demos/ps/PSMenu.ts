@@ -515,6 +515,10 @@ export class PSMenu {
       MainEngine.setScriptActive(false);
     } else if (outcome === PSOutcome.FADE_DUNGEON) {
       await ScriptEngine.fadeout(25, false);
+      // fadeout re-enables controls on completion; keep them paused so the
+      // overworld ProcessControls can't change the player's facing between here
+      // and warpBack (which reads that facing to pick the step-back direction).
+      MainEngine.setScriptActive(true);
       // Java: PSDungeon.warpBack(2) — step off the event tile so it doesn't
       // re-trigger, redraw the view while black, then reveal it (the Phaser
       // camera fade persists until an explicit fadein, unlike Java's screen).
