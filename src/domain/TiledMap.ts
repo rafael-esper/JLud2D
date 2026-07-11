@@ -4,6 +4,8 @@
  * Handles Tiled JSON map loading, tileset management, and map rendering
  */
 
+import { GameSpeed } from '../config/GameSpeed';
+
 export interface LayerData {
   width: number;
   height: number;
@@ -643,6 +645,13 @@ export class TiledMap {
   public updateAnimations(deltaTime: number = 16): void {
     if (this.animatedTiles.length === 0) return;
 
+    // Advance by real elapsed time scaled by the global game speed, so tile
+    // animations run slower at Slow/Normal and faster at Fast/Max. Rebased
+    // against the MAX multiplier so the fastest level (Max) matches the old
+    // raw-delta rate and Normal is correspondingly slower (raw delta ran ~3×
+    // too fast). (Previously the raw delta was used, ignoring the setting.)
+    const scaledDelta = deltaTime * (GameSpeed.getMultiplier() / GameSpeed.getMaxMultiplier());
+
     // Update each animated tile
     for (const animatedTileData of this.animatedTiles) {
       if (!animatedTileData.tileAnimationData || animatedTileData.tileAnimationData.length === 0) continue;
@@ -651,7 +660,7 @@ export class TiledMap {
       const animationDuration = animatedTileData.tileAnimationData[0].duration * animatedTileData.tileAnimationData.length;
 
       // Update elapsed time
-      animatedTileData.elapsedTime += deltaTime;
+      animatedTileData.elapsedTime += scaledDelta;
       animatedTileData.elapsedTime %= animationDuration;
 
       // Calculate current animation frame index

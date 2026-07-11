@@ -55,6 +55,7 @@ export class Entity {
   private speedct: number = 0;
   delay: number = 0;
   private framect: number = 0;
+  private movedThisFrame: boolean = false; // did a moveTick run this think()?
   private specframe: number = -1;
   private frame: number = 0;
 
@@ -127,23 +128,37 @@ export class Entity {
   public think(): void {
     if (!this.active) return;
 
-    // Java-style speed accumulation system. think() runs once per rendered
-    // frame (60/s vs the Java engine's 50/s), so the global game speed is
-    // applied here through the accumulator: movement stays smooth per-frame
-    // while the effective tick rate scales with the user's speed level.
-    this.speedct += this.getSpeed() * GameSpeed.entitySpeedScale();
-    const numTicks = Math.floor(this.speedct / 100);
-    this.speedct %= 100;
+    // Per-frame pixel step, scaled by the global game speed. At Max the step is
+    // getSpeed()/50 px/frame — the engine's base rate (150→3 px, 200→4 px) — and
+    // lower levels scale down proportionally. Rounding to a whole number keeps
+    // the step CONSTANT every frame, which is what makes motion smooth (a
+    // fractional step would floor to an uneven 1,2,1,2 jitter). Sub-1px/frame
+    // speeds (the Slow level, or slow NPCs) fall back to a fractional
+    // accumulator in speedct so they still creep along.
+    const maxStep = this.getSpeed() / 50; // px/frame at Max (Max reproduces the old rate)
+    const target = maxStep * GameSpeed.getMultiplier() / GameSpeed.getMaxMultiplier();
+    let numTicks: number;
+    if (target >= 1) {
+      numTicks = Math.round(target);
+      this.speedct = 0;
+    } else {
+      this.speedct += target;
+      numTicks = Math.floor(this.speedct);
+      this.speedct -= numTicks;
+    }
 
     // Execute movement ticks based on speed (but keep smooth pixel movement)
+    let moved = false;
     for (let i = 0; i < numTicks; i++) {
       if (!this.ready()) {
         this.moveTick();
+        moved = true;
       } else {
         // Handle movement code when entity is ready (not currently moving)
         this.handleMovementCode();
       }
     }
+    this.movedThisFrame = moved;
 
     this.updateFrame();
   }
@@ -238,7 +253,10 @@ export class Entity {
       this.updateFacing(dx, dy);
     }
 
-    // Increment animation frame when moving (like Java move_tick)
+    // Advance the walk-cycle counter once per movement tick. The CHR animbuf
+    // is expanded per its W (wait) counts — e.g. "F0W4F1W4" → [0,0,0,0,1,1,1,1]
+    // — so stepping framect through it keeps every frame in order; move speed
+    // (more ticks/frame) only shortens the real-time wait between frames.
     this.framect++;
 
     // Update sprite position - only render if entity is visible
@@ -276,13 +294,18 @@ export class Entity {
     } else {
       const direction = this.properties.face || EntityDirection.SOUTH;
 
-      // Use Java logic: idle frame when ready, walking frame when moving
-      if (this.ready()) {
-        // Always show idle frame when not moving
+      // Show the idle pose only when the entity is genuinely stopped — i.e.
+      // it is at its waypoint AND did not move this frame. During continuous
+      // walking the entity is momentarily `ready()` on each tile boundary (the
+      // next waypoint is only set afterwards, in ProcessControls); treating
+      // that as idle injected a one-frame idle pose into the middle of the walk
+      // cycle — the "vanishing frame" flicker. Keeping the walk frame there
+      // preserves the CHR animbuf's W-hold cadence.
+      const isIdle = this.ready() && !this.movedThisFrame;
+      if (isIdle) {
         const idleFrames = this.chr.getIdle();
         this.frame = idleFrames[direction] || 0;
       } else {
-        // Use walking animation frame when moving
         this.frame = this.chr.getFrame(direction, this.framect);
       }
     }

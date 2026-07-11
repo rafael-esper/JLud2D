@@ -58,6 +58,11 @@ export class GameSpeed {
     return MULTIPLIER[GameSpeed.level];
   }
 
+  /** The largest speed multiplier available (currently Max = 3×). */
+  public static getMaxMultiplier(): number {
+    return Math.max(...Object.values(MULTIPLIER));
+  }
+
   /** Scales a millisecond delay: Fast/Max shorten it, Slow lengthens it. */
   public static scaleDelay(ms: number): number {
     return Math.max(1, Math.round(ms / GameSpeed.getMultiplier()));
@@ -65,13 +70,18 @@ export class GameSpeed {
 
   /**
    * Factor applied to entity speeds inside Entity.think(), which runs once
-   * per rendered frame (60/s). The 50/60 rebase makes "Normal" match the
-   * Java engine's 50 ticks/s; the multiplier applies the user's level on
-   * top. Feeding this through the entity speed accumulator (rather than
-   * skipping engine ticks) keeps per-frame movement smooth.
+   * per rendered frame (60/s). We deliberately do NOT apply the 50/60 Java
+   * rebase here: with it, Normal walk speed (200) becomes 166.67 px worth of
+   * ticks per frame, i.e. an uneven 1,2,2,1,2,2 px step that makes both the
+   * movement and the walk-cycle hold times jitter. Returning the raw
+   * multiplier makes speed×multiplier land on whole hundreds (200/100/300/…),
+   * so numTicks is a CONSTANT integer every frame — perfectly smooth, exactly
+   * like the Java engine at 50 fps. Trade-off: entities move ~20% faster than
+   * the old 50 fps reference (Normal walk = 2 px/frame = 120 px/s); tune the
+   * base entity speeds if that feels too quick.
    */
   public static entitySpeedScale(): number {
-    return (JAVA_TICKS_PER_SECOND / 60) * GameSpeed.getMultiplier();
+    return GameSpeed.getMultiplier();
   }
 
   /** Menu logic ticks to run this frame (text boxes, battle animations). */

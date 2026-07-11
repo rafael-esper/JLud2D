@@ -974,8 +974,9 @@ export class MainEngine {
    * Should be called from scene update() method
    */
   public static updateEngine(inputManager: any): void {
-    // Entity thinking runs inside TimedProcessEntities — do not tick
-    // entities again here, that would double the movement speed
+    // Entities think once per rendered frame. Entity.think() computes a constant
+    // whole-pixel step per frame (scaled by the game-speed level), which keeps
+    // motion smooth without needing a second tick pass here.
     MainEngine.TimedProcessEntities();
 
     // Handle player movement or camera movement
