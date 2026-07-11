@@ -7,6 +7,7 @@ import { MenuStack, PSOutcome } from './menu/MenuStack';
 import { MenuImageBox, VImage } from './menu/MenuImageBox';
 import { MenuScrollerText } from './menu/MenuScrollerText';
 import { MenuTextBox } from './menu/MenuTextBox';
+import { MenuCHR } from './menu/MenuCHR';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { PSGame } from './PSGame';
 import { CHR } from '../../domain/CHR';
@@ -72,8 +73,7 @@ export class PSMenu {
       MenuStack.fontYSize = 16;
     }
 
-    // Load more icon
-    // PSMenu.instance.moreIcon = new VImage(...);
+    // More icon (Next_Icon.png) is loaded lazily by MenuTextBox
 
     // Calculate text positioning
     PSMenu.instance.STEXT_BOTTOM_X = PSMenu.instance.MAX_SCREEN_X / 14;
@@ -228,7 +228,7 @@ export class PSMenu {
     // Create Phaser sprite but make it invisible initially
     PSMenu.instance.entitySprite = currentScene.add.image(0, 0, textureKey);
     PSMenu.instance.entitySprite.setOrigin(0.5, 1); // Bottom center origin
-    PSMenu.instance.entitySprite.setDepth(1000.5); // Above background, below menu graphics
+    PSMenu.instance.entitySprite.setDepth(1995); // Above background and dungeon view (1990), below menu graphics (2000+)
     PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
     PSMenu.instance.entitySprite.setVisible(false); // Hide until after fade in
 
@@ -294,7 +294,7 @@ export class PSMenu {
     // Create large entity sprite
     PSMenu.instance.entitySprite = currentScene.add.image(0, 0, textureKey);
     PSMenu.instance.entitySprite.setOrigin(0.5, 1); // Bottom center origin
-    PSMenu.instance.entitySprite.setDepth(1000.5); // Above background, below menu graphics
+    PSMenu.instance.entitySprite.setDepth(1995); // Above background and dungeon view (1990), below menu graphics (2000+)
     PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
     PSMenu.instance.entityY = 190; // 240 - 30 - 20 (moved up 20px)
 
@@ -331,7 +331,7 @@ export class PSMenu {
     // Create CHR sprite
     PSMenu.instance.entitySprite = currentScene.add.image(0, 0, textureKey);
     PSMenu.instance.entitySprite.setOrigin(0.5, 1); // Bottom center origin
-    PSMenu.instance.entitySprite.setDepth(1000.5); // Above background, below menu graphics
+    PSMenu.instance.entitySprite.setDepth(1995); // Above background and dungeon view (1990), below menu graphics (2000+)
     PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
     PSMenu.instance.entityY = 190; // 240 - 30 - 20 (moved up 20px)
 
@@ -357,6 +357,7 @@ export class PSMenu {
     } else {
       await ScriptEngine.fadeout(25, true);
       PSMenu.instance.setBackground('');
+      PSMenu.instance.backAnim?.destroy?.();
       PSMenu.instance.backAnim = null;
       needsFadeIn = true;
     }
@@ -408,22 +409,22 @@ export class PSMenu {
         break;
 
       case PSSceneType.LAVA:
-        // PSMenu.instance.backAnim = new MenuCHR(0, 0, PSGame.getCHR(PS1CHR.ANIM_LAVA));
+        PSMenu.instance.backAnim = new MenuCHR(PSGame.getCurrentScene()!, 0, 0, await PSGame.getCHR(PS1CHR.ANIM_LAVA));
         PSMenu.instance.outcome = PSOutcome.FADE;
         break;
 
       case PSSceneType.BEACH:
-        // PSMenu.instance.backAnim = new MenuCHR(0, 0, PSGame.getCHR(PS1CHR.ANIM_BEACH));
+        PSMenu.instance.backAnim = new MenuCHR(PSGame.getCurrentScene()!, 0, 0, await PSGame.getCHR(PS1CHR.ANIM_BEACH));
         PSMenu.instance.outcome = PSOutcome.FADE;
         break;
 
       case PSSceneType.SEA:
-        // PSMenu.instance.backAnim = new MenuCHR(0, 0, PSGame.getCHR(PS1CHR.ANIM_SEA));
+        PSMenu.instance.backAnim = new MenuCHR(PSGame.getCurrentScene()!, 0, 0, await PSGame.getCHR(PS1CHR.ANIM_SEA));
         PSMenu.instance.outcome = PSOutcome.FADE;
         break;
 
       case PSSceneType.GAS:
-        // PSMenu.instance.backAnim = new MenuCHR(0, 0, PSGame.getCHR(PS1CHR.ANIM_GAS));
+        PSMenu.instance.backAnim = new MenuCHR(PSGame.getCurrentScene()!, 0, 0, await PSGame.getCHR(PS1CHR.ANIM_GAS));
         PSMenu.instance.outcome = PSOutcome.FADE;
         break;
 
@@ -480,6 +481,7 @@ export class PSMenu {
     // Clean up scene elements
     PSMenu.instance.npc = null;
     PSMenu.instance.clearEntity(); // Properly destroy entity sprite
+    PSMenu.instance.backAnim?.destroy?.();
     PSMenu.instance.backAnim = null;
 
     // Clear all menus and graphics
@@ -513,7 +515,14 @@ export class PSMenu {
       MainEngine.setScriptActive(false);
     } else if (outcome === PSOutcome.FADE_DUNGEON) {
       await ScriptEngine.fadeout(25, false);
-      // TODO: PSDungeon.warpBack(2);
+      // Java: PSDungeon.warpBack(2) — step off the event tile so it doesn't
+      // re-trigger, redraw the view while black, then reveal it (the Phaser
+      // camera fade persists until an explicit fadein, unlike Java's screen).
+      const dungeon = PSGame.getCurrentDungeonInstance();
+      if (dungeon) {
+        dungeon.warpBack(2);
+      }
+      await ScriptEngine.fadein(25, false);
     }
 
     PSMenu.menuOn();

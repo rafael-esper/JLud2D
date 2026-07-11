@@ -87,12 +87,15 @@ export class PSMenuMain {
       }
 
       if (opt === 5) {
-        // Talk - TESTING ONLY: adds Dungeon Key + 5 Search-lights
+        // Talk - TESTING ONLY: adds Dungeon Key + 5 Search-lights, advances Alis 10 levels
         const party = PSGame.getParty();
         party.addQuestItem(PSGame.getItem(OriginalItem.Quest_Dungeon_Key));
         const member = party.getMember(0)!;
         for (let i = 0; i < 5; i++) {
           member.items.push(PSGame.getItem(OriginalItem.Inventory_Flash));
+        }
+        for (let i = 0; i < 10; i++) {
+          member.advanceLevel();
         }
       }
 

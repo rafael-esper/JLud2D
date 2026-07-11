@@ -1128,6 +1128,13 @@ export class PSDungeon {
 
     if (distance > 0 && curTile !== FLOOR) return;
 
+    if (distance === 0 && curTile === ROOM) {
+      // Java: standing on a ROOM tile — draw the room backdrop into the view
+      // before its script runs, so DUNGEON scenes show ROOM.PNG behind the NPC
+      this.putimage(this.img_dungeon_room, 0, 0);
+      this.drawImageToScreen();
+    }
+
     const zone = this.getfrontzone(entity, distance);
     const currentMap = MainEngine.getCurrentMap();
 
@@ -1208,6 +1215,33 @@ export class PSDungeon {
       this.drawDungeon(player, 0);
       this.drawImageToScreen();
       await ScriptEngine.fadein(30, rendermap);
+    }
+  }
+
+  /**
+   * Step the player back off the event tile after a dungeon scene ends —
+   * port of Java PSDungeon.warpBack(shift). Redraws the view from the new
+   * position; call while the screen is faded out.
+   */
+  public warpBack(shift: number): void {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    // Java-verbatim incx/incy (PSDungeon.java warpBack)
+    switch (player.getFace()) {
+      case EntityDirection.NORTH: player.incy(shift * 16); break;
+      case EntityDirection.WEST: player.incx(shift * 16); break;
+      case EntityDirection.SOUTH: player.incy(-shift * 16); break;
+      case EntityDirection.EAST: player.incx(-shift * 16); break;
+    }
+
+    if (this.showDungeon) {
+      if (!this.isDark) {
+        this.drawDungeon(player, 0);
+        this.drawImageToScreen();
+      } else {
+        this.paintBlack();
+      }
     }
   }
 

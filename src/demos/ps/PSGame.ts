@@ -278,33 +278,16 @@ export class PSGame {
       return imageKeyOrScene;
     }
 
-    // Handle PSSceneType - import here to avoid circular dependency
+    // Handle PSSceneType — Java: getImage(PS1Image.valueOf(scene.name())),
+    // i.e. every image-backed scene has a PS1Image entry with the same name
     if (typeof imageKeyOrScene === 'number') {
-      // Map PSSceneType enum values to background images
-      switch (imageKeyOrScene) {
-        case 1: // PSSceneType.BLUE_HOUSE
-          return PS1Image.BLUE_HOUSE;
-        case 2: // PSSceneType.YELLOW_HOUSE
-          return PS1Image.YELLOW_HOUSE;
-        case 3: // PSSceneType.HOSPITAL
-          return PS1Image.HOSPITAL;
-        case 4: // PSSceneType.CHURCH
-          return PS1Image.CHURCH;
-        case 5: // PSSceneType.SHOP_CENTRAL
-          return PS1Image.SHOP_WEAPON; // Generic shop
-        case 6: // PSSceneType.SHOP_FOOD
-          return PS1Image.SHOP_FOOD;
-        case 7: // PSSceneType.SHOP_HAND
-          return PS1Image.SHOP_HAND;
-        case 8: // PSSceneType.SHOP_WEAPON
-          return PS1Image.SHOP_WEAPON;
-        case 16: // PSSceneType.SPACESHIP
-          return PS1Image.SPACESHIP;
-        case 29: // PSSceneType.FIELDS
-          return PS1Image.FIELDS;
-        default:
-          return PS1Image.BLUE_HOUSE; // Default fallback
+      const sceneName = PSSceneType[imageKeyOrScene];
+      const image = (PS1Image as Record<string, string>)[sceneName];
+      if (image) {
+        return image;
       }
+      console.warn(`PSGame.getImage: no PS1Image entry for scene ${sceneName}`);
+      return PS1Image.BLUE_HOUSE; // Fallback
     }
 
     return imageKeyOrScene as string;

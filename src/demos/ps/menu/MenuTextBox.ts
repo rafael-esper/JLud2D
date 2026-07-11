@@ -22,6 +22,13 @@ export class MenuTextBox extends MenuType {
   private isDestroyed: boolean = false;
   private textObjectsCreated: boolean = false;
 
+  // "More text" indicator (Java: MenuStack.moreIcon, Next_Icon.png)
+  private static readonly MORE_ICON_KEY = 'menu_next_icon';
+  private static readonly MORE_ICON_PATH = 'src/demos/ps/images/original/Next_Icon.png';
+  private static moreIconLoadStarted: boolean = false;
+  private moreIconImage: Phaser.GameObjects.Image | null = null;
+  private bobCounter: number = 0;
+
   constructor(
     menuStack: MenuStack,
     x: number,
@@ -129,6 +136,7 @@ export class MenuTextBox extends MenuType {
 
       // Hide text during animation or if not active
       this.textObjects.forEach(textObj => textObj.setVisible(false));
+      this.moreIconImage?.setVisible(false);
     } else {
       const menus = (this.menuStack as any).menus;
       const lastMenuTextBox = [...menus].reverse().find((m: any) => m instanceof MenuTextBox);
@@ -176,11 +184,40 @@ export class MenuTextBox extends MenuType {
         }
       }
 
-      // Handle "more" icon (for simplicity, using existing text objects for now)
+      // Bobbing "more" icon — Java: screen.tblit(wx+wy-40,
+      // y+wy-8 + cos(systemtime/8)*3, moreIcon)
       if (this.state !== MenuState.TEXT && this.hasMore && active) {
-        // More icon logic can be added here if needed
+        this.showMoreIcon();
+      } else {
+        this.moreIconImage?.setVisible(false);
       }
     }
+  }
+
+  private showMoreIcon(): void {
+    const scene = this.menuStack.getScene();
+    if (!scene) return;
+
+    if (!scene.textures.exists(MenuTextBox.MORE_ICON_KEY)) {
+      if (!MenuTextBox.moreIconLoadStarted) {
+        MenuTextBox.moreIconLoadStarted = true;
+        scene.load.image(MenuTextBox.MORE_ICON_KEY, MenuTextBox.MORE_ICON_PATH);
+        scene.load.start();
+      }
+      return; // Shows once the texture finishes loading on a later draw
+    }
+
+    if (!this.moreIconImage) {
+      this.moreIconImage = scene.add.image(0, 0, MenuTextBox.MORE_ICON_KEY);
+      this.moreIconImage.setOrigin(0, 0);
+      this.moreIconImage.setScrollFactor(0, 0);
+    }
+
+    // Icon renders at the top of this menu's depth band, like the prompt cursor
+    this.moreIconImage.setDepth(this.menuStack.getMenuDepth(this) + 6);
+    const bob = Math.cos(this.bobCounter++ / 8) * 3;
+    this.moreIconImage.setPosition(this.wx + this.wy - 40, Math.floor(this.y + this.wy - 8 + bob));
+    this.moreIconImage.setVisible(true);
   }
 
 
@@ -190,5 +227,10 @@ export class MenuTextBox extends MenuType {
 
     // Clean up text objects using the standard method
     this.cleanupTextObjects();
+
+    if (this.moreIconImage) {
+      this.moreIconImage.destroy();
+      this.moreIconImage = null;
+    }
   }
 }

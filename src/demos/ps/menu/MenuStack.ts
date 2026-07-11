@@ -53,6 +53,9 @@ export class MenuStack {
   // Menu stack
   private menus: MenuType[] = [];
 
+  // Java: transport was active when a menu opened (checkPreMenu/checkPosMenu)
+  private transportActive: boolean = false;
+
   // Rendering: each stack position gets its own depth band so a box drawn
   // over a lower menu covers (and, being translucent, dims) that menu's text,
   // matching the Java painter's-algorithm framebuffer rendering.
@@ -469,7 +472,6 @@ export class MenuStack {
 
   // Background animation support
   public backAnim: any = null; // MenuCHR reference
-  public static moreIcon: any = null; // VImage reference
 
   /**
    * Wait for button 1 press - direct port of Java waitB1()
@@ -597,6 +599,11 @@ export class MenuStack {
   public checkPreMenu(): void {
     // Pause entity processing during menu display
     ScriptEngine.setEntitiesPaused(true);
+    // Java: remember and suspend vehicle boarding while a menu is open
+    if (PSGame.canTransport) {
+      this.transportActive = true;
+    }
+    PSGame.transportOff();
   }
 
   /**
@@ -605,6 +612,11 @@ export class MenuStack {
   public checkPosMenu(): void {
     // Resume entity processing after menu
     ScriptEngine.setEntitiesPaused(false);
+    // Java: restore vehicle boarding if it was active when the menu opened
+    // (Java never resets transportActive; kept faithful)
+    if (this.transportActive) {
+      PSGame.transportOn();
+    }
   }
 
   /**
@@ -651,7 +663,7 @@ export class MenuStack {
 
       this.entitySprite.setPosition(this.entityX, this.entityY);
       this.entitySprite.setVisible(true);
-      this.entitySprite.setDepth(1960); // Above background but below menu boxes
+      this.entitySprite.setDepth(1995); // Above background and dungeon view (1990) but below menu boxes (2000+)
     }
 
     // Draw NPC sprite if present
@@ -662,6 +674,13 @@ export class MenuStack {
 
     // Player party rendering would be handled by game-specific code
     // if needed, not in generic menu stack
+
+    // Java: if there is a waiting delay, don't draw menus, just the scene
+    // (set via setdelay(); startScene uses it to show the scene alone first)
+    if (this.delayTimer > 0) {
+      this.delayTimer--;
+      return;
+    }
 
     // Draw all menus in stack order, each into its own depth band so boxes
     // drawn later cover (and dim, being translucent) the text below them
