@@ -475,4 +475,81 @@ export class PartyMember extends Battler {
   public getLastLevelUpStats(): {hp: number, mp: number, attack: number, defense: number} | null {
     return this.lastLevelUpStats;
   }
+
+  // ---- Save / Load ----------------------------------------------------------
+  // Library items are keyed by their identity string (Item_<OriginalItem>) so
+  // they can be re-resolved to the game's Item instances on load. Battler's
+  // battle-only fields are transient (Java: not serialized) and are left at
+  // their constructor defaults when a member is rehydrated.
+
+  public static itemKey(item: Item): string {
+    return item.getVarName().replace(/^Item_/, '');
+  }
+
+  public static itemFromKey(key: string): Item {
+    return PSGame.getItem(OriginalItem[key as keyof typeof OriginalItem]);
+  }
+
+  /** Snapshot every persistent field (mirrors Java serialization). */
+  public serialize(): any {
+    return {
+      charPath: this.charPath,
+      gender: this.gender,
+      spe: this.spe,
+      job: this.job,
+      name: this.name,
+      atk: this.atk,
+      def: this.def,
+      maxHp: this.maxHp,
+      maxMp: this.maxMp,
+      hp: this.hp,
+      mp: this.mp,
+      level: this.level,
+      xp: this.xp,
+      portrait: this.portrait,
+      smallPortrait: this.smallPortrait,
+      equipment: this.equipment.map(it => (it ? PartyMember.itemKey(it) : null)),
+      items: this.items.map(it => PartyMember.itemKey(it))
+    };
+  }
+
+  /**
+   * Rebuild a member from a snapshot. A real instance is constructed first (so
+   * all Battler defaults and derived tables initialize), then the saved values
+   * overwrite the derived ones. Spells are re-derived from job + level exactly
+   * as advanceLevel() accumulates them, so they never need serializing.
+   */
+  public static deserialize(data: any): PartyMember {
+    const member: PartyMember = data.portrait !== null && data.portrait !== undefined
+      ? new PartyMember(data.gender, data.spe, data.job, data.name, data.portrait, data.charPath)
+      : new PartyMember(data.gender, data.spe, data.job, data.name, data.charPath);
+
+    member.level = data.level;
+    member.xp = data.xp;
+    member.hp = data.hp;
+    member.mp = data.mp;
+    member.atk = data.atk;
+    member.def = data.def;
+    member.maxHp = data.maxHp;
+    member.maxMp = data.maxMp;
+    member.smallPortrait = data.smallPortrait ?? null;
+
+    // Re-derive learned spells from job + level (matches advanceLevel()).
+    member.spells = [];
+    const spellMap = JobHelper.getMapLevelSpell(data.job);
+    for (let lvl = 1; lvl <= data.level; lvl++) {
+      const learned = spellMap.get(lvl);
+      if (learned) {
+        member.spells.push(...learned);
+      }
+    }
+
+    // Resolve equipment and inventory back to game Item instances.
+    member.equipment = (data.equipment as (string | null)[]).map(
+      k => (k ? PartyMember.itemFromKey(k) : null)
+    );
+    member.items = (data.items as string[]).map(k => PartyMember.itemFromKey(k));
+
+    return member;
+  }
 }

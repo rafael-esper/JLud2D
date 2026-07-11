@@ -418,4 +418,30 @@ export class Party {
   public getMesetas(): number {
     return this.mst;
   }
+
+  /** Highest level among party members (used for save-slot labels). */
+  public getMaxLevel(): number {
+    if (this.members.length === 0) return 0;
+    return this.members.reduce((max, m) => Math.max(max, m.getLevel()), 0);
+  }
+
+  // ---- Save / Load ----------------------------------------------------------
+
+  public serialize(): any {
+    return {
+      mst: this.mst,
+      order: [...this.order],
+      members: this.members.map(m => m.serialize()),
+      questItems: this.questItems.map(it => PartyMember.itemKey(it))
+    };
+  }
+
+  public static deserialize(data: any): Party {
+    const party = new Party(); // empty constructor: no auto-generated members
+    party.mst = data.mst ?? 0;
+    party.order = Array.isArray(data.order) ? [...data.order] : [];
+    party.members = (data.members ?? []).map((m: any) => PartyMember.deserialize(m));
+    party.questItems = (data.questItems ?? []).map((k: string) => PartyMember.itemFromKey(k));
+    return party;
+  }
 }

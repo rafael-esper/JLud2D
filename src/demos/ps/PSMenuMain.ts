@@ -57,6 +57,10 @@ export class PSMenuMain {
     PSMenu.instance.push(mainMenu);
 
 
+    // Set when loadGame() succeeds — it tears down the menu stack itself and
+    // rebuilds the scene, so the normal closing pops below must be skipped.
+    let loaded = false;
+
     // Main menu loop
     while (true) {
       console.log('Menu!');
@@ -106,26 +110,32 @@ export class PSMenuMain {
       }
 
       if (opt === 7) { // Load
-        await PSGame.loadGame();
-        // TODO: syncAfterLoading();
-        break;
+        // Only close the menu if a game was actually loaded; otherwise
+        // (empty slots, or the player cancelled) stay in the menu.
+        if (await PSGame.loadGame()) {
+          loaded = true;
+          break;
+        }
       }
 
       if (opt === 8) { // Save
         await PSGame.saveGame();
-        // TODO: syncAfterLoading();
       }
     }
 
     console.log('EndMenu!');
-    PSMenu.instance.pop(); // Menu
-    PSMenu.instance.pop(); // Chars
-    PSMenu.instance.pop(); // Mst
 
-    // Robustness: the stack must be empty here or the game loop stays paused
-    while (PSMenu.instance.hasMenu()) {
-      console.error('A Menu was left open when closing the Main Menu.');
-      PSMenu.instance.pop();
+    // A successful load already cleared the stack and rebuilt the scene.
+    if (!loaded) {
+      PSMenu.instance.pop(); // Menu
+      PSMenu.instance.pop(); // Chars
+      PSMenu.instance.pop(); // Mst
+
+      // Robustness: the stack must be empty here or the game loop stays paused
+      while (PSMenu.instance.hasMenu()) {
+        console.error('A Menu was left open when closing the Main Menu.');
+        PSMenu.instance.pop();
+      }
     }
 
     PSMenu.menuOn();

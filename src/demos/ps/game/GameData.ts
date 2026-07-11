@@ -399,46 +399,93 @@ export class GameData {
   }
 
   // Save and load methods (TypeScript/browser adaptation)
-  // Note: Browser storage would use localStorage/sessionStorage instead of file I/O
+  // Note: Browser storage uses localStorage instead of Java's .SAV file I/O.
+
+  /** Bump when the serialized shape changes in a backward-incompatible way. */
+  public static readonly SAVE_VERSION = 1;
 
   /**
-   * Save game data to browser storage
+   * Produce a plain, JSON-safe snapshot of this game state. The party is
+   * serialized through its own graph (members/items resolved to identity
+   * strings) rather than dumping live class instances.
+   */
+  public serialize(): any {
+    return {
+      version: GameData.SAVE_VERSION,
+      musicVolume: this.musicVolume,
+      soundVolume: this.soundVolume,
+      dungeonDelay: this.dungeonDelay,
+      battleInformation: this.battleInformation,
+      locale: this.locale,
+      flags: Array.from(this.flags),
+      chestFlags: Array.from(this.chestFlags),
+      trapFlags: Array.from(this.trapFlags),
+      visitedCities: Array.from(this.visitedCities),
+      visitedEnemies: Array.from(this.visitedEnemies),
+      gameType: this.gameType,
+      screenSize: this.screenSize,
+      current_planet: this.current_planet,
+      current_dungeon: this.current_dungeon,
+      current_city: this.current_city,
+      party: this.party ? this.party.serialize() : null,
+      onWaterVehicle: this.onWaterVehicle,
+      onGroundVehicle: this.onGroundVehicle,
+      gotox: this.gotox,
+      gotoy: this.gotoy,
+      dungeonFace: this.dungeonFace,
+      dungeonFloor: this.dungeonFloor,
+      enableCheats: this.enableCheats
+    };
+  }
+
+  /**
+   * Rebuild a GameData from a snapshot produced by serialize().
+   */
+  public static fromSerialized(data: any): GameData {
+    const gameData = new GameData();
+
+    gameData.musicVolume = data.musicVolume ?? 30;
+    gameData.soundVolume = data.soundVolume ?? 50;
+    gameData.dungeonDelay = data.dungeonDelay ?? 4;
+    gameData.battleInformation = data.battleInformation !== undefined ? data.battleInformation : true;
+    gameData.locale = data.locale ?? 'en';
+    gameData.gameType = data.gameType ?? null;
+    gameData.screenSize = data.screenSize ?? null;
+    gameData.current_planet = data.current_planet ?? null;
+    // Dungeon.NONE is 0, so use ?? (not ||) to preserve "not in a dungeon".
+    gameData.current_dungeon = data.current_dungeon ?? Dungeon.NONE;
+    gameData.current_city = data.current_city ?? null;
+    gameData.party = data.party ? Party.deserialize(data.party) : null;
+    gameData.onWaterVehicle = data.onWaterVehicle ?? false;
+    gameData.onGroundVehicle = data.onGroundVehicle ?? false;
+    gameData.gotox = data.gotox ?? 0;
+    gameData.gotoy = data.gotoy ?? 0;
+    gameData.dungeonFace = data.dungeonFace ?? 1;
+    gameData.dungeonFloor = data.dungeonFloor ?? 0;
+    gameData.enableCheats = data.enableCheats ?? false;
+
+    gameData.flags = new Set(data.flags ?? []);
+    gameData.chestFlags = new Set(data.chestFlags ?? []);
+    gameData.trapFlags = new Set(data.trapFlags ?? []);
+    gameData.visitedCities = new Set(data.visitedCities ?? []);
+    gameData.visitedEnemies = new Set(data.visitedEnemies ?? []);
+
+    return gameData;
+  }
+
+  /**
+   * Save game data to browser storage under a single key.
    */
   public static save(gameData: GameData, key: string): void {
     try {
-      const serialized = JSON.stringify({
-        musicVolume: gameData.musicVolume,
-        soundVolume: gameData.soundVolume,
-        dungeonDelay: gameData.dungeonDelay,
-        battleInformation: gameData.battleInformation,
-        locale: gameData.locale,
-        flags: Array.from(gameData.flags),
-        chestFlags: Array.from(gameData.chestFlags),
-        trapFlags: Array.from(gameData.trapFlags),
-        visitedCities: Array.from(gameData.visitedCities),
-        visitedEnemies: Array.from(gameData.visitedEnemies),
-        gameType: gameData.gameType,
-        screenSize: gameData.screenSize,
-        current_planet: gameData.current_planet,
-        current_dungeon: gameData.current_dungeon,
-        current_city: gameData.current_city,
-        party: gameData.party,
-        onWaterVehicle: gameData.onWaterVehicle,
-        onGroundVehicle: gameData.onGroundVehicle,
-        gotox: gameData.gotox,
-        gotoy: gameData.gotoy,
-        dungeonFace: gameData.dungeonFace,
-        dungeonFloor: gameData.dungeonFloor,
-        enableCheats: gameData.enableCheats
-      });
-      localStorage.setItem(key, serialized);
+      localStorage.setItem(key, JSON.stringify(gameData.serialize()));
     } catch (error) {
       console.error('Error saving game data:', error);
     }
   }
 
   /**
-   * Load game data from browser storage
+   * Load game data from browser storage.
    */
   public static load(key: string): GameData | null {
     try {
@@ -446,38 +493,7 @@ export class GameData {
       if (!serialized) {
         return null;
       }
-
-      const data = JSON.parse(serialized);
-      const gameData = new GameData();
-
-      // Restore primitive values
-      gameData.musicVolume = data.musicVolume || 30;
-      gameData.soundVolume = data.soundVolume || 50;
-      gameData.dungeonDelay = data.dungeonDelay || 4;
-      gameData.battleInformation = data.battleInformation !== undefined ? data.battleInformation : true;
-      gameData.locale = data.locale || 'en';
-      gameData.gameType = data.gameType || null;
-      gameData.screenSize = data.screenSize || null;
-      gameData.current_planet = data.current_planet || null;
-      gameData.current_dungeon = data.current_dungeon || null;
-      gameData.current_city = data.current_city || null;
-      gameData.party = data.party || null;
-      gameData.onWaterVehicle = data.onWaterVehicle || false;
-      gameData.onGroundVehicle = data.onGroundVehicle || false;
-      gameData.gotox = data.gotox || 0;
-      gameData.gotoy = data.gotoy || 0;
-      gameData.dungeonFace = data.dungeonFace || 0;
-      gameData.dungeonFloor = data.dungeonFloor || 0;
-      gameData.enableCheats = data.enableCheats || false;
-
-      // Restore sets
-      gameData.flags = new Set(data.flags || []);
-      gameData.chestFlags = new Set(data.chestFlags || []);
-      gameData.trapFlags = new Set(data.trapFlags || []);
-      gameData.visitedCities = new Set(data.visitedCities || []);
-      gameData.visitedEnemies = new Set(data.visitedEnemies || []);
-
-      return gameData;
+      return GameData.fromSerialized(JSON.parse(serialized));
     } catch (error) {
       console.error('Error loading game data:', error);
       return null;

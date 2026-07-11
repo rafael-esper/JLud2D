@@ -22,6 +22,7 @@ import { OriginalItem, PSLibItem } from './game/PSLibItem';
 import { PSLibEnemy, GenericEnemy } from './game/PSLibEnemy';
 import { VImage } from './menu/MenuImageBox';
 import { I18nManager } from './game/I18nManager';
+import { SaveManager, SaveSlotMeta } from './game/SaveManager';
 
 // Battle system imports
 import { Enemy } from './battle/Enemy';
@@ -302,21 +303,123 @@ export class PSGame {
     console.log(`PSGame: Party initialized with ${this.party.partySize()} members`);
   }
 
-  /** localStorage key used for browser saves (replaces Java's .SAV file chooser) */
-  private static readonly SAVE_KEY: string = 'PS_SAVE';
-
   /**
-   * Load game - browser adaptation of Java loadGame()
-   * Full restore (party/map) is not implemented yet.
+   * Human-readable name of the party's current location, for save-slot labels.
+   * Dungeon > city > planet, matching how a save's position is restored.
    */
-  public static async loadGame(): Promise<boolean> {
-    console.log("PSGame: Load game not implemented in demo");
-    await PSMenu.Stext(this.getString("Menu_Load_Failed"));
-    return false;
+  private static currentPlaceName(): string {
+    if (this.getCurrentDungeon() !== Dungeon.NONE) {
+      // NAULA -> "Naula", GOTHIC_PASSAGEWAY_IN -> "Gothic Passageway In"
+      return Dungeon[this.getCurrentDungeon()]
+        .split('_')
+        .map(w => w.charAt(0) + w.slice(1).toLowerCase())
+        .join(' ');
+    }
+    if (this.gameData.current_city !== null) {
+      return CityHelper.toString(this.gameData.current_city);
+    }
+    if (this.gameData.current_planet !== null) {
+      const name = Planet[this.gameData.current_planet];
+      return this.getString(`Planet_${name.charAt(0)}${name.slice(1).toLowerCase()}`);
+    }
+    return '???';
+  }
+
+  /** Map a game locale ('en', 'se') to a BCP-47 tag for date formatting. */
+  private static localeToTag(locale: string): string {
+    switch (locale) {
+      case 'en': return 'en-US';
+      case 'se': return 'sv-SE';
+      default: return locale;
+    }
+  }
+
+  /** Build the metadata header shown for a freshly written save slot. */
+  public static buildSaveMeta(): SaveSlotMeta {
+    const place = this.currentPlaceName();
+    const maxLevel = this.getParty().getMaxLevel();
+    const date = SaveManager.formatDate(new Date(), this.localeToTag(this.gameData.locale));
+    return {
+      place,
+      maxLevel,
+      date,
+      timestamp: Date.now(),
+      label: SaveManager.composeLabel(place, maxLevel, date)
+    };
   }
 
   /**
-   * Save game - browser adaptation of Java saveGame() (localStorage instead of a .SAV file)
+   * Load game - browser adaptation of Java loadGame(). Shows the used save
+   * slots, restores the chosen state, and re-enters its map.
+   * @returns true if a game was loaded (the main menu should then close)
+   */
+  public static async loadGame(): Promise<boolean> {
+    const { PSCancellable } = await import('./menu/MenuStack');
+
+    const metas = SaveManager.listMetas();
+    const used: { slot: number; label: string }[] = [];
+    metas.forEach((m, slot) => {
+      if (m) {
+        used.push({ slot, label: m.label });
+      }
+    });
+
+    if (used.length === 0) {
+      await PSMenu.Stext(this.getString("Menu_No_Saves"));
+      return false;
+    }
+
+    PSMenu.instance.push(PSMenu.instance.createPromptBox(10, 2, used.map(u => u.label), true));
+    const sel = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
+    PSMenu.instance.pop();
+
+    if (sel < 0) {
+      return false; // cancelled
+    }
+
+    const loaded = SaveManager.loadFromSlot(used[sel].slot);
+    if (!loaded) {
+      await PSMenu.Stext(this.getString("Menu_Load_Failed"));
+      return false;
+    }
+
+    // Adopt the loaded state. PSGame.party is the live reference the engine
+    // uses, so point it at the restored party (they are otherwise unsynced).
+    this.gameData = loaded;
+    this.party = loaded.getParty();
+
+    // Restore the language the save was made in (Java: reload ResourceBundle).
+    if (loaded.locale) {
+      await this.setLocale(loaded.locale);
+    }
+
+    // Clear the open main-menu boxes before rebuilding the map so nothing
+    // lingers over the new scene (the caller must not pop again after a load).
+    while (PSMenu.instance.hasMenu()) {
+      PSMenu.instance.pop();
+    }
+
+    // Re-enter the saved location (Java loadGame(): mapswitch to the map).
+    const x = loaded.gotox;
+    const y = loaded.gotoy;
+    if (this.getCurrentDungeon() !== Dungeon.NONE) {
+      // Dungeons re-enter at their entrance; first-person mid-dungeon position
+      // is not restored (the renderer reveals the floor on entry).
+      await this.mapswitchToDungeon(loaded.current_dungeon);
+      this.getCurrentDungeonInstance()?.setAlreadyInside(true);
+    } else if (loaded.current_city !== null) {
+      await this.mapswitchToCity(loaded.current_city, x, y);
+    } else if (loaded.current_planet !== null) {
+      await this.mapswitchToPlanet(loaded.current_planet, x, y);
+    }
+
+    return true;
+  }
+
+  /**
+   * Save game - browser adaptation of Java saveGame(). Writes to one of up to
+   * SaveManager.MAX_SLOTS localStorage slots, each labelled with place, party
+   * level and date. Overwriting an occupied slot asks for confirmation.
    */
   public static async saveGame(): Promise<void> {
     const player = MainEngine.getPlayer();
@@ -325,12 +428,45 @@ export class PSGame {
       this.gameData.gotoy = Math.floor(player.gety() / 16);
 
       if (this.getCurrentDungeon() !== Dungeon.NONE) {
+        const dungeon = this.getCurrentDungeonInstance();
+        if (dungeon && !dungeon.getAlreadyInside()) {
+          // Java: don't save on the entry tile before the floor is revealed.
+          return;
+        }
         this.gameData.dungeonFace = player.getFace();
       }
     }
 
-    GameData.save(this.gameData, PSGame.SAVE_KEY);
-    await PSMenu.Stext(this.getString("Menu_Save_Success"));
+    // Keep gameData's party reference in sync with the live party before saving.
+    this.gameData.setParty(this.getParty());
+
+    const { PSCancellable } = await import('./menu/MenuStack');
+
+    const metas = SaveManager.listMetas();
+    const options = metas.map(m => (m ? m.label : this.getString('Menu_Empty_Slot')));
+
+    PSMenu.instance.push(PSMenu.instance.createPromptBox(10, 2, options, true));
+    const slot = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
+    PSMenu.instance.pop();
+
+    if (slot < 0) {
+      return; // cancelled
+    }
+
+    if (metas[slot]) {
+      const confirm = await PSMenu.Prompt(this.getString('Menu_Overwrite_Prompt'), this.getYesNo());
+      PSMenu.instance.pop(); // text box left by Prompt
+      if (confirm !== 1) {
+        return; // declined overwrite
+      }
+    }
+
+    const meta = this.buildSaveMeta();
+    if (SaveManager.saveToSlot(slot, this.gameData, meta)) {
+      await PSMenu.Stext(this.getString("Menu_Save_Success"));
+    } else {
+      await PSMenu.Stext(this.getString("Menu_Save_Failed"));
+    }
   }
 
   /**

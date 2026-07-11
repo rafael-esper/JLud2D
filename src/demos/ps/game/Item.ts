@@ -136,6 +136,14 @@ export class Item {
     }
   }
 
+  /**
+   * Raw i18n key / identity string (e.g. "Item_Weapon_Short_Sword").
+   * Stable across locales, so it doubles as this item's save identifier.
+   */
+  public getVarName(): string {
+    return this.varName;
+  }
+
   public async getChrWeaponAnimation(scene?: Phaser.Scene): Promise<CHR | null> {
     if (this.chrWeaponAnimation === null && this.strWeaponAnimation && scene) {
       this.chrWeaponAnimation = await CHR.loadChr(scene, this.strWeaponAnimation, "ps");
