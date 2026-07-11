@@ -9,9 +9,11 @@ import { EnemyBattler } from '../battle/EnemyBattler';
 import { CanRope, CanTalk, CanChat, EnemyType } from '../battle/Enemy';
 import { PS1Sound } from './PSLibSound';
 import { Dungeon } from './Dungeon';
+import { CityHelper } from './City';
 import { PSGame } from '../PSGame';
 import { Action, PSBattle as PSBattleClass } from '../battle/PSBattle';
 import { PSMenu } from '../PSMenu';
+import { MainEngine } from '../../../core/MainEngine';
 
 // Effect enums
 export enum EffectTarget {
@@ -238,9 +240,31 @@ export class PSEffect {
         return EffectOutcome.SUCCESS;
 
       case Effect.FLY:
-        // Note: Would need full city/planet system implementation
-        console.warn('FLY effect not fully implemented - requires city/planet system');
-        return EffectOutcome.SUCCESS;
+        // World-only fast travel (Hapsby): pick a visited, flyable city on the
+        // current planet and warp there. Only usable outside a dungeon.
+        if (PSGame.getCurrentDungeon() === Dungeon.NONE && PSGame.gameData.current_planet !== null) {
+          const lstCities = CityHelper.getVisitedCitiesFromPlanet(
+            PSGame.gameData.current_planet,
+            PSGame.gameData.visitedCities
+          );
+          const strCities = lstCities.map(c => CityHelper.toString(c));
+
+          const opt = await PSMenu.Prompt(PSGame.getString("Hapsby_Travel"), strCities);
+          PSMenu.instance.pop(); // text box left by Prompt
+          if (opt > 0) {
+            PSGame.playSound(PS1Sound.FLY);
+            PSGame.gameData.onGroundVehicle = false;
+            PSGame.gameData.onWaterVehicle = false;
+            const chosenCity = lstCities[opt - 1];
+            await PSGame.mapswitchToPlanet(
+              CityHelper.getPlanet(chosenCity),
+              CityHelper.getX(chosenCity),
+              CityHelper.getY(chosenCity)
+            );
+            return EffectOutcome.CLOSE_ALL;
+          }
+        }
+        return EffectOutcome.FAIL;
 
       case Effect.REVIVE:
         return await this.revive(this.target as PartyMember, false);
@@ -332,18 +356,37 @@ export class PSEffect {
           PSGame.playSound(PS1Sound.FLUTESONG);
           await PSMenu.instance.waitDelay(90);
         }
-        // Note: Would need dungeon system implementation
-        console.warn('EXIT effect not fully implemented - requires dungeon system');
+        // Bypass/Soothe Flute: leave the dungeon by running its "exit" script
+        if (PSGame.getCurrentDungeon() === Dungeon.NONE) {
+          return EffectOutcome.FAIL;
+        }
+        await PSMenu.instance.waitDelay(30);
+        PSGame.playSound(PS1Sound.FLY);
+        MainEngine.callScriptFunction("exit");
         return EffectOutcome.CLOSE_ALL;
 
       case Effect.OPEN:
-        // Note: Would need dungeon system implementation
-        console.warn('OPEN effect not fully implemented - requires dungeon system');
+        // Magically unlock the door ahead (Java: setOpen() + queued Script.b1)
+        if (PSGame.getCurrentDungeon() === Dungeon.NONE) {
+          return EffectOutcome.FAIL;
+        }
+        await PSMenu.instance.waitDelay(30);
+        PSGame.getCurrentDungeonInstance()?.setOpen();
         return EffectOutcome.CLOSE_ALL;
 
       case Effect.TRAP:
-        // Note: Would need dungeon system implementation
-        console.warn('TRAP effect not fully implemented - requires dungeon system');
+        // Untrap: disarm the trap on the tile ahead
+        if (PSGame.getCurrentDungeon() === Dungeon.NONE) {
+          await PSMenu.Stext(PSGame.getString("Dungeon_No_Trap"));
+        } else {
+          await PSMenu.instance.waitDelay(30);
+          const dungeon = PSGame.getCurrentDungeonInstance();
+          if (dungeon && await dungeon.checkTrapEffect()) {
+            return EffectOutcome.SUCCESS;
+          } else {
+            await PSMenu.Stext(PSGame.getString("Dungeon_No_Trap"));
+          }
+        }
         return EffectOutcome.FAIL;
 
       case Effect.TRAP_CHEST:
@@ -391,13 +434,11 @@ export class PSEffect {
       }
     }
 
-    // Check for dead end (would need dungeon system)
-    /*
-    if (PSGame.getCurrentDungeon() !== Dungeon.NONE && PSGame.currentDungeon.deadEnd()) {
+    // Can't flee at a dead end inside a dungeon (Java: chanceToRun = 0)
+    if (PSGame.getCurrentDungeon() !== Dungeon.NONE && PSGame.getCurrentDungeonInstance()?.deadEnd()) {
       chanceToRun = 0;
       console.log("On dead end!");
     }
-    */
 
     const chance = random ? 1 + Math.floor(Math.random() * 255) : 1;
 
@@ -405,16 +446,18 @@ export class PSEffect {
     if (chance <= chanceToRun) {
       PSGame.playSound(PS1Sound.ESCAPE);
 
-      // Show success message using proper translation system
-      const blockerName = blocker instanceof EnemyBattler
-        ? blocker.getEnemy().getTranslatedName(PSGame)
-        : blocker?.getName() || 'enemy';
-
-      const escapeMessage = PSGame.getString("Battle_Run_Bye", "<monster>", blockerName);
-      await PSMenu.StextTimeout(escapeMessage);
-
-      // TODO: Handle dungeon-specific logic (Script.down = true for dungeons)
-      console.log(`Successfully escaped from ${blockerName}!`);
+      if (PSGame.getCurrentDungeon() === Dungeon.NONE) {
+        // World escape shows the optional farewell message
+        if (PSGame.getDisplayMessages()) {
+          const blockerName = blocker instanceof EnemyBattler
+            ? blocker.getEnemy().getTranslatedName(PSGame)
+            : blocker?.getName() || 'enemy';
+          await PSMenu.StextTimeout(PSGame.getString("Battle_Run_Bye", "<monster>", blockerName));
+        }
+      } else {
+        // Dungeon escape retreats one tile (Java: Script.down = true)
+        PSGame.getCurrentDungeonInstance()?.escapeStepBack();
+      }
       return true; // Escape successful
     } else {
       // Show failure message using proper translation system

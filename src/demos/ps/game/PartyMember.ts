@@ -119,7 +119,7 @@ export class PartyMember extends Battler {
 
     switch (this.getJob()) {
       case Job.ADVENTURER:
-        this.equipItem(PSGame.getItem(OriginalItem.Weapon_Iron_Sword));
+        this.equipItem(PSGame.getItem(OriginalItem.Weapon_Short_Sword));
         this.equipItem(PSGame.getItem(OriginalItem.Armor_Leather_Clothes));
         break;
       case Job.FIGHTER:
@@ -206,8 +206,7 @@ export class PartyMember extends Battler {
 
   public addItem(item: Item): void {
     if (item.type === ItemType.QUEST || item.type === ItemType.VEHICLE) {
-      // PSGame.getParty().addQuestItem(item);
-      console.warn('Quest item handling not yet implemented - requires Party class');
+      PSGame.getParty().addQuestItem(item);
     } else {
       this.items.push(item);
     }

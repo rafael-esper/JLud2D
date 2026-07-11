@@ -38,6 +38,7 @@ export class PSDungeon {
   private isAnimating: boolean = false;
   private openEffect: boolean = false;
   private trapEffect: boolean = false;
+  private pendingOpen: boolean = false;
   private inputManager: InputManager | null = null;
   private currentScene: any = null;
   private dungeonRenderTexture: Phaser.GameObjects.RenderTexture | null = null;
@@ -340,7 +341,11 @@ export class PSDungeon {
         this.showDungeon = !this.showDungeon;
       }
 
-      if (this.inputManager!.justPressed('b1')) {
+      if (this.pendingOpen) {
+        // Java: the Open spell queued Script.b1 = true to force the door open
+        this.pendingOpen = false;
+        await this.handleOpenAction(player);
+      } else if (this.inputManager!.justPressed('b1')) {
         await this.handleOpenAction(player);
       }
 
@@ -1256,6 +1261,61 @@ export class PSDungeon {
 
   public setOpen(): void {
     this.openEffect = true;
+    // Java: the Open spell also sets Script.b1 = true so the door in front is
+    // opened automatically once the menu closes (see pendingOpen in the loop).
+    this.pendingOpen = true;
+  }
+
+  /**
+   * Escape-from-battle step back inside a dungeon - direct port of the Java
+   * runRoutine() success branch, which sets Script.down = true so the party
+   * retreats one tile after fleeing.
+   */
+  public escapeStepBack(): void {
+    if (!this.inputManager) return;
+    this.inputManager.down = true;
+    this.zoneCheck = true;
+  }
+
+  /**
+   * True when the tiles in front, left and right are all non-floor - direct
+   * port of Java deadEnd(). Used to forbid fleeing a battle at a dead end.
+   */
+  public deadEnd(): boolean {
+    const player = MainEngine.getPlayer();
+    if (!player) return false;
+    return this.getfronttile(player, -1) !== FLOOR
+      && this.getlefttile(player, 0) !== FLOOR
+      && this.getrighttile(player, 0) !== FLOOR;
+  }
+
+  /**
+   * Run the trap script on the tile ahead - direct port of Java checkTrapEffect().
+   * The trap zone script calls PSGame.trapRoutine(), which disarms the trap
+   * (setTrapEffect(false)) when the Untrap spell primed trapEffect first.
+   * Returns true if a trap was found and disarmed.
+   */
+  public async checkTrapEffect(): Promise<boolean> {
+    const player = MainEngine.getPlayer();
+    const currentMap = MainEngine.getCurrentMap();
+    if (!player || !currentMap) return false;
+
+    const zone = this.getfrontzone(player, 1);
+    this.trapEffect = true;
+
+    const scriptName = currentMap.getScriptZone(zone);
+    if (scriptName && scriptName.startsWith("trap")) {
+      // The trap script calls PSGame.trapRoutine(), which flips trapEffect off
+      // via setTrapEffect() when the trap is disarmed. Read through the getter
+      // so TypeScript doesn't narrow away that side effect.
+      await this.invokeScriptAsync(scriptName);
+      if (!this.getTrapEffect()) {
+        return true;
+      }
+    }
+
+    this.trapEffect = false;
+    return false;
   }
 
   /**

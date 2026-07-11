@@ -11,7 +11,9 @@ import { GameType } from './GameData';
 import { PS1Image } from './PSLibImage';
 import { PS1Sound } from './PSLibSound';
 import { OriginalItem } from './PSLibItem';
+import { PartyCreator } from './PartyCreator';
 import { PSGame } from '../PSGame';
+import { PSMenu } from '../PSMenu';
 import { MainEngine } from '../../../core/MainEngine';
 import { EntityDirection } from '../../../domain/Entity';
 
@@ -73,9 +75,9 @@ export class Party {
         break;
 
       case GameType.PS_PARTY:
-        // Note: Would need PartyCreator implementation
-        // this.members = PartyCreator.createParty(5);
-        console.warn('PS_PARTY gametype not yet implemented - requires PartyCreator');
+        this.members = PartyCreator.createParty(5);
+        // Rebuild the walk order to match the freshly generated members
+        this.order = this.members.map((_, i) => i);
         break;
 
       case GameType.PS_ARENA:
@@ -125,9 +127,8 @@ export class Party {
           this.getMember(1)?.advanceLevel();
         }
         this.getMember(1)?.heal();
-        // Note: Would need PSGame.getItem implementation
-        // this.getMember(1)?.equipItem(PSGame.getItem(OriginalItem.Armor_Frad_Cloak));
-        // this.getMember(1)?.equipItem(PSGame.getItem(OriginalItem.Weapon_Psycho_Wand));
+        this.getMember(1)?.equipItem(PSGame.getItem(OriginalItem.Armor_Frad_Cloak));
+        this.getMember(1)?.equipItem(PSGame.getItem(OriginalItem.Weapon_Psycho_Wand));
         break;
 
       default:
@@ -366,9 +367,7 @@ export class Party {
     }
 
     if (member === -1) {
-      // Note: Would need PSMenu implementation
-      // PSMenu.StextLast(PSGame.getString("Shop_Full"));
-      console.warn('Inventory full!');
+      PSMenu.StextLast(PSGame.getString("Shop_Full"));
       return false;
     } else {
       this.getMember(member)!.addItem(item);
