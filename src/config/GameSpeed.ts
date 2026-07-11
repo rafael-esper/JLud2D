@@ -33,6 +33,37 @@ const MULTIPLIER: Record<SpeedLevel, number> = {
   max: 3
 };
 
+/**
+ * Per-frame entity movement factor (fraction of the Max reference step, which
+ * reproduces the old 60 fps raw rate). This scale is deliberately SHIFTED UP
+ * from the shared MULTIPLIER: Slow now feels like the old Normal, and Normal
+ * sits just below Fast, so overall walking is faster. Values are written as
+ * `n / 3` so they line up with the old `mult / maxMult` factors for reference
+ * (old factors were slow 0.167, normal 0.333, fast 0.5, faster 0.667, max 1.0).
+ */
+const ENTITY_SPEED_FACTOR: Record<SpeedLevel, number> = {
+  slow: 1.0 / 3, 
+  normal: 1.3 / 3,
+  fast: 2.0 / 3,  
+  faster: 2.5 / 3,
+  max: 3.0 / 3    
+};
+
+/**
+ * Tile/map animation factor (fraction of raw elapsed time applied per frame).
+ * This scale is SHIFTED DOWN from the shared MULTIPLIER because tile
+ * animations ran too fast: Normal now feels like the old Slow, Slow is slower
+ * still, and every level is slower than before (even Max no longer reaches the
+ * old raw rate). Written as `n / 3` to match the old factor reference.
+ */
+const MAP_ANIM_FACTOR: Record<SpeedLevel, number> = {
+  slow: 0.3 / 5, 
+  normal: 0.5 / 5,
+  fast: 0.8 / 5,  
+  faster: 1.2 / 5,
+  max: 1.8 / 5    
+};
+
 /** Tick rate of the original Java engine (GUI.java frameDelay = 20 ms). */
 const JAVA_TICKS_PER_SECOND = 50;
 
@@ -69,19 +100,19 @@ export class GameSpeed {
   }
 
   /**
-   * Factor applied to entity speeds inside Entity.think(), which runs once
-   * per rendered frame (60/s). We deliberately do NOT apply the 50/60 Java
-   * rebase here: with it, Normal walk speed (200) becomes 166.67 px worth of
-   * ticks per frame, i.e. an uneven 1,2,2,1,2,2 px step that makes both the
-   * movement and the walk-cycle hold times jitter. Returning the raw
-   * multiplier makes speed×multiplier land on whole hundreds (200/100/300/…),
-   * so numTicks is a CONSTANT integer every frame — perfectly smooth, exactly
-   * like the Java engine at 50 fps. Trade-off: entities move ~20% faster than
-   * the old 50 fps reference (Normal walk = 2 px/frame = 120 px/s); tune the
-   * base entity speeds if that feels too quick.
+   * Per-frame entity movement factor for the current speed level. Multiplied by
+   * the entity's base step inside Entity.think(). See ENTITY_SPEED_FACTOR.
    */
-  public static entitySpeedScale(): number {
-    return GameSpeed.getMultiplier();
+  public static entitySpeedFactor(): number {
+    return ENTITY_SPEED_FACTOR[GameSpeed.level];
+  }
+
+  /**
+   * Tile/map animation advance factor for the current speed level. Multiplied
+   * by the raw elapsed time in TiledMap.updateAnimations(). See MAP_ANIM_FACTOR.
+   */
+  public static mapAnimFactor(): number {
+    return MAP_ANIM_FACTOR[GameSpeed.level];
   }
 
   /** Menu logic ticks to run this frame (text boxes, battle animations). */

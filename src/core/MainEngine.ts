@@ -974,17 +974,28 @@ export class MainEngine {
    * Should be called from scene update() method
    */
   public static updateEngine(inputManager: any): void {
+    // Process player controls BEFORE the entity think pass. In the Java engine
+    // (EntityImpl.think), the player's ProcessControls() runs *inside* the tick
+    // loop at the instant the entity is ready(), so the next waypoint is set and
+    // movement continues in the same tick — framect advances continuously. Here
+    // ProcessControls is decoupled from Entity.think(); if it ran *after*
+    // TimedProcessEntities, then at every tile boundary the player would be
+    // ready() with no waypoint yet, stalling framect and injecting the idle
+    // frame (frame 0) into the middle of the walk cycle. Running it first
+    // restores Java's ordering and a smooth, correctly-ordered walk animation.
+    const player = MainEngine.getPlayer();
+    if (player) {
+      // Process player controls
+      MainEngine.ProcessControls(inputManager);
+    }
+
     // Entities think once per rendered frame. Entity.think() computes a constant
     // whole-pixel step per frame (scaled by the game-speed level), which keeps
     // motion smooth without needing a second tick pass here.
     MainEngine.TimedProcessEntities();
 
-    // Handle player movement or camera movement
-    const player = MainEngine.getPlayer();
+    // Handle camera movement after the player has moved this frame
     if (player) {
-      // Process player controls
-      MainEngine.ProcessControls(inputManager);
-
       // Handle camera tracking if enabled
       if (MainEngine.getCameraTracking() > 0) {
         MainEngine.handleCameraTracking();

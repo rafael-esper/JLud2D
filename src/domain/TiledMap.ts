@@ -645,12 +645,10 @@ export class TiledMap {
   public updateAnimations(deltaTime: number = 16): void {
     if (this.animatedTiles.length === 0) return;
 
-    // Advance by real elapsed time scaled by the global game speed, so tile
-    // animations run slower at Slow/Normal and faster at Fast/Max. Rebased
-    // against the MAX multiplier so the fastest level (Max) matches the old
-    // raw-delta rate and Normal is correspondingly slower (raw delta ran ~3×
-    // too fast). (Previously the raw delta was used, ignoring the setting.)
-    const scaledDelta = deltaTime * (GameSpeed.getMultiplier() / GameSpeed.getMaxMultiplier());
+    // Advance by real elapsed time scaled by the tile-animation factor, which
+    // is deliberately slower than the entity/movement scale (tiles otherwise
+    // run too fast). Normal ≈ the old Slow feel; see GameSpeed.MAP_ANIM_FACTOR.
+    const scaledDelta = deltaTime * GameSpeed.mapAnimFactor();
 
     // Update each animated tile
     for (const animatedTileData of this.animatedTiles) {

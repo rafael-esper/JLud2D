@@ -136,7 +136,7 @@ export class Entity {
     // speeds (the Slow level, or slow NPCs) fall back to a fractional
     // accumulator in speedct so they still creep along.
     const maxStep = this.getSpeed() / 50; // px/frame at Max (Max reproduces the old rate)
-    const target = maxStep * GameSpeed.getMultiplier() / GameSpeed.getMaxMultiplier();
+    const target = maxStep * GameSpeed.entitySpeedFactor();
     let numTicks: number;
     if (target >= 1) {
       numTicks = Math.round(target);
