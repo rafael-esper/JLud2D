@@ -1121,6 +1121,16 @@ export class MainEngine {
     return MainEngine.event_zone;
   }
 
+  /** Tile X of the event that most recently triggered (captured at trigger time). */
+  public static getEventTx(): number {
+    return MainEngine.event_tx;
+  }
+
+  /** Tile Y of the event that most recently triggered (captured at trigger time). */
+  public static getEventTy(): number {
+    return MainEngine.event_ty;
+  }
+
   // Current script context (set by the current map/scene)
   protected static currentScriptContext: any = null;
 
