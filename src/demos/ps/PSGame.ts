@@ -419,11 +419,10 @@ export class PSGame {
     const x = this.gameData.gotox;
     const y = this.gameData.gotoy;
     if (this.getCurrentDungeon() !== Dungeon.NONE) {
-      // Dungeons re-enter at their entrance; first-person mid-dungeon position
-      // is not restored (the renderer reveals the floor on entry). Pass
+      // Re-enter at the exact saved tile (x, y), not the dungeon entrance. Pass
       // alreadyInside=true so startDungeon() re-enters illuminated and restores the
       // saved facing (getDungeonFace) instead of printing the "Pitch black" intro.
-      await this.mapswitchToDungeon(this.gameData.current_dungeon, true);
+      await this.mapswitchToDungeon(this.gameData.current_dungeon, true, x, y);
     } else if (this.gameData.current_city !== null) {
       await this.mapswitchToCity(this.gameData.current_city, x, y);
     } else if (this.gameData.current_planet !== null) {
@@ -791,7 +790,12 @@ export class PSGame {
   /**
    * Switch to dungeon map - handles dungeon entrance/exit with proper coordinates
    */
-  public static async mapswitchToDungeon(dungeon: Dungeon, alreadyInside: boolean = false): Promise<void> {
+  public static async mapswitchToDungeon(
+    dungeon: Dungeon,
+    alreadyInside: boolean = false,
+    spawnX?: number,
+    spawnY?: number
+  ): Promise<void> {
     console.log(`PSGame.mapswitchToDungeon: ${Dungeon[dungeon]}`);
 
     // Import Dungeon helpers
@@ -802,9 +806,12 @@ export class PSGame {
     this.gameData.current_dungeon = dungeon;
     this.gameData.current_city = null;
 
-    // Get dungeon coordinates and direction
-    const dungeonX = DungeonHelper.getX(dungeon);
-    const dungeonY = DungeonHelper.getY(dungeon);
+    // Spawn coordinates: fresh entries use the dungeon's entrance tile; a load
+    // (alreadyInside) restores the exact saved tile so the party re-appears where
+    // it was, not back at the entrance. Facing is likewise restored in
+    // startDungeon() via getDungeonFace().
+    const dungeonX = spawnX ?? DungeonHelper.getX(dungeon);
+    const dungeonY = spawnY ?? DungeonHelper.getY(dungeon);
 
     // Set goto coordinates for dungeon spawn
     this.setgotoxy(dungeonX, dungeonY);
