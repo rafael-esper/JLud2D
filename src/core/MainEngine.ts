@@ -23,6 +23,12 @@ export class MainEngine {
 
   // Game state
   protected static invc: number = 0; // Script/cutscene active flag
+  // While a first-person dungeon owns input, the overworld ProcessControls must
+  // not touch the player at all. invc/scriptActive is toggled off momentarily by
+  // every ScriptEngine.fadeout (stairs warps, doors), and a held key leaking
+  // through that blip rewrites the dungeon player's face/waypoint. This flag is a
+  // hard gate independent of fade timing; PSDungeon sets it around its loop.
+  protected static playerControlsSuspended: boolean = false;
   protected static current_map: any = null; // TiledMap instance
   protected static entitiespaused: boolean = false; // For screen transitions
 
@@ -204,6 +210,13 @@ export class MainEngine {
   }
 
   public static ProcessControls(inputManager: any): void {
+
+    // Hard gate: while the first-person dungeon owns input, never drive the
+    // overworld player from here (see playerControlsSuspended). Independent of
+    // the invc/scriptActive fade blips that let held keys corrupt the facing.
+    if (MainEngine.playerControlsSuspended) {
+      return;
+    }
 
     if (MainEngine.isScriptActive()) {
       return;
@@ -587,6 +600,15 @@ export class MainEngine {
 
   public static setScriptActive(active: boolean): void {
     MainEngine.invc = active ? 1 : 0;
+  }
+
+  /**
+   * Suspend/resume overworld player controls. Set true while a first-person
+   * dungeon owns input so ProcessControls never moves or re-faces the player,
+   * regardless of the invc/scriptActive blips that fades introduce.
+   */
+  public static setPlayerControlsSuspended(suspended: boolean): void {
+    MainEngine.playerControlsSuspended = suspended;
   }
 
   public static isScriptActive(): boolean {

@@ -131,6 +131,11 @@ export class PSDungeon {
    */
   public static setIsInsideDungeon(value: boolean): void {
     PSDungeon.isInsideDungeon = value;
+    // Hard-gate the overworld player controls while the first-person loop owns
+    // input, so GameScene.update()'s ProcessControls can never re-face/slide the
+    // player through a fade's momentary scriptActive blip (the stairs double-warp
+    // and the door face-flip both come from that leak).
+    MainEngine.setPlayerControlsSuspended(value);
     console.log(`PSDungeon: isInsideDungeon set to ${value}`);
   }
 
@@ -1221,6 +1226,15 @@ export class PSDungeon {
 
     if (this.showDungeon) {
       await ScriptEngine.fadeout(30, rendermap);
+      // ScriptEngine.fadeout re-enables controls (setScriptActive(false)) when the
+      // fade completes. Keep them paused through the reposition/redraw/fade-in —
+      // otherwise GameScene's overworld ProcessControls runs during the warp and a
+      // held direction key rewrites the player's face (and sets a slide waypoint).
+      // Stairs rely on warp preserving the approach facing (the maps pair the two
+      // stairs so approach direction == exit direction on the far floor); a leaked
+      // face change lands you facing the return stairs. Same fix as the door path
+      // in walkTo(). Controls return to the player when fadein re-asserts scriptActive.
+      MainEngine.setScriptActive(true);
     }
     player.setxy(i * 16, j * 16);
     if (this.showDungeon) {

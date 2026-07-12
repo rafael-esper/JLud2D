@@ -404,9 +404,10 @@ export class PSGame {
     const y = loaded.gotoy;
     if (this.getCurrentDungeon() !== Dungeon.NONE) {
       // Dungeons re-enter at their entrance; first-person mid-dungeon position
-      // is not restored (the renderer reveals the floor on entry).
-      await this.mapswitchToDungeon(loaded.current_dungeon);
-      this.getCurrentDungeonInstance()?.setAlreadyInside(true);
+      // is not restored (the renderer reveals the floor on entry). Pass
+      // alreadyInside=true so startDungeon() re-enters illuminated and restores the
+      // saved facing (getDungeonFace) instead of printing the "Pitch black" intro.
+      await this.mapswitchToDungeon(loaded.current_dungeon, true);
     } else if (loaded.current_city !== null) {
       await this.mapswitchToCity(loaded.current_city, x, y);
     } else if (loaded.current_planet !== null) {
@@ -776,7 +777,7 @@ export class PSGame {
   /**
    * Switch to dungeon map - handles dungeon entrance/exit with proper coordinates
    */
-  public static async mapswitchToDungeon(dungeon: Dungeon): Promise<void> {
+  public static async mapswitchToDungeon(dungeon: Dungeon, alreadyInside: boolean = false): Promise<void> {
     console.log(`PSGame.mapswitchToDungeon: ${Dungeon[dungeon]}`);
 
     // Import Dungeon helpers
@@ -809,7 +810,13 @@ export class PSGame {
     // already exists when the dungeon map's startmap script configures enemies
     // and calls startDungeon() on it)
     this.currentDungeon = new PSDungeon();
-    this.currentDungeon.setAlreadyInside(false);
+    // alreadyInside must be set BEFORE the map's startmap script runs startDungeon()
+    // (below, inside mapswitch): startDungeon() reads getAlreadyInside() to decide
+    // isDark. Loading a save mid-dungeon passes true so the dungeon re-enters
+    // illuminated (Java loadGame sets this before startDungeon's next-tick run);
+    // setting it after mapswitch returns is too late — the loop has already printed
+    // "Pitch black". Fresh entries pass false (the default).
+    this.currentDungeon.setAlreadyInside(alreadyInside);
 
     // Call base mapswitch with dungeon path - basePath should point to the dungeons directory
     const dungeonMusic = DungeonHelper.getMusic(dungeon);
