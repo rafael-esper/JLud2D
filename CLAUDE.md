@@ -82,6 +82,10 @@ Maps are Tiled JSON files loaded by `TiledMap.ts`. Each city/dungeon has a compa
 - All dungeon maps: `public/ps/oo/dungeons/*.map.json`
 - All city maps: `public/ps/oo/cities/*.map.json`
 
+## Workflow
+
+- **You code, I test.** Make the code changes (and keep type-check + build clean), then hand off to the user to run/test in the browser. Do not spin up the dev server or browser automation to verify — the user does the testing and reports back.
+
 ## Conventions
 
 - TypeScript port mirrors Java class names where possible (e.g., `PSDungeon`, `PSMenu`, `PartyMember`)

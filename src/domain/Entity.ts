@@ -78,6 +78,14 @@ export class Entity {
   private follower: Entity | null = null;
   private follow: Entity | null = null;
 
+  // Follower path history. Each move tick an entity records its position here;
+  // a follower trails its leader by FOLLOWDISTANCE recorded positions (~1 tile).
+  // Direct port of Java EntityImpl.pathx/pathy/pathf.
+  static readonly FOLLOWDISTANCE = 16;
+  private pathx: number[] = new Array(Entity.FOLLOWDISTANCE).fill(0);
+  private pathy: number[] = new Array(Entity.FOLLOWDISTANCE).fill(0);
+  private pathf: number[] = new Array(Entity.FOLLOWDISTANCE).fill(EntityDirection.SOUTH);
+
   // Wander movement state
   private wanderDelayCount: number = 0;
 
@@ -229,18 +237,44 @@ export class Entity {
    * Move towards waypoint
    */
   private moveTick(): void {
-    if (this.ready()) return;
-
-    // Java-style tile-based movement: move 1 pixel per tick toward waypoint
+    // Java-style tile-based movement: move 1 pixel per tick toward waypoint.
     const dx = this.waypointx - this.x;
     const dy = this.waypointy - this.y;
 
-    if (dx === 0 && dy === 0) {
-      // Already at waypoint
+    // Advance the walk-cycle counter once per movement tick. The CHR animbuf
+    // is expanded per its W (wait) counts — e.g. "F0W4F1W4" → [0,0,0,0,1,1,1,1]
+    // — so stepping framect through it keeps every frame in order; move speed
+    // (more ticks/frame) only shortens the real-time wait between frames.
+    this.framect++;
+
+    // Record our current position into the path history so followers can trail
+    // us (shift newest→oldest). Port of Java EntityImpl.move_tick().
+    for (let i = Entity.FOLLOWDISTANCE - 2; i >= 0; i--) {
+      this.pathx[i + 1] = this.pathx[i];
+      this.pathy[i + 1] = this.pathy[i];
+      this.pathf[i + 1] = this.pathf[i];
+    }
+    this.pathx[0] = this.x;
+    this.pathy[0] = this.y;
+    this.pathf[0] = this.properties.face;
+
+    if (this.follow !== null) {
+      // Following: snap onto the leader's oldest recorded path position (~1
+      // tile back) and pin our waypoint to it so our own think() never
+      // self-drives — a follower moves only via this cascade from its leader.
+      const fd = Entity.FOLLOWDISTANCE - 1;
+      this.x = this.follow.pathx[fd];
+      this.y = this.follow.pathy[fd];
+      this.properties.face = this.follow.pathf[fd];
+      this.waypointx = this.x;
+      this.waypointy = this.y;
+
+      if (this.follower !== null) this.follower.moveTick();
+      this.updateFrame();
       return;
     }
 
-    // Move 1 pixel toward waypoint in each direction
+    // Leader / free entity: step one pixel toward the waypoint.
     if (dx !== 0) {
       this.x += dx > 0 ? 1 : -1;
     }
@@ -253,20 +287,9 @@ export class Entity {
       this.updateFacing(dx, dy);
     }
 
-    // Advance the walk-cycle counter once per movement tick. The CHR animbuf
-    // is expanded per its W (wait) counts — e.g. "F0W4F1W4" → [0,0,0,0,1,1,1,1]
-    // — so stepping framect through it keeps every frame in order; move speed
-    // (more ticks/frame) only shortens the real-time wait between frames.
-    this.framect++;
-
-    // Update sprite position - only render if entity is visible
-    if (this.visible && this.sprite && this.chr) {
-      const frameToUse = this.specframe >= 0 ? this.specframe : this.frame;
-      // Only render if we have a valid frame number
-      if (frameToUse !== undefined && frameToUse !== null && !isNaN(frameToUse)) {
-        this.chr.render(this.sprite, this.x, this.y, frameToUse);
-      }
-    }
+    // Drag our follower chain along, then render at the new position.
+    if (this.follower !== null) this.follower.moveTick();
+    this.updateFrame();
   }
 
   /**
@@ -294,14 +317,18 @@ export class Entity {
     } else {
       const direction = this.properties.face || EntityDirection.SOUTH;
 
-      // Show the idle pose only when the entity is genuinely stopped — i.e.
-      // it is at its waypoint AND did not move this frame. During continuous
-      // walking the entity is momentarily `ready()` on each tile boundary (the
-      // next waypoint is only set afterwards, in ProcessControls); treating
-      // that as idle injected a one-frame idle pose into the middle of the walk
-      // cycle — the "vanishing frame" flicker. Keeping the walk frame there
-      // preserves the CHR animbuf's W-hold cadence.
-      const isIdle = this.ready() && !this.movedThisFrame;
+      // A follower shows its idle pose whenever the ROOT leader is idle, and
+      // walks (framect cycle) whenever the leader is walking — its own
+      // waypoint is pinned to its position, so ready()/movedThisFrame can't
+      // tell it apart. A leader/free entity shows the idle pose only when
+      // genuinely stopped — at its waypoint AND not moved this frame. During
+      // continuous walking it is momentarily `ready()` on each tile boundary
+      // (the next waypoint is only set afterwards, in ProcessControls);
+      // treating that as idle injected a one-frame idle pose into the middle
+      // of the walk cycle — the "vanishing frame" flicker.
+      const isIdle = this.follow !== null
+        ? this.leaderidle()
+        : this.ready() && !this.movedThisFrame;
       if (isIdle) {
         const idleFrames = this.chr.getIdle();
         this.frame = idleFrames[direction] || 0;
@@ -384,17 +411,35 @@ export class Entity {
   public setx(x: number): void {
     this.x = x;
     this.clearWaypoints();
+    this.resetPath();
   }
 
   public sety(y: number): void {
     this.y = y;
     this.clearWaypoints();
+    this.resetPath();
   }
 
   public setxy(x: number, y: number): void {
     this.x = x;
     this.y = y;
     this.clearWaypoints();
+    this.resetPath();
+    // A hard teleport collapses the trail: snap our followers onto us too, so
+    // they don't get left behind across scene transitions (Java setxy cascade).
+    if (this.follower !== null) this.follower.setxy(x, y);
+  }
+
+  /**
+   * Fill the follower path history with our current position — called on any
+   * hard position set so a follower doesn't briefly trail to a stale spot.
+   */
+  private resetPath(): void {
+    for (let i = 0; i < Entity.FOLLOWDISTANCE; i++) {
+      this.pathx[i] = this.x;
+      this.pathy[i] = this.y;
+      this.pathf[i] = this.properties.face;
+    }
   }
 
   public incx(amount: number = 1): void {
@@ -572,6 +617,17 @@ export class Entity {
   public setFollower(follower: Entity | null): void { this.follower = follower; }
 
   /**
+   * True when the ROOT leader of this follow-chain is idle. A follower walks
+   * exactly while its leader walks. Port of Java EntityImpl.leaderidle().
+   */
+  private leaderidle(): boolean {
+    if (this.follow !== null) {
+      return this.follow.leaderidle();
+    }
+    return this.ready() && !this.movedThisFrame;
+  }
+
+  /**
    * Make this entity stalk (follow) another entity
    * Direct port from Java EntityImpl.stalk()
    */
@@ -581,6 +637,10 @@ export class Entity {
 
     // Set waypoint to current position
     this.setWaypoint(Math.floor(this.getx() / 16), Math.floor(this.gety() / 16));
+
+    // Sync our walk-cycle counter with the leader so the chain animates
+    // together (Java stalk(): set_framect_follow(get_leader_framect())).
+    this.framect = entity.framect;
 
     // Configure following behavior
     this.setMovecode(0);

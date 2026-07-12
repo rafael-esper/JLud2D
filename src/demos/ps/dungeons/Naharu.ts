@@ -124,7 +124,7 @@ export class Naharu {
         await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_NOAH), [PSGame.getString("Cinematic_Noah_2")]);
 
         PSGame.setFlag(Flags.GOT_NOAH);
-        PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.PALMAN, Job.ESPER, PSGame.getString("Name_Noah"), PS1Image.PORTRAIT_NOAH, "chars/noah.chr"));
+        PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.PALMAN, Job.ESPER, PSGame.getString("Name_Noah"), PS1Image.PORTRAIT_NOAH, "Noah.anim.json"));
         PSGame.getParty().getMember(3)!.advanceLevel();
         PSGame.getParty().getMember(3)!.advanceLevel();
         PSGame.getParty().getMember(3)!.advanceLevel();

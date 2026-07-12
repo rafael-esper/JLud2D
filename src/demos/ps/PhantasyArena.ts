@@ -238,19 +238,19 @@ export class PhantasyArena {
       // Companions join after the first battles
       if (i === 0) {
         await PSMenu.Stext(PSGame.getString("PS_Battle_Myau"));
-        PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.MUSK_CAT, Job.NATURER, PSGame.getString("Name_Myau"), "chars/myau.chr"));
+        PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.MUSK_CAT, Job.NATURER, PSGame.getString("Name_Myau"), "Myau.anim.json"));
       }
       if (i === 1) {
         await PSMenu.Stext(PSGame.getString("PS_Battle_Odin"));
-        PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.PALMAN, Job.FIGHTER, PSGame.getString("Name_Odin"), "chars/odin.chr"));
+        PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.PALMAN, Job.FIGHTER, PSGame.getString("Name_Odin"), "Odin.anim.json"));
       }
       if (i === 2) {
         await PSMenu.Stext(PSGame.getString("PS_Battle_Noah"));
-        PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.PALMAN, Job.ESPER, PSGame.getString("Name_Noah"), "chars/noah.chr"));
+        PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.PALMAN, Job.ESPER, PSGame.getString("Name_Noah"), "Noah.anim.json"));
       }
       if (i === 3) {
         await PSMenu.Stext(PSGame.getString("PS_Battle_Hapsby"));
-        PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.ANDROID, Job.ROBOT, PSGame.getString("Item_Quest_Hapsby"), "chars/alis.chr"));
+        PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.ANDROID, Job.ROBOT, PSGame.getString("Item_Quest_Hapsby"), "Alis.anim.json"));
       }
 
       await PhantasyArena.rewardMenu(s);

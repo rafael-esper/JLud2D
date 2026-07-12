@@ -287,7 +287,15 @@ export class ScriptEngine {
       });
 
       textObj.setOrigin(0, 0);
-      textObj.setDepth(1002); // Above menu graphics and images
+      // Fixed to the screen like every other menu element (portrait, boxes,
+      // background). Without this the coordinates are treated as world-space
+      // and the camera scroll displaces the text — in the cinematics it landed
+      // up over the portraits instead of below them.
+      textObj.setScrollFactor(0, 0);
+      // Above the menu background band (MenuStack `back` is 1950) and menu
+      // boxes (2000+). This text is the cinematic white font drawn on the black
+      // cinematic backdrop; at the old 1002 it rendered *behind* the backdrop.
+      textObj.setDepth(2100);
       return textObj;
     } catch (error) {
       console.error('Error drawing text:', error);

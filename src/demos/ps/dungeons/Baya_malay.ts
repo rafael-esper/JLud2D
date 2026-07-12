@@ -510,7 +510,9 @@ export class Baya_malay {
 
         await PSGame.playMusic(PS1Music.STORY);
         await PSMenu.startScene(PSSceneType.CORRIDOR, SpecialEntity.NONE);
-        // Java: PSMenu.instance.back = new VImage(screen.width, screen.height) - black backdrop
+        // Java: PSMenu.instance.back = new VImage(...) - black backdrop covering
+        // the dungeon first-person view (the following startScene(BAYA) replaces it).
+        PSMenu.instance.setBlackBackground();
         await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_BEAST1), [PSGame.getString("Cinematic_Baya_Malay_1")]);
         await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_BEAST2), [PSGame.getString("Cinematic_Baya_Malay_2")]);
       }

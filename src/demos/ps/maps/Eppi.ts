@@ -72,11 +72,19 @@ export class Eppi {
         PSGame.getParty().getMember(1)!.advanceLevel();
         PSGame.getParty().getMember(1)!.heal();
 
-        // Java: PSMenu.instance.back = new VImage(...) - black backdrop
-        PSMenu.instance.entitySprite = null;
-
-        await ScriptEngine.fadeout(75, false);
+        // Java: PSMenu.instance.back = new VImage(...) - black backdrop.
+        // Destroy the vendor sprite (nulling the reference leaks the Phaser
+        // image), fade the scene out, then switch to a black backdrop and clear
+        // the camera fade so the cinematic portraits/text draw on black (a
+        // lingering camera fade would sit on top and hide them). See Paseo.myau_shop.
+        PSMenu.instance.clearEntity();
+        // A Prompt leaves its text box on the stack (see PSMenu.PromptInternal);
+        // wipe those lingering vendor boxes so they don't show over the cinematic.
+        PSMenu.instance.clearMenus();
         await PSGame.playMusic(PS1Music.STORY);
+        await ScriptEngine.fadeout(75, false);
+        PSMenu.instance.setBlackBackground();
+        await ScriptEngine.fadein(1, false);
         await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_MYAU), [PSGame.getString("Cinematic_Myau_Odin1")]);
         await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_ODIN), [PSGame.getString("Cinematic_Myau_Odin2")]);
         await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_MYAU), [PSGame.getString("Cinematic_Myau_Odin3")]);

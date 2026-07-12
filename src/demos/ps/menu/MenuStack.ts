@@ -173,6 +173,50 @@ export class MenuStack {
   }
 
   /**
+   * Pop and destroy every menu on the stack, then clear leftover graphics.
+   * Used to wipe lingering text boxes (e.g. a Prompt leaves its text box up)
+   * before starting a cinematic so they don't show over the black backdrop.
+   */
+  public clearMenus(): void {
+    while (this.hasMenu()) {
+      this.pop();
+    }
+    this.clearGraphics();
+  }
+
+  /**
+   * Set a full-screen black backdrop behind the menu.
+   * Port of Java `PSMenu.instance.back = new VImage(w, h)` (a black VImage).
+   * Used by cutscenes (e.g. the Myau cinematic) so the portraits/text draw on
+   * black. Unlike a camera fade, this sits BELOW the menu boxes (depth 1950),
+   * so portraits at depth 2000+ remain visible.
+   */
+  public setBlackBackground(): void {
+    if (this.back) {
+      this.back.destroy();
+      this.back = null;
+    }
+
+    const key = '__menu_black_bg';
+    if (!this.scene.textures.exists(key)) {
+      const g = this.scene.add.graphics();
+      g.fillStyle(0x000000, 1);
+      g.fillRect(0, 0, 320, 240);
+      g.generateTexture(key, 320, 240);
+      g.destroy();
+    }
+
+    this.back = this.scene.add.image(0, 0, key);
+    this.back.setOrigin(0, 0);
+    // Above the dungeon first-person view (1990) and the scene entity sprite
+    // (1995), below menu boxes/portraits/text (2000+). A cinematic backdrop
+    // must hide the dungeon render texture; the normal scene background sits at
+    // 1950, but that would leave the dungeon showing through here.
+    this.back.setDepth(1996);
+    this.back.setScrollFactor(0, 0);
+  }
+
+  /**
    * Set background image for the scene
    */
   public setBackground(imagePath: string): void {

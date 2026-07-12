@@ -104,7 +104,7 @@ export class Odin_cave {
       await Odin_cave.odinCinematicScene();
 
       PSGame.setFlag(Flags.GOT_ODIN);
-      PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.PALMAN, Job.FIGHTER, PSGame.getString("Name_Odin"), PS1Image.PORTRAIT_ODIN, "chars/odin.chr"));
+      PSGame.getParty().addMember(new PartyMember(Gender.MALE, Specie.PALMAN, Job.FIGHTER, PSGame.getString("Name_Odin"), PS1Image.PORTRAIT_ODIN, "Odin.anim.json"));
       PSGame.getParty().getMember(2)!.advanceLevel();
       PSGame.getParty().getMember(2)!.advanceLevel();
       PSGame.getParty().getMember(2)!.advanceLevel();
@@ -157,7 +157,7 @@ export class Odin_cave {
       PSGame.setFlag(Flags.VISIT_SUELO);
       PSGame.getParty().addQuestItem(PSGame.getItem(OriginalItem.Quest_Road_Pass));
       PSGame.getParty().addQuestItem(PSGame.getItem(OriginalItem.Quest_Passport));
-      PSGame.getParty().addMember(new PartyMember(Gender.FEMALE, Specie.PALMAN, Job.ADVENTURER, PSGame.getString("Name_Alis"), PS1Image.PORTRAIT_ALIS, "chars/alis.chr"));
+      PSGame.getParty().addMember(new PartyMember(Gender.FEMALE, Specie.PALMAN, Job.ADVENTURER, PSGame.getString("Name_Alis"), PS1Image.PORTRAIT_ALIS, "Alis.anim.json"));
 
       // Exchanges Odin per Alis
       const members = PSGame.getParty().getMembers();
@@ -180,9 +180,12 @@ export class Odin_cave {
 
   private static async odinCinematicScene(): Promise<void> {
     await PSGame.playMusic(PS1Music.STORY);
-    // Java: PSMenu.instance.back = new VImage(screen.width, screen.height) - black backdrop
 
     await PSMenu.startScene(PSSceneType.CORRIDOR, SpecialEntity.NONE);
+    // Java: PSMenu.instance.back = new VImage(...) - black backdrop. CORRIDOR
+    // keeps whatever backdrop is already set, so establish it here to cover the
+    // dungeon first-person view; otherwise the cinematic plays over the dungeon.
+    PSMenu.instance.setBlackBackground();
     await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_ODIN), [PSGame.getString("Cinematic_Odin_1")]);
     await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_ALIS), [PSGame.getString("Cinematic_Odin_2")]);
     await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_ODIN), [PSGame.getString("Cinematic_Odin_3")]);
@@ -191,7 +194,17 @@ export class Odin_cave {
 
     PSGame.findAndPlayMusic();
     await PSMenu.endScene();
-    await ScriptEngine.fadeout(25, false);
+
+    // endScene (CORRIDOR = NO_FADE) neither clears the backdrop nor fades, so the
+    // screen is still black. Pin the camera black, drop the backdrop, redraw the
+    // first-person view and fade it back in — the old lone fadeout left the camera
+    // stuck black, hiding both the dungeon and the (still openable) menu.
+    await ScriptEngine.fadeout(1, false);
+    MainEngine.setScriptActive(true);
+    PSMenu.instance.setBackground('');
+    const dungeon = PSGame.getCurrentDungeonInstance();
+    if (dungeon) dungeon.warpBack(0);
+    await ScriptEngine.fadein(25, false);
   }
 
   public static async medusa_noise(): Promise<void> {

@@ -76,10 +76,20 @@ export class Paseo {
             PSGame.getParty().getMember(1)!.advanceLevel();
             PSGame.getParty().getMember(1)!.heal();
 
-            // Java: PSMenu.instance.back = new VImage(...) - black backdrop
-            PSMenu.instance.entitySprite = null;
+            // Java: PSMenu.instance.back = new VImage(...) - black backdrop.
+            // Destroy the vendor sprite (nulling the reference alone leaks the
+            // Phaser image, leaving it on screen), then fade the shop out and
+            // switch to a black backdrop so the cinematic portraits draw on
+            // black. A camera fade would sit on TOP of the portraits (all we'd
+            // see is black), so we clear it with a fadein once the backdrop is up.
+            PSMenu.instance.clearEntity();
+            // A Prompt leaves its text box on the stack (see PSMenu.PromptInternal);
+            // wipe those lingering vendor boxes so they don't show over the cinematic.
+            PSMenu.instance.clearMenus();
             await PSGame.playMusic(PS1Music.STORY);
             await ScriptEngine.fadeout(75, false);
+            PSMenu.instance.setBlackBackground();
+            await ScriptEngine.fadein(1, false);
 
             await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_ALIS), [PSGame.getString("Cinematic_Myau_1")]);
             await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_MYAU), [PSGame.getString("Cinematic_Myau_2")]);
