@@ -82,10 +82,14 @@ export class TitleScene extends PSScene {
       }
 
       if (mainOpt === 2) {
-        // Load Game
+        // Load Game. Pick the slot and adopt the save on the title screen
+        // (enterMap=false), then hand off to the GameScene, which loads the
+        // saved location once its engine/scene context exists. Calling the map
+        // switch here would fail — there is no running GameScene to render into.
         await PSGame.initPSGame(GameType.PS_ORIGINAL);
-        if (await PSGame.loadGame()) {
-          // syncAfterLoading() - placeholder
+        if (await PSGame.loadGame(false)) {
+          PSGame.stopMusic();
+          this.scene.start('PSGameScene', { config: this.config, enterLoaded: true });
           break;
         }
         // syncAfterLoading() - placeholder

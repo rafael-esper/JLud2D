@@ -353,7 +353,7 @@ export class PSGame {
    * slots, restores the chosen state, and re-enters its map.
    * @returns true if a game was loaded (the main menu should then close)
    */
-  public static async loadGame(): Promise<boolean> {
+  public static async loadGame(enterMap: boolean = true): Promise<boolean> {
     const { PSCancellable } = await import('./menu/MenuStack');
 
     const metas = SaveManager.listMetas();
@@ -399,22 +399,36 @@ export class PSGame {
       PSMenu.instance.pop();
     }
 
-    // Re-enter the saved location (Java loadGame(): mapswitch to the map).
-    const x = loaded.gotox;
-    const y = loaded.gotoy;
+    // Re-enter the saved location. In-game loads (pause menu) do this now — the
+    // GameScene is already running. Title-screen loads pass enterMap=false and
+    // start the GameScene first (which has no map/party yet); GameScene.create
+    // then calls enterLoadedLocation() once the engine/scene context exists.
+    if (enterMap) {
+      await this.enterLoadedLocation();
+    }
+
+    return true;
+  }
+
+  /**
+   * Enter the map for the currently-adopted save state (city, planet or
+   * dungeon). Requires a running GameScene — mapswitch loads the map, starts its
+   * music and runs startmap (which allocates the party / enters the dungeon).
+   */
+  public static async enterLoadedLocation(): Promise<void> {
+    const x = this.gameData.gotox;
+    const y = this.gameData.gotoy;
     if (this.getCurrentDungeon() !== Dungeon.NONE) {
       // Dungeons re-enter at their entrance; first-person mid-dungeon position
       // is not restored (the renderer reveals the floor on entry). Pass
       // alreadyInside=true so startDungeon() re-enters illuminated and restores the
       // saved facing (getDungeonFace) instead of printing the "Pitch black" intro.
-      await this.mapswitchToDungeon(loaded.current_dungeon, true);
-    } else if (loaded.current_city !== null) {
-      await this.mapswitchToCity(loaded.current_city, x, y);
-    } else if (loaded.current_planet !== null) {
-      await this.mapswitchToPlanet(loaded.current_planet, x, y);
+      await this.mapswitchToDungeon(this.gameData.current_dungeon, true);
+    } else if (this.gameData.current_city !== null) {
+      await this.mapswitchToCity(this.gameData.current_city, x, y);
+    } else if (this.gameData.current_planet !== null) {
+      await this.mapswitchToPlanet(this.gameData.current_planet, x, y);
     }
-
-    return true;
   }
 
   /**

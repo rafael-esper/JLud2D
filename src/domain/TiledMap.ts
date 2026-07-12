@@ -316,7 +316,9 @@ export class TiledMap {
     for (const layerData of this.mapData.layers) {
       if (layerData.type === 'tilelayer' && layerData.visible) {
         // Use all tilesets - Phaser automatically handles multiple tilesets based on firstgid
-        const layer = this.tilemap.createLayer(layerData.name, this.tilemap.tilesets, 0, 0);
+        // Phaser 4 createLayer returns TilemapLayer | TilemapGPULayer; this project
+        // uses standard (non-GPU) layers, so narrow back to TilemapLayer.
+        const layer = this.tilemap.createLayer(layerData.name, this.tilemap.tilesets, 0, 0) as Phaser.Tilemaps.TilemapLayer | null;
 
         if (layer) {
           // Set layer properties

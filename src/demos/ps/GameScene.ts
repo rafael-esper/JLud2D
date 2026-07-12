@@ -20,15 +20,17 @@ export class GameScene extends Phaser.Scene {
   private menuStack!: MenuStack;
   private tiledMap: any = null;
   private mapNameOverride: string | null = null;
+  private enterLoaded: boolean = false;
   public mapBasePath: string = 'src/demos/ps/maps';
 
   constructor() {
     super({ key: 'PSGameScene' });
   }
 
-  async init(data: { config: GameConfig; mapName?: string }) {
+  async init(data: { config: GameConfig; mapName?: string; enterLoaded?: boolean }) {
     this.config = data.config;
     this.mapNameOverride = data.mapName || null;
+    this.enterLoaded = data.enterLoaded || false;
   }
 
   preload() {
@@ -73,6 +75,17 @@ export class GameScene extends Phaser.Scene {
     // (page-side ES imports can get separate module copies under Vite HMR)
     (window as any).PSGame = PSGame;
     (window as any).MainEngine = MainEngine;
+
+    // Loading a save from the title screen: the save data is already adopted;
+    // now that the engine/scene context exists, enter the saved location. This
+    // skips the hardcoded Camineet load below — mapswitch loads the correct map,
+    // starts its music and runs startmap (party allocation / dungeon entry).
+    if (this.enterLoaded) {
+      await ScriptEngine.fadeout(25, true);
+      await PSGame.enterLoadedLocation();
+      console.log("GameScene: Loaded-game entry complete");
+      return;
+    }
 
     // Load the map for the current location (use override if provided)
     const mapName = this.mapNameOverride || 'Camineet.map.json';
