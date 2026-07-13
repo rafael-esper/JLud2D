@@ -1153,6 +1153,19 @@ export class MainEngine {
     return MainEngine.event_ty;
   }
 
+  /**
+   * Reset the event tile to the player's freshly spawned position. Called
+   * when the party is (re)allocated onto a map so that a subsequent
+   * PSMenu.endScene()/regroup() call (e.g. after a scene that itself
+   * switches maps, like the interplanetary shuttle) anchors to the new
+   * map's coordinates instead of a stale tile left over from wherever the
+   * player activated the scene.
+   */
+  public static setEventTile(x: number, y: number): void {
+    MainEngine.event_tx = x;
+    MainEngine.event_ty = y;
+  }
+
   // Current script context (set by the current map/scene)
   protected static currentScriptContext: any = null;
 

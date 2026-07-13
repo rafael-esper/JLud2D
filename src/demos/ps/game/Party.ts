@@ -279,6 +279,13 @@ export class Party {
       }
     }
 
+    // The player just spawned at (gotox, gotoy) on the current map - anchor
+    // the event tile here so a later regroup() (from PSMenu.endScene()) steps
+    // off this position rather than a stale tile from a previous map (e.g.
+    // the interplanetary shuttle switches maps mid-scene, before endScene()
+    // fires the FADE_HOUSE regroup).
+    MainEngine.setEventTile(gotox, gotoy);
+
     // Set player movement preferences
     MainEngine.setPlayerDiagonals(true);
     MainEngine.setSmoothDiagonals(true);
