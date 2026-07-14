@@ -1054,15 +1054,9 @@ export class MainEngine {
       const percent = MainEngine.current_map.getPercentZone(cz);
       const script = MainEngine.current_map.getScriptZone(cz);
 
-      // In the original system, 0 means 100% chance (always trigger)
-      let actualPercent = percent;
-      if (percent === 0) {
-        actualPercent = 255; // 100% chance
-      }
-
       const rnd = Math.floor(255 * Math.random());
 
-      if (rnd < actualPercent) {
+      if (rnd < percent) {
         MainEngine.event_zone = cz;
         MainEngine.callScriptFunction(script);
       }

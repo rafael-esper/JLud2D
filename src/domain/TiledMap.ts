@@ -866,11 +866,11 @@ export class TiledMap {
       return 0;
     }
     const firstGid = this.getMetaTileset().getFirstGid();
-    return (zone + (firstGid-1) + TiledMap.ZONE_OFFSET);
+    return (zone + firstGid + TiledMap.ZONE_OFFSET);
   }
 
   private isObstructionZone(zone: number): boolean {
-    const tileId = this.zoneToTile(zone+1);
+    const tileId = this.zoneToTile(zone);
     return this.getTileProperty(tileId, "isObstruction") === true;
   }
 
@@ -943,15 +943,30 @@ export class TiledMap {
     if (!this.mapData || !this.mapData.layers) return;
 
     const metaLayerIndex = this.mapData.layers.length - TiledMap.META_LAYER;
-    this.settile(x, y, metaLayerIndex, z === 0 ? 0 : this.zoneToTile(z));
+    const layerData = this.mapData.layers[metaLayerIndex];
+    if (!layerData || layerData.type !== 'tilelayer' || !layerData.data) return;
+
+    // Write the raw tile id directly (bypassing settile's generic "+1" tile-index
+    // adjustment) — Java's setzone likewise writes straight to the layer instead of
+    // going through the generic settile wrapper, since zoneToTile() already yields
+    // the exact tile id.
+    const arrayIndex = y * layerData.width + x;
+    const tileId = z === 0 ? 0 : this.zoneToTile(z);
+    layerData.data[arrayIndex] = tileId;
+
+    const phaserLayer = this.layers[layerData.name];
+    if (phaserLayer) {
+      try {
+        phaserLayer.putTileAt(tileId, x, y);
+      } catch (error) {
+        // Ignore Phaser layer update errors for Meta layer - raw data update is sufficient
+      }
+    }
   }
 
   public getScriptZone(zone: number): string {
-    // Use corrected calculation for activation events (different from obstruction zones)
-    const firstGid = this.getMetaTileset().getFirstGid();
-    const tileId = zone + firstGid + TiledMap.ZONE_OFFSET;
-    const result = this.getTileProperty(tileId, "activationEvent") || "";
-    return result;
+    const tileId = this.zoneToTile(zone);
+    return this.getTileProperty(tileId, "activationEvent") || "";
   }
 
   public getPercentZone(zone: number): number {
@@ -960,7 +975,7 @@ export class TiledMap {
   }
 
   public getMethodZone(zone: number): number {
-    const tileId = this.zoneToTile(zone+1);
+    const tileId = this.zoneToTile(zone);
     return this.getTileProperty(tileId, "isObstruction") ? 1 : 0;
   }
 
@@ -969,7 +984,7 @@ export class TiledMap {
    * which flipped the zone's isObstruction property)
    */
   public setMethodZone(zone: number, value: boolean): void {
-    const tileId = this.zoneToTile(zone + 1);
+    const tileId = this.zoneToTile(zone);
     this.setTileProperty(tileId, "isObstruction", value);
   }
 
