@@ -41,6 +41,8 @@ export class MainEngine {
   // Zone and event system (for PS demo)
   protected static px: number = 0; // Player tile X position
   protected static py: number = 0; // Player tile Y position
+  protected static prev_px: number = 0; // Player tile X position before the last step
+  protected static prev_py: number = 0; // Player tile Y position before the last step
   protected static event_tx: number = 0; // Event trigger tile X
   protected static event_ty: number = 0; // Event trigger tile Y
   protected static event_zone: number = 0; // Current event zone
@@ -1102,6 +1104,8 @@ export class MainEngine {
         const new_py = Math.floor(centerY / 16);
 
         if ((MainEngine.px !== new_px) || (MainEngine.py !== new_py)) {
+          MainEngine.prev_px = MainEngine.px;
+          MainEngine.prev_py = MainEngine.py;
           MainEngine.px = new_px;
           MainEngine.py = new_py;
 
@@ -1131,6 +1135,16 @@ export class MainEngine {
 
   public static getPy(): number {
     return MainEngine.py;
+  }
+
+  /** Tile the player was standing on before the step that just triggered a zone event. */
+  public static getPrevPx(): number {
+    return MainEngine.prev_px;
+  }
+
+  /** Tile the player was standing on before the step that just triggered a zone event. */
+  public static getPrevPy(): number {
+    return MainEngine.prev_py;
   }
 
   public static getEventZone(): number {

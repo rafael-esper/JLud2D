@@ -1108,41 +1108,28 @@ export class PSGame {
   }
 
   /**
-   * Step out of the current event zone - direct port of Java getOutOfCurrentZone()
+   * Step out of the current event zone. The Java original snapped to whichever
+   * neighboring tile had a different zone id, which assumes the zone is a thin
+   * border. Eppi Forest is a wide zone that also wraps around the village
+   * entrance's own (different) zone, so that neighbor scan can find the
+   * entrance itself as the "different" tile and walk the player straight into
+   * it. Snapping back to the tile the player stepped from instead works for
+   * any zone shape and matches the actual intent - undo the step that
+   * triggered the event.
    */
   public static getOutOfCurrentZone(): void {
     const player = MainEngine.getPlayer();
-    const currentMap = MainEngine.getCurrentMap();
-    if (!player || !currentMap) return;
+    if (!player) return;
 
-    let curx = Math.floor(player.getx() / 16);
-    let cury = Math.floor(player.gety() / 16);
-    const curz = MainEngine.getEventZone();
-
-    if (currentMap.getzone(curx, cury) !== curz) {
-      // Do nothing
-    } else if (currentMap.getzone(curx, cury + 1) !== curz) {
-      cury = cury + 1;
-    } else if (currentMap.getzone(curx - 1, cury + 1) !== curz) {
-      curx = curx - 1;
-      cury = cury + 1;
-    } else if (currentMap.getzone(curx - 1, cury) !== curz) {
-      curx = curx - 1;
-    } else if (currentMap.getzone(curx - 1, cury - 1) !== curz) {
-      curx = curx - 1;
-      cury = cury - 1;
-    } else if (currentMap.getzone(curx, cury - 1) !== curz) {
-      cury = cury - 1;
-    } else if (currentMap.getzone(curx + 1, cury - 1) !== curz) {
-      curx = curx + 1;
-      cury = cury - 1;
-    } else if (currentMap.getzone(curx + 1, cury) !== curz) {
-      curx = curx + 1;
-    } else if (currentMap.getzone(curx + 1, cury + 1) !== curz) {
-      curx = curx + 1;
-      cury = cury + 1;
-    }
+    const curx = MainEngine.getPrevPx();
+    const cury = MainEngine.getPrevPy();
     player.setxy(curx * 16, cury * 16);
+
+    // regroup() (called from PSMenu.endScene()) re-anchors the player to the
+    // stored event tile - the tile that triggered this script. Without this,
+    // it would snap the player right back onto the tile we just left,
+    // silently undoing the walk-back the instant the scene finishes fading.
+    MainEngine.setEventTile(curx, cury);
   }
 
   /**
