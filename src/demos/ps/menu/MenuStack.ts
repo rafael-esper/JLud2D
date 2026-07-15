@@ -407,7 +407,7 @@ export class MenuStack {
           box!.nextOption();
         }
 
-        if (this.inputManager.justPressed('menu') && cancellable === PSCancellable.TRUE) {
+        if (this.inputManager.justPressed('b2') && cancellable === PSCancellable.TRUE) {
           resolve(-1);
           return;
         }

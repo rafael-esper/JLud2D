@@ -9,6 +9,7 @@ import { PSGame } from './PSGame';
 import { ScreenSize } from './game/GameData';
 import { MenuStack } from './menu/MenuStack';
 import { PSSceneType, SpecialEntity } from './PSMenu';
+import { ConfirmDialog } from '../../utils/ConfirmDialog';
 
 
 
@@ -16,6 +17,7 @@ export abstract class PSScene extends Phaser.Scene {
   protected config!: GameConfig;
   protected inputManager!: InputManager;
   protected menuStack!: MenuStack;
+  private confirmingExit: boolean = false;
 
   constructor(key: string) {
     super({ key });
@@ -69,12 +71,12 @@ export abstract class PSScene extends Phaser.Scene {
     this.menuStack.drawMenus();
 
     // Only handle input if no menu is currently active
-    if (!this.menuStack.hasMenu()) {
+    if (!this.menuStack.hasMenu() && !this.confirmingExit) {
       this.inputManager.updateControls();
 
-      // Handle ESC/Menu - Back to main menu
+      // Handle ESC - back to main menu, gated behind a Yes/No confirmation
       if (this.inputManager.justPressed('menu')) {
-        this.backToMainMenu();
+        this.confirmExitToTitle();
       }
     }
   }
@@ -140,9 +142,18 @@ export abstract class PSScene extends Phaser.Scene {
   }
 
 
-  private backToMainMenu(): void {
-    console.log('PSScene: Returning to main menu...');
-    PSGame.stopMusic();
-    this.scene.start('MenuScene', { config: this.config });
+  /**
+   * Show the generic "Exit to main menu?" confirmation before leaving.
+   */
+  private confirmExitToTitle(): void {
+    this.confirmingExit = true;
+    ConfirmDialog.confirm(this, this.inputManager, 'Exit to main menu?').then(confirmed => {
+      this.confirmingExit = false;
+      if (confirmed) {
+        console.log('PSScene: Exit confirmed, returning to main menu...');
+        PSGame.stopMusic();
+        this.scene.start('MenuScene', { config: this.config });
+      }
+    });
   }
 }

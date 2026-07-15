@@ -100,7 +100,8 @@ export class TitleScene extends AkBaseScene {
     }
 
     // Handle title-specific input (only if inputManager is initialized)
-    if (this.inputManager && (this.inputManager.justPressed('b1') || this.inputManager.justPressed('start'))) {
+    if (!this.confirmingExit && this.inputManager &&
+        (this.inputManager.justPressed('b1') || this.inputManager.justPressed('start'))) {
       this.startGame();
     }
   }

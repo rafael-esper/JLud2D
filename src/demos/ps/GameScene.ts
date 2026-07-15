@@ -13,6 +13,7 @@ import { InputManager, ControlsConfig } from '../../config/Controls';
 import { MenuStack } from './menu/MenuStack';
 import { PSMenu } from './PSMenu';
 import { PSMenuMain } from './PSMenuMain';
+import { ConfirmDialog } from '../../utils/ConfirmDialog';
 
 export class GameScene extends Phaser.Scene {
   private config!: GameConfig;
@@ -21,6 +22,7 @@ export class GameScene extends Phaser.Scene {
   private tiledMap: any = null;
   private mapNameOverride: string | null = null;
   private enterLoaded: boolean = false;
+  private confirmingExit: boolean = false;
   public mapBasePath: string = 'src/demos/ps/maps';
 
   constructor() {
@@ -181,8 +183,9 @@ export class GameScene extends Phaser.Scene {
       this.tiledMap.updateAnimations(delta);
     }
 
-    // Check if PSMenu is active and should pause game
-    const isMenuActive = this.menuStack && this.menuStack.hasMenu();
+    // Check if PSMenu is active and should pause game (also pause while the
+    // generic exit-confirmation dialog is up)
+    const isMenuActive = (this.menuStack && this.menuStack.hasMenu()) || this.confirmingExit;
 
     if (!isMenuActive) {
       // Update engine only when menu is not active - this handles player movement, entity updates, camera tracking
@@ -205,10 +208,10 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // Open the main game menu (Java: hookbutton(4, "PSMenuMain.menu"))
+    // Open the main game menu (Java: hookbutton(4, "PSMenuMain.menu"); remapped to b3 = "call menu")
     if (!isMenuActive && PSMenu.isMenuHooked() && !MainEngine.isScriptActive()) {
-      if (this.inputManager.justPressed('b4')) {
-        this.inputManager.unpress(8); // b4 (Java: unpress(4))
+      if (this.inputManager.justPressed('b3')) {
+        this.inputManager.unpress(7); // b3
         PSMenuMain.menu().catch(error => console.error('GameScene: Main menu error:', error));
       } else if (PSGame.gameData.enableCheats && this.inputManager.justPressed('M')) {
         // Java: hookkey(SCAN_M, "PSMenuMain.cheatMenu")
@@ -216,14 +219,27 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // Handle ESC/Menu - Back to main menu (only when no game menu is open;
-    // ESC is also the cancel button inside menus)
+    // Handle ESC - back to main menu, gated behind a Yes/No confirmation
+    // (only when no game menu is open; the dialog itself pauses the game)
     if (!isMenuActive && this.inputManager.justPressed('menu')) {
-      console.log('GameScene: Menu key pressed, returning to main menu');
-      PSGame.stopMusic(); // Stop the city music
-      MainEngine.cleanup();
-      this.scene.start('MenuScene', { config: this.config });
+      this.confirmExitToTitle();
     }
+  }
+
+  /**
+   * Show the generic "Exit to main menu?" confirmation before leaving.
+   */
+  private confirmExitToTitle(): void {
+    this.confirmingExit = true;
+    ConfirmDialog.confirm(this, this.inputManager, 'Exit to main menu?').then(confirmed => {
+      this.confirmingExit = false;
+      if (confirmed) {
+        console.log('GameScene: Exit confirmed, returning to main menu');
+        PSGame.stopMusic(); // Stop the city music
+        MainEngine.cleanup();
+        this.scene.start('MenuScene', { config: this.config });
+      }
+    });
   }
 
 

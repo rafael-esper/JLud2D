@@ -10,6 +10,7 @@ import { FPSDisplay } from '../../utils/FPSDisplay';
 import { MainEngine } from '../../core/MainEngine';
 import { DemoUI } from '../../utils/DemoUI';
 import { EntityDirection } from '../../domain/Entity';
+import { ConfirmDialog } from '../../utils/ConfirmDialog';
 
 export class Demo2Scene extends Phaser.Scene {
   private config!: GameConfig;
@@ -17,6 +18,7 @@ export class Demo2Scene extends Phaser.Scene {
   private inputManager!: InputManager;
   private fpsDisplay!: FPSDisplay;
   private tiledMap: any = null;
+  private confirmingExit: boolean = false;
 
   // Demo2 specific constants
   private static readonly TREE = 107;
@@ -151,11 +153,19 @@ export class Demo2Scene extends Phaser.Scene {
   }
 
   private returnToMenu(): void {
-    MainEngine.cleanup();
-    this.scene.start('MenuScene', { config: this.mainConfig || this.config });
+    this.confirmingExit = true;
+    ConfirmDialog.confirm(this, this.inputManager, 'Exit to main menu?').then(confirmed => {
+      this.confirmingExit = false;
+      if (confirmed) {
+        MainEngine.cleanup();
+        this.scene.start('MenuScene', { config: this.mainConfig || this.config });
+      }
+    });
   }
 
   update(_time: number, delta: number): void {
+    if (this.confirmingExit) return;
+
     this.inputManager.updateControls();
 
     // Handle tree cutting with b1

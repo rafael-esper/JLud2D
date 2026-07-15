@@ -310,10 +310,10 @@ export class PSDungeon {
 
       // Java: hookbutton(4, PSMenuMain.menu) stays live inside the dungeon loop -
       // this is how the Flash item / light spell can be used in the dark.
-      // Level check + unpress like Java: justPressed edges are unreliable here
+      // Remapped to b3 = "call menu"; justPressed edges are unreliable here
       // because GameScene.update also calls updateControls() every frame.
-      if (PSMenu.isMenuHooked() && this.inputManager!.b4) {
-        this.inputManager!.unpress(8); // b4 (Java: unpress(4))
+      if (PSMenu.isMenuHooked() && this.inputManager!.b3) {
+        this.inputManager!.unpress(7); // b3
         const { PSMenuMain } = await import('./PSMenuMain');
         await PSMenuMain.menu();
       }
@@ -342,7 +342,9 @@ export class PSDungeon {
         this.setAlreadyInside(true);
       }
 
-      if (this.inputManager!.b2) {
+      // Java: cheat-only dungeon-view toggle (originally on the Esc key, which is
+      // now reserved for returning to the title screen)
+      if (PSGame.gameData.enableCheats && this.inputManager!.justPressed('V')) {
         this.showDungeon = !this.showDungeon;
       }
 
@@ -428,10 +430,6 @@ export class PSDungeon {
 
       // Java ran this loop once per 20 ms engine frame
       await this.delay(GameSpeed.scaleDelay(20));
-
-      if (this.inputManager!.justPressed('b3')) {
-        PSDungeon.setIsInsideDungeon(false);
-      }
     }
 
     this.restoreTilemapLayers();

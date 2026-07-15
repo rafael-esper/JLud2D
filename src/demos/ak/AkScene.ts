@@ -149,6 +149,8 @@ export class AkScene extends AkBaseScene {
   }
 
    update(_time: number, delta: number): void {
+    if (this.confirmingExit) return;
+
     // Get current game speed from movement system and accumulate time
     const currentGameSpeed = this.movement ? this.movement.getGameSpeed() : 1.0;
     this.logicAccumulator += delta * currentGameSpeed;

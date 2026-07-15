@@ -9,6 +9,7 @@ import { InputManager, ControlsConfig } from '../../config/Controls';
 import { FPSDisplay } from '../../utils/FPSDisplay';
 import { MainEngine } from '../../core/MainEngine';
 import { DemoUI } from '../../utils/DemoUI';
+import { ConfirmDialog } from '../../utils/ConfirmDialog';
 
 export class Demo1Scene extends Phaser.Scene {
   private config!: GameConfig;
@@ -16,6 +17,7 @@ export class Demo1Scene extends Phaser.Scene {
   private inputManager!: InputManager;
   private fpsDisplay!: FPSDisplay;
   private tiledMap: any = null;
+  private confirmingExit: boolean = false;
 
   constructor() {
     super({ key: 'Demo1Scene' });
@@ -61,6 +63,8 @@ export class Demo1Scene extends Phaser.Scene {
   }
 
   update(delta: number) {
+    if (this.confirmingExit) return;
+
     this.inputManager.updateControls();
     this.fpsDisplay.update();
 
@@ -74,8 +78,18 @@ export class Demo1Scene extends Phaser.Scene {
 
     // Back to menu
     if (this.inputManager.justPressed('menu')) {
-      MainEngine.cleanup();
-      this.scene.start('MenuScene', { config: this.mainConfig || this.config });
+      this.confirmExit();
     }
+  }
+
+  private confirmExit(): void {
+    this.confirmingExit = true;
+    ConfirmDialog.confirm(this, this.inputManager, 'Exit to main menu?').then(confirmed => {
+      this.confirmingExit = false;
+      if (confirmed) {
+        MainEngine.cleanup();
+        this.scene.start('MenuScene', { config: this.mainConfig || this.config });
+      }
+    });
   }
 }

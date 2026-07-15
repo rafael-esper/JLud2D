@@ -162,6 +162,8 @@ export class MapScene extends AkBaseScene {
     // Handle common input (includes menu/ESC handling)
     this.handleCommonInput();
 
+    if (this.confirmingExit) return;
+
     // Check for button press to continue (b1 = punch button, start = enter)
     if (this.inputManager.justPressed('b1') || this.inputManager.justPressed('start')) {
       this.proceedToLevel();

@@ -7,10 +7,12 @@ import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { MapScene } from './MapScene';
+import { ConfirmDialog } from '../../utils/ConfirmDialog';
 
 export abstract class AkBaseScene extends Phaser.Scene {
   protected config!: GameConfig;
   protected inputManager!: InputManager;
+  protected confirmingExit: boolean = false;
 
   constructor(sceneKey: string) {
     super({ key: sceneKey });
@@ -33,7 +35,7 @@ export abstract class AkBaseScene extends Phaser.Scene {
    * Call this from the scene's update() method
    */
   protected handleCommonInput(): void {
-    if (!this.inputManager) return;
+    if (!this.inputManager || this.confirmingExit) return;
 
     this.inputManager.updateControls();
 
@@ -44,20 +46,27 @@ export abstract class AkBaseScene extends Phaser.Scene {
   }
 
   /**
-   * Navigate back to main menu (common functionality)
+   * Navigate back to main menu, gated behind a Yes/No confirmation
+   * (common functionality)
    */
   protected backToMainMenu(): void {
-    console.log(`${this.scene.key}: Returning to main menu...`);
+    this.confirmingExit = true;
+    ConfirmDialog.confirm(this, this.inputManager, 'Exit to main menu?').then(confirmed => {
+      this.confirmingExit = false;
+      if (!confirmed) return;
 
-    // Stop any playing music
-    ScriptEngine.stopmusic();
+      console.log(`${this.scene.key}: Exit confirmed, returning to main menu...`);
 
-    // Reset MapScene level to 1 when returning to menu
-    MapScene.reset();
-    console.log('AkBaseScene: Reset MapScene level to 1');
+      // Stop any playing music
+      ScriptEngine.stopmusic();
 
-    // Return to main menu scene
-    this.scene.start('MenuScene', { config: this.config });
+      // Reset MapScene level to 1 when returning to menu
+      MapScene.reset();
+      console.log('AkBaseScene: Reset MapScene level to 1');
+
+      // Return to main menu scene
+      this.scene.start('MenuScene', { config: this.config });
+    });
   }
 
   /**

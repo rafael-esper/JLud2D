@@ -6,6 +6,7 @@
 import { GameConfig } from '../../config/GameConfig';
 import { InputManager, ControlsConfig } from '../../config/Controls';
 import { ScriptEngine } from '../../core/ScriptEngine';
+import { ConfirmDialog } from '../../utils/ConfirmDialog';
 
 interface VGMFile {
   name: string;
@@ -22,6 +23,7 @@ export class Demo3Scene extends Phaser.Scene {
   // State
   private selectedFile: number = 0;
   private isPlaying: boolean = false;
+  private confirmingExit: boolean = false;
 
   // VGM files configuration
   private files: VGMFile[] = [
@@ -264,9 +266,20 @@ export class Demo3Scene extends Phaser.Scene {
     this.updateButtonStates();
   }
 
+  private confirmExit(): void {
+    this.confirmingExit = true;
+    ConfirmDialog.confirm(this, this.inputManager, 'Exit to main menu?').then(confirmed => {
+      this.confirmingExit = false;
+      if (confirmed) {
+        this.stopMusic();
+        this.scene.start('MenuScene', { config: this.config });
+      }
+    });
+  }
+
   update() {
     // Don't update until scene is fully initialized
-    if (!this.inputManager) {
+    if (!this.inputManager || this.confirmingExit) {
       return;
     }
 
@@ -298,10 +311,9 @@ export class Demo3Scene extends Phaser.Scene {
       this.stopMusic();
     }
 
-    // ESC - Back to main menu
+    // ESC - Back to main menu, gated behind a Yes/No confirmation
     if (this.inputManager.justPressed('menu')) {
-      this.stopMusic();
-      this.scene.start('MenuScene', { config: this.config });
+      this.confirmExit();
     }
 
     // Update playing status

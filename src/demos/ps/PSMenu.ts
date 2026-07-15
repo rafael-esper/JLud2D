@@ -82,12 +82,12 @@ export class PSMenu {
     PSMenu.instance.STEXT_BOTTOM_WY = 16 * 2 + 10;
   }
 
-  // Whether the main-menu button hook is active (Java: hookbutton(4, "PSMenuMain.menu"))
+  // Whether the main-menu button hook is active (Java: hookbutton(4, "PSMenuMain.menu"); remapped to b3)
   private static menuHooked: boolean = false;
 
   /**
    * Enable menu input hooks - direct port of Java menuOn()
-   * The scene update loop checks isMenuHooked() and opens PSMenuMain.menu() on b4.
+   * The scene update loop checks isMenuHooked() and opens PSMenuMain.menu() on b3 ("call menu").
    */
   public static menuOn(): void {
     PSMenu.menuHooked = true;
