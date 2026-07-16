@@ -833,6 +833,12 @@ export class PSGame {
     this.gameData.onGroundVehicle = false;
     this.gameData.current_dungeon = dungeon;
     this.gameData.current_city = null;
+    // Java mapswitch(Dungeon) resets the floor on fresh entry; a load
+    // (alreadyInside) keeps the floor restored from the save, matching the
+    // Java mapswitch(Dungeon, x, y) overload used there
+    if (!alreadyInside) {
+      this.gameData.dungeonFloor = 0;
+    }
 
     // Spawn coordinates: fresh entries use the dungeon's entrance tile; a load
     // (alreadyInside) restores the exact saved tile so the party re-appears where

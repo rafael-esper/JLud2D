@@ -84,8 +84,8 @@ export class PSDungeon {
   private img_dungeon_lenc: Phaser.GameObjects.Image[] = [];
   private directions = [EntityDirection.NORTH, EntityDirection.EAST, EntityDirection.SOUTH, EntityDirection.WEST];
 
-  // Per-area encounter pools configured by each dungeon's startmap script.
-  // Stored keyed by area index; consumed once in-dungeon random battles are wired.
+  // Per-area encounter pools configured by each dungeon's startmap script,
+  // keyed by floor index; rolled in enemyBattle() on each step.
   private randomEnemies: Map<number, any[]> = new Map();
   private fixedEnemies: Map<number, any[]> = new Map();
 
@@ -324,7 +324,7 @@ export class PSDungeon {
         await this.callZone(player, 0);
 
         if (this.getfronttile(player, 1) === FLOOR) {
-          this.enemyBattle();
+          await this.enemyBattle();
         }
       }
 
@@ -1163,8 +1163,28 @@ export class PSDungeon {
     }
   }
 
-  private enemyBattle(): void {
-    // TODO: Implement enemy battle logic
+  /**
+   * Random dungeon encounters — direct port of Java PSDungeon.enemyBattle().
+   * Rolled once per step onto a FLOOR tile; pools come from the dungeon's
+   * startmap script via setRandomEnemies()/setFixedEnemies(), keyed by floor.
+   */
+  private async enemyBattle(): Promise<void> {
+    // Java: TODO Make it dependable of difficulty
+    const chance = ScriptEngine.random(0, 255);
+
+    // Small chance of fixed battle (more than one enemy)
+    if (chance < 4) {
+      const enemies = this.getFixedEnemies(PSGame.gameData.dungeonFloor);
+      if (enemies.length > 0) {
+        await PSGame.fixedBattle(PSSceneType.CORRIDOR, enemies);
+      }
+    // Greater chance of random battle (one enemy)
+    } else if (chance < 20) {
+      const enemies = this.getRandomEnemies(PSGame.gameData.dungeonFloor);
+      if (enemies.length > 0) {
+        await PSGame.randomBattle(PSSceneType.CORRIDOR, enemies);
+      }
+    }
   }
 
   private async delayScreen(): Promise<void> {

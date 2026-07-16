@@ -86,6 +86,12 @@ export class PSBattle {
       PSBattle.playerWind = new MenuCHR(scene, 0, 0, await PSGame.getCHR(PS1CHR.PLAYER_WIND));
       PSBattle.playerThunder = new MenuCHR(scene, 0, 0, await PSGame.getCHR(PS1CHR.PLAYER_THUNDER));
       PSBattle.playerGifire = new MenuCHR(scene, 0, 0, await PSGame.getCHR(PS1CHR.PLAYER_GIFIRE));
+      // Spell effects play over the enemy sprites (1994) and must clear the
+      // dungeon first-person view (1990) in corridor battles
+      for (const fx of [PSBattle.enemyFire, PSBattle.enemyThunder, PSBattle.playerFire,
+                        PSBattle.playerWind, PSBattle.playerThunder, PSBattle.playerGifire]) {
+        fx.setDepth(1995);
+      }
     }
   }
 
@@ -213,6 +219,9 @@ export class PSBattle {
                 battler.getVerticalPos(),
                 enemyChr
               );
+              // Above the dungeon first-person view (1990) — corridor battles
+              // use it as the backdrop — below menu boxes/text (2000+)
+              enemySprite.setDepth(1994);
               battler.sprite = enemySprite;
               PSMenu.instance.push(enemySprite);
               console.log(`Enemy sprite created for ${enemy.getName()} at position (${this.battlePositions[pos] - (enemyChr.getFxsize() / 2)}, ${battler.getVerticalPos()})`);
@@ -275,6 +284,9 @@ export class PSBattle {
             );
             battler.sprite = new MenuCHR(weaponScene, 0, 0, clawChr);
           }
+          // Attack animation plays on the enemy contact point — above the
+          // enemy sprites (1994) and the dungeon view (1990)
+          battler.sprite.setDepth(1995);
         }
         pos++;
       }
