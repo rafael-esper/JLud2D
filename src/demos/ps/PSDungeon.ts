@@ -380,10 +380,12 @@ export class PSDungeon {
 
         switch (tile) {
           case STAIRS_DOWN:
+            PSGame.playSound(PS1Sound.STAIRS);
             PSGame.gameData.dungeonFloor--;
             await this.callZone(player, 0);
             break;
           case STAIRS_UP:
+            PSGame.playSound(PS1Sound.STAIRS);
             PSGame.gameData.dungeonFloor++;
             await this.callZone(player, 0);
             break;
