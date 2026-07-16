@@ -505,14 +505,20 @@ export class PSEffect {
       }
     }
 
-    await PSMenu.StextNext(PSGame.getString("Battle_Player_Speak", "<player>", talker.getName(), "<monster>", talkee?.getName() || 'enemy'));
+    // Translated display name — getName() would show the raw key
+    // (e.g. "Enemy_Motavian_Teaser")
+    const talkeeName = talkee instanceof EnemyBattler
+      ? PSEffect.enemyName(talkee)
+      : talkee?.getName() || 'enemy';
+
+    await PSMenu.StextNext(PSGame.getString("Battle_Player_Speak", "<player>", talker.getName(), "<monster>", talkeeName));
 
     if (chanceToTalk) {
       if (effect === Effect.CHAT || effect === Effect.TELE) {
         PSGame.playSound(PS1Sound.TELE);
       }
 
-      await PSMenu.StextNext(PSGame.getString("Battle_Enemy_Reply", "<monster>", talkee?.getName() || 'enemy'));
+      await PSMenu.StextNext(PSGame.getString("Battle_Enemy_Reply", "<monster>", talkeeName));
       if (effect === Effect.TALK || effect === Effect.CHAT) {
         const rand = 1 + Math.floor(Math.random() * 9);
         await PSMenu.StextLast(PSGame.getString("Monster_Dialogue_" + rand));
@@ -521,7 +527,7 @@ export class PSEffect {
         await PSMenu.StextLast(PSGame.getString("Monster_Tele_" + rand));
       }
     } else {
-      await PSMenu.StextLast(PSGame.getString("Battle_Enemy_No_Understand", "<player>", talker.getName(), "<monster>", talkee?.getName() || 'enemy'));
+      await PSMenu.StextLast(PSGame.getString("Battle_Enemy_No_Understand", "<player>", talker.getName(), "<monster>", talkeeName));
     }
 
     return chanceToTalk;

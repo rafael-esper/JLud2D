@@ -454,6 +454,11 @@ export class PSMenu {
         break;
     }
 
+    // Animated backgrounds only render via drawMenus(), which doesn't run
+    // until the first menu is pushed — prime the sprite now so the fade-in
+    // reveals the animation instead of the map underneath it.
+    PSMenu.instance.backAnim?.prime?.();
+
     // Fade in after all scene content is set up and rendered
     if (needsFadeIn) {
       await ScriptEngine.fadein(25, false);
@@ -481,7 +486,11 @@ export class PSMenu {
     // Clean up scene elements
     PSMenu.instance.npc = null;
     PSMenu.instance.clearEntity(); // Properly destroy entity sprite
-    PSMenu.instance.backAnim?.destroy?.();
+    // Detach the animated background but keep its sprite on screen until the
+    // fade-out completes — destroying it here would flash the raw map for the
+    // fade duration on sea/beach/lava battles (static backgrounds are likewise
+    // only cleared after the fade-out below).
+    const backAnim = PSMenu.instance.backAnim;
     PSMenu.instance.backAnim = null;
 
     // Clear all menus and graphics
@@ -495,6 +504,7 @@ export class PSMenu {
         // TODO: Script.pauseplayerinput();
         await ScriptEngine.fadeout(25, false);
         // Clear scene background and prepare map only after fade out
+        backAnim?.destroy?.();
         PSMenu.instance.setBackground('');
         PSGame.regroup(0, 1);
         await ScriptEngine.fadein(25, false);
@@ -504,6 +514,7 @@ export class PSMenu {
         // TODO: Script.pauseplayerinput();
         await ScriptEngine.fadeout(50, false);
         // Clear scene background and prepare map only after fade out
+        backAnim?.destroy?.();
         PSMenu.instance.setBackground('');
         if (!PSGame.isOnTransport()) {
           PSGame.regroup(0, 0);
@@ -528,6 +539,9 @@ export class PSMenu {
       }
       await ScriptEngine.fadein(25, false);
     }
+
+    // Safety net for outcomes that didn't destroy it above (NO_FADE etc.)
+    backAnim?.destroy?.();
 
     PSMenu.menuOn();
   }

@@ -144,6 +144,16 @@ export class MenuCHR extends MenuType {
     this.framect++;
   }
 
+  /**
+   * Create the sprite and render the first frame immediately, skipping the
+   * begin delay — for scene backgrounds that must already be on screen
+   * before the menu draw loop starts running (e.g. under a fade-in).
+   */
+  public prime(): void {
+    this.beginDelay = 0;
+    this.draw(true);
+  }
+
   public animate(anim: MenuState): void {
     this.framect = 0;
     this.state = anim;
