@@ -176,6 +176,14 @@ export class MenuTextBox extends MenuType {
       // 3x the text length plus 3x MAX_DELAY the box closes itself, which is
       // what ends waitB1OrTimeout() for timeout textboxes (dodge/block etc.)
       const totalLength = this.text[0].length + this.text[1].length;
+
+      // SMS manual: press and hold b1/b2/b3 to speed up conversation text
+      // (matters on follow-up pages, where the held button gives no new edge)
+      const input = this.menuStack.getInputManager();
+      if (active && this.textDelay < totalLength && (input.b1 || input.b2 || input.b3)) {
+        this.textDelay += 2;
+      }
+
       if (this.state !== MenuState.CLOSE && this.textDelay++ > totalLength) {
         this.state = MenuState.READY;
 

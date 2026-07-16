@@ -82,6 +82,22 @@ export class MenuStack {
     this.inputManager = inputManager;
   }
 
+  public getInputManager(): InputManager {
+    return this.inputManager;
+  }
+
+  /** SMS manual: b1 and b3 both make selections in menus */
+  private selectPressed(): boolean {
+    return this.inputManager.justPressed('b1') ||
+           this.inputManager.justPressed('b3') ||
+           this.inputManager.justPressed('start');
+  }
+
+  /** SMS manual: b1, b2 and b3 all continue conversations */
+  private continuePressed(): boolean {
+    return this.selectPressed() || this.inputManager.justPressed('b2');
+  }
+
   public hasMenu(): boolean {
     return this.menus.length > 0;
   }
@@ -388,7 +404,7 @@ export class MenuStack {
       const handleInput = () => {
         this.inputManager.updateControls();
 
-        if (this.inputManager.justPressed('b1') || this.inputManager.justPressed('start')) {
+        if (this.selectPressed()) {
           if (!box!.enabled[box!.selected]) {
             // TODO: Sound for disabled option
           } else {
@@ -428,11 +444,8 @@ export class MenuStack {
       const handleInput = () => {
         this.inputManager.updateControls();
 
-        if (this.inputManager.justPressed('b1') ||
-            this.inputManager.justPressed('start') ||
-            this.inputManager.justPressed('b2') ||
-            this.inputManager.justPressed('b3')) {
-          resolve(this.inputManager.justPressed('b1') || this.inputManager.justPressed('start'));
+        if (this.continuePressed()) {
+          resolve(this.selectPressed());
           return;
         }
 
@@ -518,7 +531,8 @@ export class MenuStack {
   public backAnim: any = null; // MenuCHR reference
 
   /**
-   * Wait for button 1 press - direct port of Java waitB1()
+   * Wait for button 1 press - direct port of Java waitB1().
+   * SMS manual: b1, b2 and b3 all continue conversations.
    */
   public async waitB1(): Promise<void> {
     return new Promise<void>((resolve) => {
@@ -527,7 +541,7 @@ export class MenuStack {
       const handleInput = () => {
         this.inputManager.updateControls();
 
-        if (this.inputManager.justPressed('b1') || this.inputManager.justPressed('start')) {
+        if (this.continuePressed()) {
           resolve();
           return;
         }
@@ -623,8 +637,7 @@ export class MenuStack {
       const handleInput = () => {
         this.inputManager.updateControls();
 
-        if ((this.inputManager.justPressed('b1') || this.inputManager.justPressed('start')) ||
-            menu.state === MenuState.CLOSE) {
+        if (this.continuePressed() || menu.state === MenuState.CLOSE) {
           resolve();
           return;
         }

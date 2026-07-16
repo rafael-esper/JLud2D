@@ -231,6 +231,12 @@ export class InputManager {
   private prevStart: boolean = false;
   private prevMenu: boolean = false;
 
+  // Buttons consumed via unpress() stay suppressed until physically released,
+  // otherwise the still-held key re-registers as a fresh justPressed edge on
+  // the next updateControls() (e.g. holding b3 after opening the menu would
+  // immediately select the first option)
+  private suppressedKeys: Set<string> = new Set();
+
   // Previous frame states for debug keys
   private prevKey1: boolean = false;
   private prevKey2: boolean = false;
@@ -349,6 +355,19 @@ export class InputManager {
 
     // Update mobile controls states
     this.updateMobileControls();
+
+    // Keep unpress()ed buttons down until the user actually releases them
+    this.applySuppression();
+  }
+
+  private applySuppression(): void {
+    for (const key of Array.from(this.suppressedKeys)) {
+      if ((this as any)[key]) {
+        (this as any)[key] = false;
+      } else {
+        this.suppressedKeys.delete(key);
+      }
+    }
   }
 
   private updateKeyboard(): void {
@@ -561,47 +580,15 @@ export class InputManager {
   }
 
   /**
-   * Force unpress a specific key (Java equivalent: unpress method)
+   * Force unpress a specific key (Java equivalent: unpress method).
+   * The key stays suppressed until physically released (see applySuppression).
    */
   public unpress(key: number): void {
-    switch (key) {
-      case 1: // up
-        this.up = false;
-        break;
-      case 2: // down
-        this.down = false;
-        break;
-      case 3: // left
-        this.left = false;
-        break;
-      case 4: // right
-        this.right = false;
-        break;
-      case 5: // b1
-        this.b1 = false;
-        break;
-      case 6: // b2
-        this.b2 = false;
-        break;
-      case 7: // b3
-        this.b3 = false;
-        break;
-      case 8: // b4
-        this.b4 = false;
-        break;
-      case 9: // b5
-        this.b5 = false;
-        break;
-      case 10: // b6
-        this.b6 = false;
-        break;
-      case 11: // start
-        this.start = false;
-        break;
-      case 12: // menu
-        this.menu = false;
-        break;
-    }
+    const names = ['up', 'down', 'left', 'right', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'start', 'menu'];
+    const name = names[key - 1];
+    if (!name) return;
+    (this as any)[name] = false;
+    this.suppressedKeys.add(name);
   }
 
 }

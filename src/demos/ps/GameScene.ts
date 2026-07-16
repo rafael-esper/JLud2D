@@ -9,7 +9,8 @@ import { ScreenSize } from './game/GameData';
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { GameConfig } from '../../config/GameConfig';
-import { InputManager, ControlsConfig } from '../../config/Controls';
+import { InputManager } from '../../config/Controls';
+import { createPSControlsConfig } from './PSControls';
 import { MenuStack } from './menu/MenuStack';
 import { PSMenu } from './PSMenu';
 import { PSMenuMain } from './PSMenuMain';
@@ -55,8 +56,8 @@ export class GameScene extends Phaser.Scene {
   async create() {
     console.log('GameScene: Starting Phantasy Star main game');
 
-    // Initialize input manager (like Demo1)
-    const controlsConfig = new ControlsConfig();
+    // Initialize input manager (like Demo1, but with the PS key layout)
+    const controlsConfig = createPSControlsConfig();
     this.inputManager = new InputManager(this, controlsConfig);
     this.inputManager.setMobileButtons([]);
 

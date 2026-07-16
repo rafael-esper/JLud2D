@@ -4,7 +4,8 @@
  */
 
 import { GameConfig } from '../../config/GameConfig';
-import { InputManager, ControlsConfig } from '../../config/Controls';
+import { InputManager } from '../../config/Controls';
+import { createPSControlsConfig } from './PSControls';
 import { PSGame } from './PSGame';
 import { ScreenSize } from './game/GameData';
 import { MenuStack } from './menu/MenuStack';
@@ -27,7 +28,7 @@ export abstract class PSScene extends Phaser.Scene {
     this.config = data.config;
 
     // Initialize input manager
-    const controlsConfig = new ControlsConfig();
+    const controlsConfig = createPSControlsConfig();
     this.inputManager = new InputManager(this, controlsConfig);
 
     // PS demo uses b1 for selection (start and menu are always included)
