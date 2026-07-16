@@ -201,7 +201,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Board/leave vehicles (Java: hookbutton(1, "PSGame.verifyTransport"))
-    if (!isMenuActive && PSGame.canTransport && !MainEngine.isScriptActive()) {
+    // (isScriptActive blips off mid-mapswitch, hence the extra transition gate)
+    if (!isMenuActive && PSGame.canTransport && !MainEngine.isScriptActive() && !MainEngine.isMapTransitionActive()) {
       if (this.inputManager.justPressed('b1')) {
         this.inputManager.unpress(1); // b1 (Java: unpress(1))
         PSGame.verifyTransport().catch(error => console.error('GameScene: verifyTransport error:', error));
@@ -209,7 +210,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Open the main game menu (Java: hookbutton(4, "PSMenuMain.menu"); remapped to b3 = "call menu")
-    if (!isMenuActive && PSMenu.isMenuHooked() && !MainEngine.isScriptActive()) {
+    if (!isMenuActive && PSMenu.isMenuHooked() && !MainEngine.isScriptActive() && !MainEngine.isMapTransitionActive()) {
       if (this.inputManager.justPressed('b3')) {
         this.inputManager.unpress(7); // b3
         PSMenuMain.menu().catch(error => console.error('GameScene: Main menu error:', error));

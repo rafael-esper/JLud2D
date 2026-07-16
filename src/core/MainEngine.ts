@@ -29,6 +29,13 @@ export class MainEngine {
   // through that blip rewrites the dungeon player's face/waypoint. This flag is a
   // hard gate independent of fade timing; PSDungeon sets it around its loop.
   protected static playerControlsSuspended: boolean = false;
+  // While a map switch is in flight (fadeout → asset fetch → startmap), invc
+  // blips to 0 (fadeout completion re-enables it) and entity pausing toggles,
+  // so neither is a reliable lock. This hard gate spans the whole transition:
+  // set by PSGame's mapswitch entry points, cleared when startEngine finishes.
+  // It keeps zone triggers and player controls from starting a second,
+  // concurrent map switch (which cross-contaminates gotoxy between switches).
+  protected static mapTransitionActive: boolean = false;
   protected static current_map: any = null; // TiledMap instance
   protected static entitiespaused: boolean = false; // For screen transitions
 
@@ -217,6 +224,13 @@ export class MainEngine {
     // overworld player from here (see playerControlsSuspended). Independent of
     // the invc/scriptActive fade blips that let held keys corrupt the facing.
     if (MainEngine.playerControlsSuspended) {
+      return;
+    }
+
+    // Same hard gate for map switches: invc blips to 0 mid-transition (fadeout
+    // completion), which would let held keys move the player or b1 activate
+    // zones on the outgoing map while the new one is still loading.
+    if (MainEngine.mapTransitionActive) {
       return;
     }
 
@@ -615,6 +629,19 @@ export class MainEngine {
 
   public static isScriptActive(): boolean {
     return MainEngine.invc !== 0;
+  }
+
+  /**
+   * Mark a map switch as in flight. Set by PSGame's mapswitch entry points
+   * before their first await; cleared by startEngine when the new map (and any
+   * nested transition it chains into) has finished loading.
+   */
+  public static setMapTransitionActive(active: boolean): void {
+    MainEngine.mapTransitionActive = active;
+  }
+
+  public static isMapTransitionActive(): boolean {
+    return MainEngine.mapTransitionActive;
   }
 
   public static setPlayerStep(step: number): void {
@@ -1049,6 +1076,12 @@ export class MainEngine {
     // Don't trigger zone events when scripts are active (during cutscenes/spaceport transitions)
     if (MainEngine.invc !== 0) return;
 
+    // Don't trigger zone events while a map switch is in flight — a zone firing
+    // here starts a second concurrent mapswitch whose gotoxy clobbers the first
+    // (e.g. the spaceport walk animations end exactly on the camineet/parolit
+    // entrance zones of Palma)
+    if (MainEngine.mapTransitionActive) return;
+
     const cur_timer = MainEngine.timer;
     const cz = MainEngine.current_map.getzone(MainEngine.px, MainEngine.py);
 
@@ -1372,6 +1405,20 @@ export class MainEngine {
           MainEngine.setScriptActive(false);
         }
 
+        // Sync the zone-tracking tile to the player's spawn position. px/py
+        // survive map switches, so without this the first tick on the new map
+        // sees a phantom "step" from the previous map's tile and runs CheckZone
+        // on the spawn tile — firing any zone the party spawns on.
+        if (MainEngine.myself) {
+          const chr = MainEngine.myself.getChr();
+          const hw = chr?.getHw() || 16;
+          const hh = chr?.getHh() || 16;
+          MainEngine.px = Math.floor((MainEngine.myself.getx() + hw / 2) / 16);
+          MainEngine.py = Math.floor((MainEngine.myself.gety() + hh / 2) / 16);
+          MainEngine.prev_px = MainEngine.px;
+          MainEngine.prev_py = MainEngine.py;
+        }
+
         // Reset timer (equivalent to timer = 0;)
         MainEngine.timer = 0;
 
@@ -1384,6 +1431,11 @@ export class MainEngine {
     } catch (error) {
       console.error(`MainEngine: Failed to load map ${mapname}:`, error);
     } finally {
+      // Transition finished (or failed) — release the zone/controls gate. The
+      // duplicate-call path above returns before this try, so a dropped
+      // concurrent call never releases the gate under the real load.
+      MainEngine.setMapTransitionActive(false);
+
       // Ensure loading flag is reset in case of errors (normal case resets earlier)
       if (MainEngine.isLoadingMap) {
         MainEngine.isLoadingMap = false;

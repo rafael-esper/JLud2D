@@ -41,19 +41,25 @@ export class Palma {
     const gotoy = PSGame.getgotoy();
     console.log(`Palma.startmap: gotox=${gotox}, gotoy=${gotoy}`);
 
-    // Spaceport transitions with animation
+    // Spaceport transitions with animation. Unlike Java (where mapswitch was
+    // deferred), the transition awaits the full city load — return so
+    // transportOn() below doesn't run after arriving inside the city.
     if (gotox === 81 && gotoy === 46) { // Camineet To Spaceport
       console.log("Palma.startmap: Triggering Camineet to Spaceport transition");
       await PSGame.spaceportTransition(EntityDirection.WEST, 70, City.SPACEPORT1, 28, 12);
+      return;
     } else if (gotox === 72 && gotoy === 46) { // Spaceport To Camineet
       console.log("Palma.startmap: Triggering Spaceport to Camineet transition");
       await PSGame.spaceportTransition(EntityDirection.EAST, 82, City.CAMINEET, 7, 16);
+      return;
     } else if (gotox === 70 && gotoy === 48) { // Spaceport To Parolit
       console.log("Palma.startmap: Triggering Spaceport to Parolit transition");
       await PSGame.spaceportTransition(EntityDirection.SOUTH, 58, City.PAROLIT, 17, 6);
+      return;
     } else if (gotox === 70 && gotoy === 57) { // Parolit To Spaceport
       console.log("Palma.startmap: Triggering Parolit to Spaceport transition");
       await PSGame.spaceportTransition(EntityDirection.NORTH, 46, City.SPACEPORT1, 17, 18);
+      return;
     } else {
       console.log("Palma.startmap: No spaceport transition triggered for these coordinates");
       // Continue with normal Palma map initialization for regular coordinates

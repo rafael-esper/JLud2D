@@ -709,30 +709,42 @@ export class PSGame {
   public static async mapswitch(mapname: string, x: number, y: number, fade: boolean = true, basePath?: string, music?: PS1Music): Promise<void> {
     console.log(`PSGame.mapswitch: Loading map ${mapname} at (${x}, ${y})`);
 
-    // Block all input during map transition
-    MainEngine.setScriptActive(true);
-    MainEngine.setEntitiesPaused(true);
-    this.setgotoxy(x, y);
-    this.transportOff();
+    // Hard-gate zone triggers and player controls until the new map is fully
+    // started (cleared by startEngine). scriptActive alone is not enough — the
+    // fadeout below re-enables it on completion, and a zone firing in that blip
+    // starts a second mapswitch whose gotoxy overwrites ours.
+    MainEngine.setMapTransitionActive(true);
 
-    if (fade && !ScriptEngine.screenFadedOut) {
-      await ScriptEngine.fadeout(30, true);
+    try {
+      // Block all input during map transition
+      MainEngine.setScriptActive(true);
+      MainEngine.setEntitiesPaused(true);
+      this.setgotoxy(x, y);
+      this.transportOff();
+
+      if (fade && !ScriptEngine.screenFadedOut) {
+        await ScriptEngine.fadeout(30, true);
+      }
+
+      // Screen is now black — hide the dungeon RT before fadein so it never overlays the new map
+      if (this.currentDungeon) {
+        this.currentDungeon.hideRenderTexture();
+      }
+
+      // Start the new map's music BEFORE the map script runs. In Java, map()
+      // only flags the switch and playMusic() runs right after, so the music is
+      // already playing when the new map's startmap script (which may animate
+      // and even switch maps again, e.g. the spaceport walk) executes.
+      if (music !== undefined) {
+        await this.playMusic(music);
+      }
+
+      await MainEngine.startEngine(mapname, basePath);
+    } finally {
+      // Normally startEngine already released the gate; this covers exceptions
+      // before/inside it so a failed switch can't leave controls dead.
+      MainEngine.setMapTransitionActive(false);
     }
-
-    // Screen is now black — hide the dungeon RT before fadein so it never overlays the new map
-    if (this.currentDungeon) {
-      this.currentDungeon.hideRenderTexture();
-    }
-
-    // Start the new map's music BEFORE the map script runs. In Java, map()
-    // only flags the switch and playMusic() runs right after, so the music is
-    // already playing when the new map's startmap script (which may animate
-    // and even switch maps again, e.g. the spaceport walk) executes.
-    if (music !== undefined) {
-      await this.playMusic(music);
-    }
-
-    await MainEngine.startEngine(mapname, basePath);
   }
 
   /**
@@ -740,6 +752,11 @@ export class PSGame {
    */
   public static async mapswitchToPlanet(planet: Planet, x: number, y: number): Promise<void> {
     console.log(`PSGame.mapswitchToPlanet: ${Planet[planet]} at (${x}, ${y})`);
+
+    // Gate before the first await: the dynamic imports below can take real
+    // frames (cold module in dev), and callers like Camineet.spaceport() run
+    // EntFinish() right after invoking us, which re-enables controls.
+    MainEngine.setMapTransitionActive(true);
 
     // Set player as leaving dungeon (entering planet)
     const { PSDungeon } = await import('./PSDungeon');
@@ -764,6 +781,9 @@ export class PSGame {
    */
   public static async mapswitchToCity(city: City, x: number, y: number): Promise<void> {
     console.log(`PSGame.mapswitchToCity: ${City[city]} at (${x}, ${y})`);
+
+    // Gate before the first await (see mapswitchToPlanet)
+    MainEngine.setMapTransitionActive(true);
 
     // Set player as leaving dungeon (entering city)
     const { PSDungeon } = await import('./PSDungeon');
@@ -799,6 +819,9 @@ export class PSGame {
   ): Promise<void> {
     console.log(`PSGame.mapswitchToDungeon: ${Dungeon[dungeon]}`);
 
+    // Gate before the first await (see mapswitchToPlanet)
+    MainEngine.setMapTransitionActive(true);
+
     // Import Dungeon helpers
     const { DungeonHelper } = await import('./game/Dungeon');
 
@@ -821,6 +844,7 @@ export class PSGame {
     const mapPath = DungeonHelper.getPath(dungeon);
     if (!mapPath) {
       console.error(`PSGame.mapswitchToDungeon: No map path for dungeon ${Dungeon[dungeon]}`);
+      MainEngine.setMapTransitionActive(false); // aborted — startEngine won't run to clear it
       return;
     }
 
@@ -1833,9 +1857,10 @@ export class PSGame {
       await new Promise(resolve => setTimeout(resolve, GameSpeed.scaleDelay(8)));
     }
 
-    MainEngine.setEntitiesPaused(false);
-    MainEngine.setScriptActive(false);
-    this.menuOn();
+    // Do NOT unpause/unlock here: the walk ends exactly on Palma's camineet or
+    // parolit entrance zone tile, and one free engine tick fires that zone,
+    // starting a second mapswitch that clobbers this one's gotoxy. The
+    // destination city's startmap unlocks and calls menuOn() after fade-in.
     await this.mapswitchToCity(destiny, gotox, gotoy);
   }
 

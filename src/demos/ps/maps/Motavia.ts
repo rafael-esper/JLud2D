@@ -45,13 +45,17 @@ export class Motavia {
     const gotoy = PSGame.getgotoy();
     console.log(`Motavia.startmap: gotox=${gotox}, gotoy=${gotoy}`);
 
-    // Spaceport transitions
+    // Spaceport transitions. Unlike Java (where mapswitch was deferred), the
+    // transition awaits the full city load — return so transportOn() below
+    // doesn't run after arriving inside the city.
     if (gotox === 78 && gotoy === 35) { // Paseo To Spaceport
       console.log("Motavia.startmap: Triggering Paseo to Spaceport transition");
       await PSGame.spaceportTransition(EntityDirection.SOUTH, 42, City.SPACEPORT2, 18, 6);
+      return;
     } else if (gotox === 78 && gotoy === 42) { // Spaceport To Paseo
       console.log("Motavia.startmap: Triggering Spaceport to Paseo transition");
       await PSGame.spaceportTransition(EntityDirection.NORTH, 35, City.PASEO, 20, 23);
+      return;
     } else {
       console.log("Motavia.startmap: No spaceport transition triggered for these coordinates");
       // Continue with normal Motavia map initialization for regular coordinates
