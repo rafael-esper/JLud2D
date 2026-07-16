@@ -44,6 +44,10 @@ export class PSGame {
   private static fromCity: City | null = null;
   private static toCity: City | null = null;
 
+  // Debug cheat (Talk menu): skip all zone-triggered encounters. Not
+  // persisted in saves; boss/story fights (startBattle) are unaffected.
+  public static battlesOff: boolean = false;
+
   // Weak-ice tiles on Dezoris (Java PSGame constants)
   public static readonly ICE_FLOCK = 165;
   public static readonly WEAK_ICE_ZONE = 1;
@@ -1870,6 +1874,11 @@ export class PSGame {
   public static async fixedBattle(scene: PSSceneType, enemies: any[]): Promise<BattleOutcome> {
     console.log(`PSGame.fixedBattle: Starting fixed battle in ${scene} with ${enemies.length} enemies`);
 
+    // Debug cheat: encounters disabled via the Talk menu
+    if (this.battlesOff) {
+      return BattleOutcome.WIN;
+    }
+
     // Diminish battle frequency when on transport (Java parity)
     if (this.isOnTransport() && ScriptEngine.random(1, 2) === 1) {
       return BattleOutcome.WIN;
@@ -1903,6 +1912,11 @@ export class PSGame {
 
     if (enemyPool.length === 0) {
       throw new Error("Enemy pool cannot be empty for random battle");
+    }
+
+    // Debug cheat: encounters disabled via the Talk menu
+    if (this.battlesOff) {
+      return BattleOutcome.WIN;
     }
 
     // Diminish battle frequency when on transport (Java parity)

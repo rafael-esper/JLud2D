@@ -36,8 +36,9 @@ export class PSMenuMain {
       PSMenu.instance.pop();
     }
 
-    // MST display box
-    PSMenu.instance.push(PSMenu.instance.createOneLabelBox(10, 200, `MST ${PSGame.getParty().mst}`, true));
+    // MST display box (kept so the Talk cheat menu can refresh it)
+    const mstBox = PSMenu.instance.createOneLabelBox(10, 200, `MST ${PSGame.getParty().mst}`, true);
+    PSMenu.instance.push(mstBox);
 
     // Basic status display
     const statusLabelBox = PSMenu.instance.createLabelBox(200, 10, PSMenuMain.getBasicStats(), true);
@@ -90,17 +91,8 @@ export class PSMenuMain {
         await PSMenuMain.questMenu();
       }
 
-      if (opt === 5) {
-        // Talk - TESTING ONLY: adds Dungeon Key + 5 Search-lights, advances Alis 10 levels
-        const party = PSGame.getParty();
-        party.addQuestItem(PSGame.getItem(OriginalItem.Quest_Dungeon_Key));
-        const member = party.getMember(0)!;
-        for (let i = 0; i < 5; i++) {
-          member.items.push(PSGame.getItem(OriginalItem.Inventory_Flash));
-        }
-        for (let i = 0; i < 10; i++) {
-          member.advanceLevel();
-        }
+      if (opt === 5) { // Talk - debug/cheat submenu
+        await PSMenuMain.talkMenu(statusLabelBox, mstBox);
       }
 
       if (opt === 6) { // Options
@@ -140,6 +132,89 @@ export class PSMenuMain {
 
     PSMenu.menuOn();
     PSMenu.instance.checkPosMenu();
+  }
+
+  /**
+   * Talk menu — debug/cheat helpers (the Talk option has no gameplay use in
+   * the original, so it hosts the cheats; most actions mirror cheatMenu()):
+   * inventory items, quest items, +10 levels, +10000 mesetas, and a random
+   * battles on/off toggle for debugging.
+   */
+  private static async talkMenu(statusLabelBox: MenuLabelBox, mstBox: MenuLabelBox): Promise<void> {
+    while (true) {
+      // Recreated each pass so the Battles label reflects the current toggle
+      PSMenu.instance.push(PSMenu.instance.createPromptBox(70, 30, [
+        PSGame.getString('Menu_Items'),
+        PSGame.getString('Menu_Quest'),
+        'Level up',
+        'Mesetas',
+        `Battles: ${PSGame.battlesOff ? 'Off' : 'On'}`
+      ], true));
+      const opt = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
+      PSMenu.instance.pop();
+
+      if (opt === -1) {
+        return;
+      }
+
+      switch (opt) {
+
+        case 0: { // Items (into the leader's inventory)
+          const member = PSGame.getParty().getMember(0)!;
+          member.items.push(PSGame.getItem(OriginalItem.Inventory_Flash)); // Search Light
+          member.items.push(PSGame.getItem(OriginalItem.Inventory_Monomate));
+          member.items.push(PSGame.getItem(OriginalItem.Inventory_Dimate));
+          member.items.push(PSGame.getItem(OriginalItem.Inventory_Trimate));
+          member.items.push(PSGame.getItem(OriginalItem.Inventory_TranCarpet));
+          member.items.push(PSGame.getItem(OriginalItem.Inventory_Light_Pendant));
+          member.items.push(PSGame.getItem(OriginalItem.Inventory_Telepathy_Ball));
+          member.items.push(PSGame.getItem(OriginalItem.Inventory_Magic_Hat));
+          member.items.push(PSGame.getItem(OriginalItem.Inventory_Escape_Cloth));
+          await PSMenu.Stext(`${member.getName()} received a set of useful items!`);
+          break;
+        }
+
+        case 1: { // Quest items
+          const party = PSGame.getParty();
+          party.addQuestItem(PSGame.getItem(OriginalItem.Quest_Dungeon_Key));
+          party.addQuestItem(PSGame.getItem(OriginalItem.Quest_Passport));
+          party.addQuestItem(PSGame.getItem(OriginalItem.Quest_Road_Pass));
+          await PSMenu.Stext('Received the Dungeon Key, Passport and Roadpass!');
+          break;
+        }
+
+        case 2: { // Level up: +10 levels for the whole party
+          for (let i = 0; i < PSGame.getParty().partySize(); i++) {
+            const member = PSGame.getParty().getMember(i)!;
+            for (let j = 0; j < 10; j++) {
+              member.advanceLevel();
+            }
+            member.heal();
+          }
+          statusLabelBox.updateTextArray(PSMenuMain.getBasicStats());
+          await PSMenu.Stext('The party advanced 10 levels!');
+          break;
+        }
+
+        case 3: { // Mesetas
+          PSGame.getParty().mst += 10000;
+          mstBox.updateText(0, `MST ${PSGame.getParty().mst}`);
+          await PSMenu.Stext('Received 10000 mesetas!');
+          break;
+        }
+
+        case 4: { // Battles on/off (good for debugging)
+          PSGame.battlesOff = !PSGame.battlesOff;
+          await PSMenu.Stext(PSGame.battlesOff
+            ? 'Random battles are now disabled.'
+            : 'Random battles are now enabled.');
+          break;
+        }
+
+        default:
+          break;
+      }
+    }
   }
 
   /**

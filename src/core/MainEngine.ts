@@ -725,8 +725,17 @@ export class MainEngine {
     const mapWidth = MainEngine.current_map.getWidth() * MainEngine.current_map.getTileWidth();
     const mapHeight = MainEngine.current_map.getHeight() * MainEngine.current_map.getTileHeight();
 
-    // Set camera bounds to the map size (this constrains scrolling)
-    scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
+    // Wrappable maps (the planets) scroll freely across the map edges;
+    // setCameraPosition wraps the scroll with mod arithmetic instead of
+    // clamping (Java complyToLimits skips its clamp for wrappable maps).
+    const hWrap = !!MainEngine.current_map.isHorizontalWrappable?.();
+    const vWrap = !!MainEngine.current_map.isVerticalWrappable?.();
+    if (hWrap || vWrap) {
+      scene.cameras.main.removeBounds();
+    } else {
+      // Set camera bounds to the map size (this constrains scrolling)
+      scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
+    }
 
     // Set initial camera position using map's start position
     const startX = MainEngine.current_map.getStartX() * MainEngine.current_map.getTileWidth();
@@ -753,12 +762,25 @@ export class MainEngine {
     const camViewportHalfX = camera.width / 2;
     const camViewportHalfY = camera.height / 2;
 
-    // Clamp camera position to map bounds (like Java MathUtils.clamp)
-    const clampedX = Math.max(camViewportHalfX, Math.min(x, mapWidth - camViewportHalfX));
-    const clampedY = Math.max(camViewportHalfY, Math.min(y, mapHeight - camViewportHalfY));
+    // Clamp camera position to map bounds (like Java MathUtils.clamp) —
+    // except on wrappable axes, which scroll freely and wrap below
+    const hWrap = !!MainEngine.current_map.isHorizontalWrappable?.();
+    const vWrap = !!MainEngine.current_map.isVerticalWrappable?.();
+    const clampedX = hWrap ? x : Math.max(camViewportHalfX, Math.min(x, mapWidth - camViewportHalfX));
+    const clampedY = vWrap ? y : Math.max(camViewportHalfY, Math.min(y, mapHeight - camViewportHalfY));
 
     // Set camera position (Phaser uses centerOn which is like setting camera.position in Java)
     camera.centerOn(clampedX, clampedY);
+
+    // Keep the scroll inside [0, mapSize) on wrappable axes. The part of the
+    // view that sticks out past the far edge is covered by the wrap-copy
+    // layers TiledMap creates (Java blitLayer's mod-arithmetic plotting).
+    if (hWrap) {
+      camera.scrollX = ((camera.scrollX % mapWidth) + mapWidth) % mapWidth;
+    }
+    if (vWrap) {
+      camera.scrollY = ((camera.scrollY % mapHeight) + mapHeight) % mapHeight;
+    }
   }
 
   /**
@@ -1133,8 +1155,20 @@ export class MainEngine {
         // Use center of sprite for zone detection
         const centerX = playerX + (hw / 2);
         const centerY = playerY + (hh / 2);
-        const new_px = Math.floor(centerX / 16);
-        const new_py = Math.floor(centerY / 16);
+        let new_px = Math.floor(centerX / 16);
+        let new_py = Math.floor(centerY / 16);
+
+        // On wrappable maps the tile past the far edge is the first tile
+        // again — keep px/py (and thus event_tx/ty) inside the map
+        const map = MainEngine.current_map;
+        if (map?.isHorizontalWrappable?.()) {
+          const w = map.getWidth();
+          new_px = ((new_px % w) + w) % w;
+        }
+        if (map?.isVerticalWrappable?.()) {
+          const h = map.getHeight();
+          new_py = ((new_py % h) + h) % h;
+        }
 
         if ((MainEngine.px !== new_px) || (MainEngine.py !== new_py)) {
           MainEngine.prev_px = MainEngine.px;

@@ -75,6 +75,16 @@ export class TiledMap {
   private horizontalWrappable: boolean = false;
   private verticalWrappable: boolean = false;
 
+  // Wrap-around layer copies. Java's MapAbstract.blitLayer plots tiles with
+  // mod arithmetic — past the end of a wrappable map it plots the beginning
+  // again. The Phaser equivalent: duplicate the visual layers offset by one
+  // full map width/height, so the camera (whose scroll stays within
+  // [0, mapSize) — see MainEngine.setCameraPosition) never shows a boundary.
+  private cacheKey: string = '';
+  private wrapTilemaps: Phaser.Tilemaps.Tilemap[] = [];
+  private wrapCopies: { [key: string]: Phaser.Tilemaps.TilemapLayer[] } = {};
+  private wrapOffsetsCreated: Set<string> = new Set();
+
   // Map data
   private mapData: MapData | null = null;
 
@@ -191,6 +201,7 @@ export class TiledMap {
     // Use the correct map key based on filename
     const mapKey = this.filename.replace('.json', '').replace('.map', '');
     const cacheKey = `${mapKey}-map`;
+    this.cacheKey = cacheKey; // kept for wrap-copy tilemaps (see ensureWrapCopies)
 
     console.log(`Creating tilemap with key: ${cacheKey} for filename: ${this.filename}`);
 
@@ -543,10 +554,99 @@ export class TiledMap {
 
   public setHorizontalWrappable(wrappable: boolean): void {
     this.horizontalWrappable = wrappable;
+    if (wrappable) {
+      this.ensureWrapCopies();
+    }
   }
 
   public setVerticalWrappable(wrappable: boolean): void {
     this.verticalWrappable = wrappable;
+    if (wrappable) {
+      this.ensureWrapCopies();
+    }
+  }
+
+  /**
+   * Create the wrap-around layer copies needed by the current wrappable flags:
+   * one copy shifted a full map width to the right (horizontal), one a full
+   * map height down (vertical), and one diagonal copy when both wrap. Called
+   * from the wrappable setters (map scripts set them in startmap); idempotent.
+   */
+  private ensureWrapCopies(): void {
+    if (!this.mapData || !this.tilemap || !this.cacheKey) return;
+
+    const pixelWidth = this.width * this.tilewidth;
+    const pixelHeight = this.height * this.tileheight;
+
+    const offsets: Array<[number, number]> = [];
+    if (this.horizontalWrappable) offsets.push([pixelWidth, 0]);
+    if (this.verticalWrappable) offsets.push([0, pixelHeight]);
+    if (this.horizontalWrappable && this.verticalWrappable) offsets.push([pixelWidth, pixelHeight]);
+
+    for (const [offsetX, offsetY] of offsets) {
+      const offsetKey = `${offsetX},${offsetY}`;
+      if (this.wrapOffsetsCreated.has(offsetKey)) continue;
+      this.wrapOffsetsCreated.add(offsetKey);
+      this.createWrapCopy(offsetX, offsetY);
+    }
+  }
+
+  private createWrapCopy(offsetX: number, offsetY: number): void {
+    if (!this.mapData) return;
+
+    // A separate tilemap parses its own copy of the cached map data, so its
+    // layers can be positioned independently of the originals.
+    const tilemap = this.scene.make.tilemap({ key: this.cacheKey });
+    if (!tilemap) {
+      console.error(`TiledMap: Failed to create wrap-copy tilemap for ${this.cacheKey}`);
+      return;
+    }
+    this.wrapTilemaps.push(tilemap);
+
+    // Tileset images were already loaded for the original layers
+    for (const tilesetData of this.mapData.tilesets) {
+      const imageKey = `tileset-${tilesetData.image.replace('.png', '')}`;
+      tilemap.addTilesetImage(
+        tilesetData.name,
+        imageKey,
+        tilesetData.tilewidth,
+        tilesetData.tileheight,
+        tilesetData.margin,
+        tilesetData.spacing
+      );
+    }
+
+    for (const layerData of this.mapData.layers) {
+      // Meta is data-only (hidden) — obstruction/zone lookups wrap by mod
+      // arithmetic instead, so it needs no visual copy.
+      if (layerData.type !== 'tilelayer' || !layerData.visible || layerData.name === 'Meta') {
+        continue;
+      }
+
+      const original = this.layers[layerData.name];
+      if (!original) continue;
+
+      const copy = tilemap.createLayer(layerData.name, tilemap.tilesets, offsetX, offsetY) as Phaser.Tilemaps.TilemapLayer | null;
+      if (!copy) {
+        console.error(`TiledMap: Failed to create wrap copy of layer ${layerData.name}`);
+        continue;
+      }
+
+      copy.setScale(1, 1);
+      copy.setDepth(original.depth);
+      copy.setAlpha(original.alpha);
+
+      if (!this.wrapCopies[layerData.name]) {
+        this.wrapCopies[layerData.name] = [];
+      }
+      this.wrapCopies[layerData.name].push(copy);
+
+      // The copy has its own Tile objects: track its animated tiles so
+      // updateAnimations() keeps both sides of the seam in sync.
+      this.registerAnimatedTiles(copy);
+    }
+
+    console.log(`TiledMap: Wrap copy created at offset (${offsetX}, ${offsetY})`);
   }
 
   /**
@@ -596,7 +696,22 @@ export class TiledMap {
     // Initialize animated tiles array
     this.animatedTiles = [];
 
-    // Get tileset data with animations
+    // Check each layer for animated tiles that are actually placed
+    for (const layerName in this.layers) {
+      const layer = this.layers[layerName];
+      if (!layer) continue;
+      this.registerAnimatedTiles(layer);
+    }
+  }
+
+  /**
+   * Scan a layer for tiles whose tileset defines an animation and add them to
+   * the animated-tiles list. Used for the original layers and for the
+   * wrap-around copies of wrappable maps.
+   */
+  private registerAnimatedTiles(layer: Phaser.Tilemaps.TilemapLayer): void {
+    if (!this.mapData) return;
+
     for (const tilesetData of this.mapData.tilesets) {
       if (!tilesetData.tiles) continue;
 
@@ -608,37 +723,30 @@ export class TiledMap {
         }
       }
 
-      // Check each layer for animated tiles that are actually placed
-      for (const layerName in this.layers) {
-        const layer = this.layers[layerName];
-        if (!layer) continue;
+      // Check every tile in the layer
+      for (let x = 0; x < this.width; x++) {
+        for (let y = 0; y < this.height; y++) {
+          const tile = layer.getTileAt(x, y);
+          if (!tile || tile.index === 0) continue;
 
-        // Check every tile in the layer
-        for (let x = 0; x < this.width; x++) {
-          for (let y = 0; y < this.height; y++) {
-            const tile = layer.getTileAt(x, y);
-            if (!tile || tile.index === 0) continue;
+          // Convert tile index to local tileset ID
+          const localTileId = tile.index - tilesetData.firstgid;
 
-            // Convert tile index to local tileset ID
-            const localTileId = tile.index - tilesetData.firstgid;
+          // Check if this tile has animation data
+          if (animatedTileData[localTileId]) {
+            const animatedTile = animatedTileData[localTileId];
 
-            // Check if this tile has animation data
-            if (animatedTileData[localTileId]) {
-              const animatedTile = animatedTileData[localTileId];
-
-              // Add to animated tiles array
-              this.animatedTiles.push({
-                tile: tile,
-                tileAnimationData: animatedTile.animation,
-                firstgid: tilesetData.firstgid,
-                elapsedTime: 0
-              });
-            }
+            // Add to animated tiles array
+            this.animatedTiles.push({
+              tile: tile,
+              tileAnimationData: animatedTile.animation,
+              firstgid: tilesetData.firstgid,
+              elapsedTime: 0
+            });
           }
         }
       }
     }
-
   }
 
   /**
@@ -755,6 +863,17 @@ export class TiledMap {
       }
     }
 
+    // Keep the wrap-around copies of wrappable maps in sync
+    const copies = this.wrapCopies[layerData.name];
+    if (copies) {
+      for (const copy of copies) {
+        try {
+          copy.putTileAt(tileId, x, y);
+        } catch (error) {
+          // Same as above - raw data update is sufficient
+        }
+      }
+    }
   }
 
   /**
@@ -807,6 +926,14 @@ export class TiledMap {
    * Get obstacle at tile coordinates (Java getobs method)
    */
   public getobs(x: number, y: number): boolean {
+    // On wrappable axes a coordinate past the edge refers to the opposite
+    // side of the map (Java MapTiledJSON.getobspixel mod arithmetic)
+    if (this.horizontalWrappable) {
+      x = ((x % this.width) + this.width) % this.width;
+    }
+    if (this.verticalWrappable) {
+      y = ((y % this.height) + this.height) % this.height;
+    }
     if (x < 0 || y < 0 || x >= this.getWidth() || y >= this.getHeight()) {
       return true;
     }
@@ -915,6 +1042,13 @@ export class TiledMap {
   }
 
   public getzone(x: number, y: number): number {
+    // Same wrap-around as getobs: past the edge means the opposite side
+    if (this.horizontalWrappable) {
+      x = ((x % this.width) + this.width) % this.width;
+    }
+    if (this.verticalWrappable) {
+      y = ((y % this.height) + this.height) % this.height;
+    }
     if (x < 0 || y < 0 || x >= this.getWidth() || y >= this.getHeight()) {
       return 0;
     }
@@ -1032,6 +1166,19 @@ export class TiledMap {
         layer.destroy();
       }
     }
+
+    // Destroy wrap-around copies of wrappable maps
+    for (const wrapTilemap of this.wrapTilemaps) {
+      wrapTilemap.destroy();
+    }
+    this.wrapTilemaps = [];
+    for (const layerName in this.wrapCopies) {
+      for (const copy of this.wrapCopies[layerName]) {
+        copy.destroy();
+      }
+    }
+    this.wrapCopies = {};
+    this.wrapOffsetsCreated.clear();
 
     this.layers = {};
     this.mapData = null;

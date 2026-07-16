@@ -343,7 +343,8 @@ export class Entity {
       const frameToUse = this.specframe >= 0 ? this.specframe : this.frame;
       // Only render if we have a valid frame number
       if (frameToUse !== undefined && frameToUse !== null && !isNaN(frameToUse)) {
-        this.chr.render(this.sprite, this.x, this.y, frameToUse);
+        const [rx, ry] = this.renderPosition();
+        this.chr.render(this.sprite, rx, ry, frameToUse);
       }
     }
   }
@@ -395,17 +396,72 @@ export class Entity {
     const frameToUse = this.specframe >= 0 ? this.specframe : this.frame;
     // Only render if we have a valid frame number
     if (frameToUse !== undefined && frameToUse !== null && !isNaN(frameToUse)) {
-      this.chr.render(this.sprite, this.x, this.y, frameToUse);
+      const [rx, ry] = this.renderPosition();
+      this.chr.render(this.sprite, rx, ry, frameToUse);
     }
   }
 
   // Position getters/setters return pixel coordinates
-  public getx(): number { 
-    return this.x; 
+  public getx(): number {
+    this.wrapX();
+    return this.x;
   }
 
-  public gety(): number { 
-    return this.y; 
+  public gety(): number {
+    this.wrapY();
+    return this.y;
+  }
+
+  /**
+   * On wrappable maps, once the entity crosses a map edge its position is
+   * normalized back into the map with mod arithmetic — together with the
+   * waypoint, so an in-flight step keeps its remaining distance. Port of
+   * Java EntityImpl.getx()/gety(). (MainEngine is read off globalThis to
+   * avoid a circular import; it registers itself there.)
+   */
+  private wrapX(): void {
+    const map = (globalThis as any).MainEngine?.getCurrentMap?.();
+    if (!map || !map.isHorizontalWrappable?.()) return;
+    const w = map.getWidth() * map.getTileWidth();
+    if (this.x < 0 || this.x >= w) {
+      this.x = ((this.x % w) + w) % w;
+      this.waypointx = ((this.waypointx % w) + w) % w;
+    }
+  }
+
+  private wrapY(): void {
+    const map = (globalThis as any).MainEngine?.getCurrentMap?.();
+    if (!map || !map.isVerticalWrappable?.()) return;
+    const h = map.getHeight() * map.getTileHeight();
+    if (this.y < 0 || this.y >= h) {
+      this.y = ((this.y % h) + h) % h;
+      this.waypointy = ((this.waypointy % h) + h) % h;
+    }
+  }
+
+  /**
+   * Where to draw the sprite. On wrappable maps the sprite is placed within
+   * one map-length ahead of the camera scroll, so an entity just across the
+   * seam renders over the wrap-copy layers past the map edge instead of a
+   * full map-length away. Port of the zx/zy mod in Java EntityImpl render.
+   */
+  private renderPosition(): [number, number] {
+    let rx = this.x;
+    let ry = this.y;
+    const engine = (globalThis as any).MainEngine;
+    const map = engine?.getCurrentMap?.();
+    const camera = engine?.getCurrentScene?.()?.cameras?.main;
+    if (map && camera) {
+      if (map.isHorizontalWrappable?.()) {
+        const w = map.getWidth() * map.getTileWidth();
+        rx = camera.scrollX + ((((this.x - camera.scrollX) % w) + w) % w);
+      }
+      if (map.isVerticalWrappable?.()) {
+        const h = map.getHeight() * map.getTileHeight();
+        ry = camera.scrollY + ((((this.y - camera.scrollY) % h) + h) % h);
+      }
+    }
+    return [rx, ry];
   }
 
   public setx(x: number): void {
