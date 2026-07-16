@@ -207,7 +207,7 @@ export class MenuStack {
    * black. Unlike a camera fade, this sits BELOW the menu boxes (depth 1950),
    * so portraits at depth 2000+ remain visible.
    */
-  public setBlackBackground(): void {
+  public setBlackBackground(depth: number = 1996): void {
     if (this.back) {
       this.back.destroy();
       this.back = null;
@@ -224,11 +224,13 @@ export class MenuStack {
 
     this.back = this.scene.add.image(0, 0, key);
     this.back.setOrigin(0, 0);
-    // Above the dungeon first-person view (1990) and the scene entity sprite
-    // (1995), below menu boxes/portraits/text (2000+). A cinematic backdrop
-    // must hide the dungeon render texture; the normal scene background sits at
-    // 1950, but that would leave the dungeon showing through here.
-    this.back.setDepth(1996);
+    // Default 1996: above the dungeon first-person view (1990) and the scene
+    // entity sprite (1995), below menu boxes/portraits/text (2000+). A
+    // cinematic backdrop must hide the dungeon render texture; the normal
+    // scene background sits at 1950, but that would leave the dungeon showing
+    // through here. Callers that need sprites drawn OVER the black (e.g. the
+    // governor dream battle, whose enemies render at 1994) pass 1950 instead.
+    this.back.setDepth(depth);
     this.back.setScrollFactor(0, 0);
   }
 

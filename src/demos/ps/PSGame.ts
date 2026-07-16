@@ -2108,6 +2108,7 @@ export class PSGame {
 
     if (openChestChoice === 1) {  // YES is first option; PromptNext returns 1-indexed
       chestOpened = true;
+      this.playSound(PS1Sound.CHEST);
 
       // 6. Play opening animation — run drawMenus() each frame until animation finishes
       chestSprite.animate(MenuState.ANIM1);

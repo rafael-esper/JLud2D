@@ -119,7 +119,9 @@ export class Naharu {
 
         await PSGame.playMusic(PS1Music.STORY);
         await PSMenu.startScene(PSSceneType.CORRIDOR, SpecialEntity.NONE);
-        // Java: PSMenu.instance.back = new VImage(screen.width, screen.height) - black backdrop
+        // Java: PSMenu.instance.back = new VImage(...) - the cinematic plays on
+        // a black backdrop (default depth 1996 hides the dungeon view at 1990)
+        PSMenu.instance.setBlackBackground();
         await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_ALIS), [PSGame.getString("Cinematic_Noah_1")]);
         await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_NOAH), [PSGame.getString("Cinematic_Noah_2")]);
 
@@ -136,6 +138,10 @@ export class Naharu {
         PSGame.getParty().setOrder([0, 3, 2, 1]);
 
         PSGame.findAndPlayMusic();
+        // Drop the cinematic backdrop — Java's `back` goes inert once menus
+        // close, but the Phaser image would stay covering the dungeon view
+        // (neither the DUNGEON scene case nor FADE_DUNGEON endScene clears it)
+        PSMenu.instance.setBackground('');
         await PSMenu.startScene(PSSceneType.DUNGEON, SpecialEntity.NONE);
       }
 

@@ -5,6 +5,7 @@
 
 import { PSGame } from './PSGame';
 import { City, CityHelper } from './game/City';
+import { Dungeon } from './game/Dungeon';
 import { ScreenSize } from './game/GameData';
 import { MainEngine } from '../../core/MainEngine';
 import { ScriptEngine } from '../../core/ScriptEngine';
@@ -222,26 +223,33 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Handle ESC - back to main menu, gated behind a Yes/No confirmation
-    // (only when no game menu is open; the dialog itself pauses the game)
-    if (!isMenuActive && this.inputManager.justPressed('menu')) {
-      this.confirmExitToTitle();
+    // (only when no game menu is open; the dialog itself pauses the game).
+    // Inside a first-person dungeon the dungeon loop handles ESC itself —
+    // both loops call updateControls() every frame, so this justPressed edge
+    // is unreliable there (same reason the loop's b3 hook is a level check).
+    if (!isMenuActive && PSGame.getCurrentDungeon() === Dungeon.NONE &&
+        this.inputManager.justPressed('menu')) {
+      this.confirmExitToTitle().catch(error => console.error('GameScene: Exit confirm error:', error));
     }
   }
 
   /**
    * Show the generic "Exit to main menu?" confirmation before leaving.
+   * Public so the dungeon main loop can await it on ESC.
    */
-  private confirmExitToTitle(): void {
+  public async confirmExitToTitle(): Promise<void> {
     this.confirmingExit = true;
-    ConfirmDialog.confirm(this, this.inputManager, 'Exit to main menu?').then(confirmed => {
-      this.confirmingExit = false;
-      if (confirmed) {
-        console.log('GameScene: Exit confirmed, returning to main menu');
-        PSGame.stopMusic(); // Stop the city music
-        MainEngine.cleanup();
-        this.scene.start('MenuScene', { config: this.config });
-      }
-    });
+    const confirmed = await ConfirmDialog.confirm(this, this.inputManager, 'Exit to main menu?');
+    this.confirmingExit = false;
+    if (confirmed) {
+      console.log('GameScene: Exit confirmed, returning to main menu');
+      PSGame.stopMusic(); // Stop the city music
+      // End the dungeon main loop before tearing the engine down
+      const { PSDungeon } = await import('./PSDungeon');
+      PSDungeon.setIsInsideDungeon(false);
+      MainEngine.cleanup();
+      this.scene.start('MenuScene', { config: this.config });
+    }
   }
 
 

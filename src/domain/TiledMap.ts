@@ -140,7 +140,12 @@ export class TiledMap {
         scene.cache.json.add(cacheKey, mapData);
       }
 
-      await tiledMap.loadFromData(mapData);
+      // Work on a private copy: settile/setzone/setobs mutate the layer data at
+      // runtime (opened dungeon doors etc.), and the cached object is shared by
+      // every future load of this map — a door opened before a save would stay
+      // open after loading. Java re-reads the map file on every mapswitch, so
+      // per-instance state must start pristine.
+      await tiledMap.loadFromData(structuredClone(mapData));
 
       console.log(`TiledMap loaded: ${mapFilename}`, {
         size: `${tiledMap.width}x${tiledMap.height}`,

@@ -157,7 +157,7 @@ export class PSMenu {
    * Create entity sprite from type and clothes - direct port of Java implementation
    */
   private static async createEntitySprite(entityType: EntityType, entityClothes: EntityClothes, scene: Scene): Promise<void> {
-    PSMenu.instance.entitySprite = null;
+    PSMenu.instance.clearEntity(); // destroy previous scene's sprite, not just the reference
 
     const isHalf = scene === PSSceneType.SHOP_FOOD ||
                    scene === PSSceneType.SHOP_HAND ||
@@ -232,18 +232,17 @@ export class PSMenu {
     PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
     PSMenu.instance.entitySprite.setVisible(false); // Hide until after fade in
 
-    // Calculate position but don't set it yet (will be set after fade in)
-    PSMenu.instance.entityY = 190; // 240 - 30 - 20 (moved up 20px)
+    // Calculate position but don't set it yet (will be set after fade in).
+    // Java: entityY = 183 - sprite.height (top-left draw); origin is bottom-center here,
+    // so entityY holds the sprite's bottom edge directly.
+    // Half sprites: Java still uses a 35x90 VImage with the 51px crop at its top
+    // (transparent below), so the visible bottom lands at 183 - 90 + 51 = 144.
+    PSMenu.instance.entityY = isHalf ? 144 : 183;
 
-    // Half sprites (shops/churches/hospitals) need to be positioned higher (behind counter)
-    if (isHalf) {
-      PSMenu.instance.entityY -= 45; // Move half sprites 45 pixels up
-    }
-
-    // Special positioning for MOTA characters (only for full sprites)
+    // Java: MOTA full-size sprites sit 20px lower
     if (!isHalf && (entityType === EntityType.MOTA_CAP || entityType === EntityType.MOTA_MASK ||
                    entityType === EntityType.MOTA_NOCAP || entityType === EntityType.MOTA_CUSTOM)) {
-      PSMenu.instance.entityY -= 20; // Move MOTA characters up a bit
+      PSMenu.instance.entityY += 20;
     }
   }
 
@@ -252,7 +251,10 @@ export class PSMenu {
    */
   public static async startSceneWithSpecialEntity(scene: Scene, specialEntity: SpecialEntity): Promise<void> {
     if (specialEntity === SpecialEntity.NONE) {
-      PSMenu.instance.entitySprite = null;
+      // Destroy any sprite from the previous scene — nulling the reference
+      // alone leaks the Phaser image, leaving it on screen (Java just redraws
+      // from the entity field each frame, so nulling was enough there)
+      PSMenu.instance.clearEntity();
       await PSMenu.startSceneInternal(scene);
       return;
     }
@@ -270,6 +272,8 @@ export class PSMenu {
     }
 
     const currentScene = PSGame.getCurrentScene()!;
+
+    PSMenu.instance.clearEntity(); // destroy previous scene's sprite, not just the reference
 
     // Load large entities CHR
     const largeEntitiesCHR = await PSGame.getCHR(PS1CHR.IMG_ENTITIES_LARGE);
@@ -296,7 +300,7 @@ export class PSMenu {
     PSMenu.instance.entitySprite.setOrigin(0.5, 1); // Bottom center origin
     PSMenu.instance.entitySprite.setDepth(1995); // Above background and dungeon view (1990), below menu graphics (2000+)
     PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
-    PSMenu.instance.entityY = 190; // 240 - 30 - 20 (moved up 20px)
+    PSMenu.instance.entityY = 210; // Java: entityY = 210 - sprite.height (bottom edge at 210)
 
     await PSMenu.startSceneInternal(scene);
   }
@@ -311,6 +315,9 @@ export class PSMenu {
     }
 
     const currentScene = PSGame.getCurrentScene()!;
+
+    PSMenu.instance.clearEntity(); // destroy previous scene's sprite, not just the reference
+
     const textureKey = `chr_${chr.getImageName()}`;
 
     // Create texture if not exists
@@ -333,7 +340,7 @@ export class PSMenu {
     PSMenu.instance.entitySprite.setOrigin(0.5, 1); // Bottom center origin
     PSMenu.instance.entitySprite.setDepth(1995); // Above background and dungeon view (1990), below menu graphics (2000+)
     PSMenu.instance.entitySprite.setScrollFactor(0, 0); // Fixed to screen
-    PSMenu.instance.entityY = 190; // 240 - 30 - 20 (moved up 20px)
+    PSMenu.instance.entityY = 183; // Java: entityY = 183 - sprite.height (bottom edge at 183)
 
     await PSMenu.startSceneInternal(scene);
   }
@@ -343,6 +350,12 @@ export class PSMenu {
    * Internal scene start logic - direct port of Java startScene(Scene)
    */
   private static async startSceneInternal(scene: Scene): Promise<void> {
+    // Java: dungeon room / corridor scenes draw the entity 13px lower
+    if (PSMenu.instance.entitySprite &&
+        (scene === PSSceneType.DUNGEON || scene === PSSceneType.CORRIDOR)) {
+      PSMenu.instance.entityY += 13;
+    }
+
     // Clear button press state, pause entities and disable menu
     ScriptEngine.clearInputs();
     ScriptEngine.setEntitiesPaused(true);

@@ -318,6 +318,18 @@ export class PSDungeon {
         await PSMenuMain.menu();
       }
 
+      // ESC — same exit-to-title confirmation as the overworld. GameScene's
+      // own handler is gated off inside dungeons (its justPressed edge gets
+      // eaten by this loop's updateControls), so use a level check here.
+      if (this.inputManager!.menu) {
+        this.inputManager!.unpress(12); // menu (Esc)
+        const scene = this.currentScene as any;
+        if (scene?.confirmExitToTitle) {
+          await scene.confirmExitToTitle();
+        }
+        if (!PSDungeon.getIsInsideDungeon()) break; // exit confirmed - engine is torn down
+      }
+
       if (this.zoneCheck) {
         this.zoneCheck = false;
         await this.callZone(player, 1);

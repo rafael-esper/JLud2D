@@ -97,10 +97,18 @@ export enum OriginalItem {
 }
 
 export class PSLibItem {
+  // Item instances must be singletons (Java caches itemLIB once in PSGame):
+  // inventory checks like findItemWithParty compare by reference, so
+  // rebuilding the library on every getItem() call breaks them.
+  private static itemLIB: Map<number, Item> | null = null;
+
   /**
    * Initialize all original PS1 items - direct port from Java
    */
   public static initializeOriginalItems(): Map<number, Item> {
+    if (this.itemLIB) {
+      return this.itemLIB;
+    }
     const items = new Map<number, Item>();
 
     // WEAPONS - direct port with exact stats and prices
@@ -185,6 +193,7 @@ export class PSLibItem {
     this.addArmorItem(items, OriginalItem.Vehicle_FlowMover, 0, ItemType.VEHICLE, 0, Effect.NONE);
     this.addArmorItem(items, OriginalItem.Vehicle_IceDecker, 12000, ItemType.VEHICLE, 0, Effect.NONE);
 
+    this.itemLIB = items;
     return items;
   }
 

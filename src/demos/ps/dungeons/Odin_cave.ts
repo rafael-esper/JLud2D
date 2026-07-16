@@ -120,7 +120,13 @@ export class Odin_cave {
       await PSMenu.StextLast(PSGame.getString("Odin_Cave_Medusa"));
 
       const attacker = new EnemyBattler(medusa);
-      const enemySprite = new MenuCHR(currentScene, PSMenu.instance.entityX, PSMenu.instance.entityY, medusa.getChr());
+      // entityX/entityY are the entity sprite's bottom-center; MenuCHR wants top-left (as in Java)
+      const enemySprite = new MenuCHR(
+        currentScene,
+        PSMenu.instance.entityX - Math.floor(medusa.getChr().getFxsize() / 2),
+        PSMenu.instance.entityY - medusa.getChr().getFysize(),
+        medusa.getChr()
+      );
       enemySprite.setDepth(1995); // above dungeon texture (1990), below menu text boxes (2000+)
       PSMenu.instance.push(enemySprite);
 

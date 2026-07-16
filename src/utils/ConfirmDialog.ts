@@ -24,7 +24,9 @@ export class ConfirmDialog {
       const boxX = (width - boxWidth) / 2;
       const boxY = (height - boxHeight) / 2;
 
-      const bg = scene.add.graphics().setScrollFactor(0).setDepth(1000);
+      // Modal overlay: must sit above everything, including the PS dungeon
+      // render texture (1990) and menu boxes (2000+)
+      const bg = scene.add.graphics().setScrollFactor(0).setDepth(5000);
       bg.fillStyle(0x000000, 0.85);
       bg.fillRect(boxX, boxY, boxWidth, boxHeight);
       bg.lineStyle(1, 0xffffff, 1);
@@ -36,13 +38,13 @@ export class ConfirmDialog {
         color: '#ffffff',
         align: 'center',
         wordWrap: { width: boxWidth - 12 }
-      }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(1001);
+      }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5001);
 
       const hint = scene.add.text(width / 2, boxY + boxHeight - 12, 'Enter = Yes   Esc = No', {
         fontSize: '8px',
         fontFamily: 'monospace',
         color: '#ffff00'
-      }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(1001);
+      }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5001);
 
       const cleanup = () => {
         bg.destroy();

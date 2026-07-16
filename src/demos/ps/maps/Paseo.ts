@@ -163,7 +163,14 @@ export class Paseo {
     PSGame.playSound(PS1Sound.RESTHOUSE);
     await ScriptEngine.fadeout(100, false);
     PSGame.getParty().healAll(false);
+    // Rest a while on the black screen before waking up (the Java fade loop
+    // provided this pause implicitly by blocking for its full duration)
+    await PSMenu.instance.waitDelay(125);
     PSGame.playSound(PS1Sound.CURE);
+    // Java's fadeOut is transient — the next render pops the screen back. The
+    // Phaser camera fade persists until an explicit fadein, so without this
+    // the closing text (and the rest of the scene) plays on a black screen.
+    await ScriptEngine.fadein(1, false);
     await PSMenu.Stext(PSGame.getString("Paseo_Governor_RestHouseAfter"));
     await PSMenu.endScene();
   }
@@ -204,8 +211,10 @@ export class Paseo {
       PSGame.playSound(PS1Sound.RESTHOUSE);
       await ScriptEngine.fadeout(50, false);
 
-      // Java: saved PSMenu.instance.back and set a black VImage backdrop here;
-      // the Phaser port rebuilds scene backgrounds on each startScene instead
+      // Java: back = new VImage(...) — the dream plays on a black backdrop
+      // (SCREEN scenes keep whatever backdrop is set). Depth 1950 keeps the
+      // black at background level so the battle enemy sprites (1994) show.
+      PSMenu.instance.setBlackBackground(1950);
 
       await PSMenu.startScene(PSSceneType.SCREEN, SpecialEntity.NONE);
       await PSMenu.StextLast(PSGame.getString("Paseo_Governor_Dream"));
@@ -216,6 +225,8 @@ export class Paseo {
       PSGame.getParty().healAll(true);
       await PSMenu.StextLast(PSGame.getString("Paseo_Governor_BadDream"));
 
+      // Java: back = palace — waking up restores the palace backdrop
+      PSMenu.instance.setBackground(PSGame.getImage(PSSceneType.PALACE));
       await PSMenu.startSceneWithLargeEntity(PSSceneType.SCREEN, LargeEntity.GOVERNOR);
       await PSMenu.StextLast(PSGame.getString("Paseo_Governor_Greet"));
       PSGame.setFlag(Flags.MET_GOVERNOR);
