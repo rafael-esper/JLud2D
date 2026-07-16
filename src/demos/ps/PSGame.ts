@@ -29,6 +29,7 @@ import { Enemy } from './battle/Enemy';
 import { BattleOutcome } from './battle/PSBattle';
 import { PSSceneType } from './PSMenu';
 import { Trapped, Trap } from './game/GameData';
+import { JobHelper } from './game/Job';
 import { MenuCHR } from './menu/MenuCHR';
 import { MenuState } from './menu/MenuType';
 
@@ -1422,16 +1423,19 @@ export class PSGame {
 
   /**
    * Play sound - direct port of Java PSGame.playSound()
+   * Returns a promise that resolves once playback has actually started
+   * (first use of a sound loads the file asynchronously). Callers that
+   * need the sound to begin before continuing can await it.
    */
-  public static playSound(sound: PS1Sound): void {
+  public static playSound(sound: PS1Sound): Promise<void> {
     if (!sound) {
       console.error("PSGame: Sound is null");
-      return;
+      return Promise.resolve();
     }
 
     if (!this.currentScene) {
       console.error("PSGame: No current scene to play sound");
-      return;
+      return Promise.resolve();
     }
 
     // Sound effect assets are recorded much quieter than the VGM music, so
@@ -1439,35 +1443,40 @@ export class PSGame {
     // Phaser's WebAudio path supports gain > 1.0.
     const sfxVolume = this.gameData.soundVolume * 4 / 100;
 
-    try {
-      // Get sound path
-      const soundPath = sound as string;
+    return new Promise((resolve) => {
+      try {
+        // Get sound path
+        const soundPath = sound as string;
 
-      // Create audio key from filename
-      const audioKey = soundPath.split('/').pop()?.replace('.wav', '') || 'unknown';
+        // Create audio key from filename
+        const audioKey = soundPath.split('/').pop()?.replace('.wav', '') || 'unknown';
 
-      // Check if sound needs to be loaded in Phaser's cache
-      if (!this.currentScene.cache.audio.exists(audioKey)) {
-        // Load the sound first
-        this.currentScene.load.audio(audioKey, soundPath);
-        this.currentScene.load.once('complete', () => {
-          // Play sound once loaded (the master volume from the emulator UI is
-          // applied on top by Phaser's sound manager)
+        // Check if sound needs to be loaded in Phaser's cache
+        if (!this.currentScene!.cache.audio.exists(audioKey)) {
+          // Load the sound first
+          this.currentScene!.load.audio(audioKey, soundPath);
+          this.currentScene!.load.once('complete', () => {
+            // Play sound once loaded (the master volume from the emulator UI is
+            // applied on top by Phaser's sound manager)
+            this.currentScene!.sound.play(audioKey, { volume: sfxVolume });
+            resolve();
+          });
+          this.currentScene!.load.start();
+        } else {
+          // Sound already loaded in Phaser, play it directly
           this.currentScene!.sound.play(audioKey, { volume: sfxVolume });
-        });
-        this.currentScene.load.start();
-      } else {
-        // Sound already loaded in Phaser, play it directly
-        this.currentScene.sound.play(audioKey, { volume: sfxVolume });
-      }
+          resolve();
+        }
 
-      // Cache the sound path for reference
-      if (!this.soundLIB.has(sound)) {
-        this.soundLIB.set(sound, soundPath);
+        // Cache the sound path for reference
+        if (!this.soundLIB.has(sound)) {
+          this.soundLIB.set(sound, soundPath);
+        }
+      } catch (error) {
+        console.error(`PSGame: Error playing sound ${sound}:`, error);
+        resolve();
       }
-    } catch (error) {
-      console.error(`PSGame: Error playing sound ${sound}:`, error);
-    }
+    });
   }
 
   /**
@@ -1579,98 +1588,73 @@ export class PSGame {
    * Provides resurrection services for dead party members
    */
   public static async Church(costMultiplier: number): Promise<void> {
-    console.log(`PSGame: Church routine started with cost multiplier ${costMultiplier}`);
-
-    // Play church music
     await this.playMusic(PS1Music.CHURCH);
 
-    // Show MST display
-    await PSMenu.showMST();
+    const mstBox = PSMenu.instance.createOneLabelBox(200, 10, "MST " + this.getParty().mst, true);
+    PSMenu.instance.push(mstBox);
 
-    // Get dead party members
-    const party = this.getParty();
-    const deadMembers = party.getDeadMembers();
+    let resurrected = false;
+    const option = await PSMenu.Prompt(this.getString("Church_Welcome"), this.getYesNo());
+    if (option === 1) { // Yes
 
-    if (deadMembers.length === 0) {
-      // No one needs resurrection
-      await PSMenu.Stext(this.getString("Church_NoResurrectionNeeded"));
-    } else {
-      // Create resurrection menu with dead members (similar to shop menu)
-      const resurrectionOptions: string[] = [];
-      const costs: number[] = [];
-
-      for (const member of deadMembers) {
-        const cost = member.getLevel() * 20 * costMultiplier;
-        costs.push(cost);
-        resurrectionOptions.push(`${member.getName()} - ${cost} MST`);
-      }
-
-      // Add "None" option
-      resurrectionOptions.push(this.getString("Church_None"));
-
-      // Single menu interaction (like shop)
-      const resurrectionMenu = PSMenu.instance.createPromptBox(
-        50, 80, resurrectionOptions, true
-      );
-
-      PSMenu.instance.push(resurrectionMenu);
-
-      // Import PSCancellable for proper typing
-      const { PSCancellable } = await import('./menu/MenuStack');
-
-      const choice = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
-      PSMenu.instance.pop();
-
-      if (choice !== -1 && choice !== resurrectionOptions.length - 1) {
-        // Valid selection - handle resurrection
-        const selectedMember = deadMembers[choice];
-        const cost = costs[choice];
-
-        // Check if party has enough money
-        if (party.getMesetas() < cost) {
-          await PSMenu.Stext(this.getString("Church_NotEnoughMoney"));
-        } else {
-          // Confirm resurrection
-          const confirmText = this.getString("Church_ConfirmResurrection")
-            .replace("{name}", selectedMember.getName())
-            .replace("{cost}", cost.toString());
-
-          const confirmChoice = await PSMenu.Prompt(confirmText, this.getYesNo());
-
-          if (confirmChoice === 0) { // Yes
-            // Deduct money and resurrect
-            party.removeMesetas(cost);
-            selectedMember.resurrect();
-
-            this.playSound(PS1Sound.CURE);
-
-            await PSMenu.Stext(
-              this.getString("Church_ResurrectionSuccess")
-                .replace("{name}", selectedMember.getName())
-            );
-
-            // Check for level up (if character gained experience while dead)
-            if (selectedMember.checkLevelUp()) {
-              await this.showLevelUp(selectedMember);
-            }
-          } else {
-            // Player chose "No" for confirmation
-            await PSMenu.Stext(this.getString("Church_Goodbye"));
-          }
-        }
+      if (this.getParty().partySize() === 1) {
+        await PSMenu.StextNext(this.getString("Church_Alive", "<player>", this.getParty().getMember(0)!.getName()));
       } else {
-        // Cancelled or chose "None"
-        await PSMenu.Stext(this.getString("Church_Goodbye"));
+
+        let reviveWho = await PSMenu.PromptNext(this.getString("Church_Who"), this.getParty().listMembers());
+        while (reviveWho > 0) {
+          const p = this.getParty().getMember(reviveWho - 1);
+          if (p) {
+            if (p.getHp() > 0) {
+              await PSMenu.StextNext(this.getString("Church_Alive", "<player>", p.getName()));
+            } else {
+              const cost = p.getLevel() * 20 * costMultiplier;
+              const optRevive = await PSMenu.PromptNext(this.getString("Church_Pay", "<number>", cost.toString()), this.getYesNo());
+              if (optRevive === 1) { // Yes
+                if (this.getParty().mst >= cost) {
+                  await PSMenu.StextNext(this.getString("Church_Choose"));
+                  // Sound must be audible before the incantation text starts writing
+                  await this.playSound(PS1Sound.REVIVE);
+                  await PSMenu.StextNext(this.getString("Church_Incantation"));
+                  this.getParty().mst -= cost;
+                  mstBox.updateText(0, "MST " + this.getParty().mst);
+                  p.heal();
+                  resurrected = true;
+                } else {
+                  await PSMenu.StextNext(this.getString("Church_Choose"));
+                  await PSMenu.StextNext(this.getString("Church_Fail"));
+                  await PSMenu.StextNext(this.getString("Church_Apologies"));
+                }
+              }
+            }
+          }
+
+          reviveWho = await PSMenu.PromptNext(this.getString("Church_Other"), this.getParty().listMembers());
+        }
       }
     }
 
-    // Remove MST display
-    PSMenu.instance.pop();
+    await PSMenu.StextNext(this.getString("Church_End"));
+    await PSMenu.StextNext(this.getString("Church_LevelBegin"));
+    for (let i = 0; i < this.getParty().partySize(); i++) {
+      const p = this.getParty().getMember(i);
+      if (p && p.getHp() > 0) {
+        const remainingXp = JobHelper.getXp(p.getJob(), p.getLevel() + 1) - p.getXp();
+        if (i + 1 < this.getParty().partySize()) {
+          await PSMenu.StextNext(this.getString("Church_LevelUp", "<player>", p.getName(), "<number>", remainingXp.toString()));
+        } else {
+          await PSMenu.StextLast(this.getString("Church_LevelUp", "<player>", p.getName(), "<number>", remainingXp.toString()));
+        }
+      }
+    }
 
-    // Java: restore the city/village music on exit
+    PSMenu.instance.pop(); // mstBox
+
+    if (resurrected) {
+      await this.getParty().reallocate();
+    }
+
     this.findAndPlayMusic();
-
-    console.log("PSGame: Church routine completed");
   }
 
   /**
@@ -1749,29 +1733,6 @@ export class PSGame {
 
     await PSMenu.StextLast(this.getString("Hospital_End"));
     PSMenu.instance.pop(); // mstBox
-  }
-
-  /**
-   * Show level up information - helper for Church and other level-up scenarios
-   */
-  private static async showLevelUp(member: any): Promise<void> {
-    const levelUpText = this.getString("LevelUp_Message")
-      .replace("{name}", member.getName())
-      .replace("{level}", member.getLevel().toString());
-
-    await PSMenu.Stext(levelUpText);
-
-    // Show stat increases if available
-    const statIncrease = member.getLastLevelUpStats();
-    if (statIncrease) {
-      const statsText = this.getString("LevelUp_Stats")
-        .replace("{hp}", statIncrease.hp.toString())
-        .replace("{mp}", statIncrease.mp.toString())
-        .replace("{attack}", statIncrease.attack.toString())
-        .replace("{defense}", statIncrease.defense.toString());
-
-      await PSMenu.Stext(statsText);
-    }
   }
 
   /**
