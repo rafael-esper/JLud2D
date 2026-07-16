@@ -113,7 +113,12 @@ export class PSBattle {
     const outcome = await this.startBattle(enemies, PS1Music.BATTLE);
 
     if (outcome === BattleOutcome.DEFEAT) {
+      // Shows the game-over texts over the battle scene, then switches to the
+      // title scene. Skip the endScene fade back to the map (Java could fall
+      // through because its mapswitch("Title.map") was deferred; here the
+      // Phaser scene is already being torn down).
       await PSGame.gameOverRoutine();
+      return outcome;
     }
 
     if (PSGame.getCurrentDungeon() === Dungeon.NONE && !PSGame.isOnTransport()) {

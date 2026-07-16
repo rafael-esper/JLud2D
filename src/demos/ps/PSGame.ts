@@ -1969,24 +1969,24 @@ export class PSGame {
   }
 
   /**
-   * Game over routine - called when party is defeated
+   * Game over routine - direct port of Java gameOverRoutine().
+   * Plays the game-over music, shows the defeat texts over whatever is on
+   * screen (battle scene or map), then returns to the title screen
+   * (Java: setMapOff + mapswitch("Title.map", 0, 0, false)).
    */
   public static async gameOverRoutine(): Promise<void> {
     console.log("PSGame: Game Over routine started");
 
     this.stopMusic();
+    await this.playMusic(PS1Music.GAMEOVER);
 
-    // Show game over message
-    await PSMenu.Stext(this.getString("Battle_Lost"));
+    if (this.getParty().getMembers().length > 1) {
+      await PSMenu.StextNext(this.getString("Battle_Lost"));
+    }
+    await PSMenu.StextLast(this.getString("Battle_End_Game", "<player>", this.getParty().getMember(0)!.getName()));
 
-    // TODO: Implement proper game over handling
-    // This could include:
-    // - Save game state
-    // - Return to title screen
-    // - Resurrection options
-    // - Party member revival mechanics
-
-    console.log("PSGame: Game Over routine completed");
+    PSMenu.setMapOff();
+    await this.exitToTitle();
   }
 
   /**
@@ -1998,6 +1998,14 @@ export class PSGame {
     const scene = this.currentScene;
     await ScriptEngine.fadeout(25, true);
     MainEngine.cleanup();
+    // A game over (or quit) can arrive mid-battle or inside a first-person
+    // dungeon; drop the gates those set so the next run starts clean
+    ScriptEngine.setEntitiesPaused(false);
+    MainEngine.setScriptActive(false);
+    MainEngine.setPlayerControlsSuspended(false);
+    MainEngine.setMapTransitionActive(false);
+    const { PSDungeon } = await import('./PSDungeon');
+    PSDungeon.setIsInsideDungeon(false);
     if (scene) {
       scene.scene.start('PSTitleScene', { config: (scene as any).config });
     }

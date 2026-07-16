@@ -544,15 +544,15 @@ export class Baya_malay {
           await PSMenu.startScene(PSSceneType.SKY, SpecialEntity.NONE);
           const battleResult = await battle.startBattle([PSLibEnemy.getEnemyByEnum(PS1Enemy.GD_DRAGN)!], PS1Music.BATTLE);
           if (battleResult === BattleOutcome.DEFEAT) {
+            // gameOverRoutine switches to the title scene; endScene would
+            // await a fade on the torn-down scene and never resolve
             await PSGame.gameOverRoutine();
-            await PSMenu.endScene();
             return;
           }
           // If Myau is dead
           else if (muskCat.getHp() <= 0) {
             await PSMenu.StextFirst(PSGame.getString("Baya_Malay_Myau_Fall"));
             await PSGame.gameOverRoutine();
-            await PSMenu.endScene();
             return;
           } else {
             PSGame.setFlag(Flags.DEFEAT_GOLD_DRAKE);

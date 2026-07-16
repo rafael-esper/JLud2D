@@ -133,6 +133,7 @@ export class Abion {
         PSGame.setFlag(Flags.DEFEAT_DRMAD);
       } else {
         await PSGame.gameOverRoutine();
+        return; // now on the title scene; the old scene is torn down
       }
     }
     if (outcome === BattleOutcome.WIN) {
