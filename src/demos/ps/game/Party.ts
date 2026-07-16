@@ -63,10 +63,6 @@ export class Party {
         ));
         console.log(`Party constructor: Added member, party size now ${this.members.length}`);
 
-        // Add Road Pass for debugging spaceport transitions
-        this.addQuestItem(PSGame.getItem(OriginalItem.Quest_Road_Pass));
-        console.log('Party constructor: Added Road Pass for debugging');
-
         // Commented out additional members from original
         // this.addMember(new PartyMember(Gender.MALE, Specie.MUSK_CAT, Job.NATURER, PSGame.getString("Name_Myau"), "chars/myau.chr"));
         // this.addMember(new PartyMember(Gender.MALE, Specie.PALMAN, Job.FIGHTER, PSGame.getString("Name_Odin"), "chars/odin.chr"));
@@ -135,12 +131,6 @@ export class Party {
         console.error(`Party constructor: Unknown gametype ${gametype}`);
         break;
     }
-
-    // Set initial mesetas
-    this.mst = 259;
-
-    // DEBUG: Add passport for testing spaceport functionality
-    this.addQuestItem(PSGame.getItem(OriginalItem.Quest_Passport));
 
     console.log(`Party constructor completed: ${this.members.length} members, order: [${this.order}], ${this.mst} MST`);
   }
@@ -451,4 +441,4 @@ export class Party {
     party.questItems = (data.questItems ?? []).map((k: string) => PartyMember.itemFromKey(k));
     return party;
   }
-}
+}
