@@ -3,7 +3,7 @@
  * Direct port of PSMenu.java - Handles scene transitions, entity display, and menu utilities
  */
 
-import { MenuStack, PSOutcome } from './menu/MenuStack';
+import { MenuStack, PSOutcome, PSCancellable } from './menu/MenuStack';
 import { MenuImageBox, VImage } from './menu/MenuImageBox';
 import { MenuScrollerText } from './menu/MenuScrollerText';
 import { MenuTextBox } from './menu/MenuTextBox';
@@ -691,15 +691,7 @@ export class PSMenu {
           promptY = 140;
         }
 
-        const promptBox = PSMenu.instance.createPromptBox(
-          promptX,
-          promptY,
-          choices,
-          true
-        );
-        PSMenu.instance.push(promptBox);
-
-        const ret = await PSMenu.instance.waitOpt('TRUE' as any);
+        const ret = await PSMenu.promptPagedList(promptX, promptY, choices);
 
         PSMenu.instance.pop(); // Pop only the prompt box, leave the text box
         // Don't pop the text box - it should remain visible for scene context
@@ -711,6 +703,43 @@ export class PSMenu {
     }
 
     return 0;
+  }
+
+  /** Rows shown per page in long option lists (item inventories). */
+  public static readonly PROMPT_PAGE_SIZE = 8;
+
+  /**
+   * Prompt over an option list, paged PROMPT_PAGE_SIZE entries at a time.
+   * Lists longer than one page get a "Next >" row that flips to the
+   * following page (wrapping back to the first). Resolves to the index into
+   * the full options array, or -1 on cancel. Like createPromptBox +
+   * waitOpt, the current page's prompt box is left on the stack for the
+   * caller to pop.
+   */
+  public static async promptPagedList(x: number, y: number, options: string[], hasDelay: boolean = true): Promise<number> {
+    const pageSize = PSMenu.PROMPT_PAGE_SIZE;
+    const pages = Math.max(1, Math.ceil(options.length / pageSize));
+    let page = 0;
+
+    while (true) {
+      const start = page * pageSize;
+      const pageOptions = options.slice(start, start + pageSize);
+      if (pages > 1) {
+        pageOptions.push(PSGame.getString('Menu_Next_Page'));
+      }
+
+      PSMenu.instance.push(PSMenu.instance.createPromptBox(x, y, pageOptions, hasDelay));
+      const opt = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
+
+      if (pages > 1 && opt === pageOptions.length - 1) {
+        PSMenu.instance.pop();
+        page = (page + 1) % pages;
+        hasDelay = false; // page flips are instant, no grow animation
+        continue;
+      }
+
+      return opt < 0 ? -1 : start + opt;
+    }
   }
 
   /**

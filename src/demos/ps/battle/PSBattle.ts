@@ -1039,8 +1039,7 @@ export class PSBattle {
           await PSMenu.Stext(PSGame.getString("Menu_No_Items", "<player>", p.getName()));
           gotoNextChar = false;
         } else {
-          PSMenu.instance.push(PSMenu.instance.createPromptBox(80, 30, Item.toString(p.items, false), true));
-          const optItem = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
+          const optItem = await PSMenu.promptPagedList(80, 30, Item.toString(p.items, false));
           if (optItem >= 0) {
             p.usedItem = p.items[optItem];
             p.effect = await PSLibItem.prepareItem(p.usedItem, p);

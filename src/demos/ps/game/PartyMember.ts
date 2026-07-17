@@ -30,7 +30,8 @@ export class GenderHelper {
 }
 
 export class PartyMember extends Battler {
-  public static readonly ITEMS_SIZE: number = 10;
+  // 3 pages of PSMenu.PROMPT_PAGE_SIZE (8) rows in the paged item menu
+  public static readonly ITEMS_SIZE: number = 24;
 
   // Core character data (assigned via setters in the constructor)
   private charPath!: string;

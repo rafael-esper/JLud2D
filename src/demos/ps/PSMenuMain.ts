@@ -564,9 +564,8 @@ export class PSMenuMain {
       } else if (chosenMember.items.length === 0) {
         await PSMenu.Stext(PSGame.getString('Menu_No_Items', '<player>', chosenMember.getName()));
       } else {
-        // Item list
-        PSMenu.instance.push(PSMenu.instance.createPromptBox(100, 10, Item.toString(chosenMember.items, false), true));
-        const optItem = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
+        // Item list (paged when it exceeds one page)
+        const optItem = await PSMenu.promptPagedList(100, 10, Item.toString(chosenMember.items, false));
 
         if (optItem >= 0) {
           const chosenItem = chosenMember.items[optItem];
