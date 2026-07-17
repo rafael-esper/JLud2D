@@ -73,12 +73,23 @@ export class Space {
 
     MainEngine.setCameraTracking(0);
 
-    // Java: ywin scrolls from 1200 downward for 250 frames
+    // Java: ywin scrolls from 1200 downward for 250 frames (b2 skips ahead).
+    // The Java renderer clamps ywin to the map edge, so the scroll saturates
+    // with the planet at the bottom of the screen; Phaser's setScroll doesn't
+    // clamp, so do it here or the camera overshoots and centers the planet.
     const camera = currentScene.cameras.main;
+    const inputManager = (currentScene as any)?.inputManager;
+    const map = MainEngine.getCurrentMap();
+    const maxScrollY = map ? map.getHeight() * map.getTileHeight() - 240 : 1360;
     camera.setScroll(0, 1200);
     await ScriptEngine.fadein(1, true);
     for (let count = 0; count < 250; count++) {
-      camera.setScroll(0, 1200 + count);
+      if (inputManager?.b2) {
+        inputManager.unpress(6); // b2 — held press must not leak into the next part
+        camera.setScroll(0, Math.min(1200 + 249, maxScrollY));
+        break;
+      }
+      camera.setScroll(0, Math.min(1200 + count, maxScrollY));
       await PSGame.waitFrames(1);
     }
 
@@ -94,26 +105,33 @@ export class Space {
   private static async alisIntro(): Promise<void> {
     await PSMenu.startScene(PSSceneType.CITY, SpecialEntity.NONE);
     PSMenu.instance.push(PSMenu.instance.createOneLabelBox(15, 20, PSGame.getString("Intro_Time"), true));
-    await PSMenu.instance.waitDelay(20);
+    await PSMenu.instance.waitDelay(20, true);
     PSMenu.instance.push(PSMenu.instance.createOneLabelBox(15, 50, PSGame.getString("Intro_Place"), true));
-    await PSMenu.instance.waitDelay(150);
+    await PSMenu.instance.waitDelay(150, true);
     PSMenu.instance.pop();
     PSMenu.instance.pop();
     PSMenu.setMapOff();
 
+    // Java: PSMenu.instance.back = new VImage(...) — black backdrop. A camera
+    // fade would sit on TOP of the portraits (all we'd see is black), so swap
+    // in the backdrop and clear the fade with an instant fadein (see Paseo).
     await ScriptEngine.fadeout(25, false);
-    // Java: PSMenu.instance.back = new VImage(screen.width, screen.height) - black backdrop
+    PSMenu.instance.setBlackBackground();
+    await ScriptEngine.fadein(1, false);
 
     await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_NERO1),
-      [PSGame.getString("Cinematic_Intro_1"), PSGame.getString("Cinematic_Intro_2"), PSGame.getString("Cinematic_Intro_3")]);
+      [PSGame.getString("Cinematic_Intro_1"), PSGame.getString("Cinematic_Intro_2"), PSGame.getString("Cinematic_Intro_3")], true);
 
     await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_NERO2),
-      [PSGame.getString("Cinematic_Intro_4"), PSGame.getString("Cinematic_Intro_5")]);
+      [PSGame.getString("Cinematic_Intro_4"), PSGame.getString("Cinematic_Intro_5")], true);
 
     await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_PROMISE),
-      [PSGame.getString("Cinematic_Intro_6")]);
+      [PSGame.getString("Cinematic_Intro_6")], true);
 
-    await PSMenu.endScene();
+    // Java's endScene(FADE_HOUSE) ran after a deferred mapswitch, so its
+    // fade-in landed on the new map; here endScene would flash the Space map
+    // before Camineet loads — close to black and let the mapswitch reveal.
+    await PSMenu.endSceneToBlack();
 
     PSGame.gameData.current_planet = Planet.PALMA;
     await PSGame.mapswitchToCity(City.CAMINEET, 29, 9); // Alis's house
@@ -122,18 +140,22 @@ export class Space {
   private static async odinIntro(): Promise<void> {
     await ScriptEngine.fadeout(25, false);
     PSMenu.setMapOff();
-    // Java: PSMenu.instance.back = new VImage(screen.width, screen.height) - black backdrop
+    // Java: black-VImage backdrop; camera fade must be cleared or it covers
+    // the portraits (see alisIntro)
+    PSMenu.instance.setBlackBackground();
+    await ScriptEngine.fadein(1, false);
 
     await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_INTRO1),
-      [PSGame.getString("Cinematic_Intro_Odin_1")]);
+      [PSGame.getString("Cinematic_Intro_Odin_1")], true);
 
     await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_INTRO2),
-      [PSGame.getString("Cinematic_Intro_Odin_2"), PSGame.getString("Cinematic_Intro_Odin_3")]);
+      [PSGame.getString("Cinematic_Intro_Odin_2"), PSGame.getString("Cinematic_Intro_Odin_3")], true);
 
     await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_ODIN2),
-      [PSGame.getString("Cinematic_Intro_Odin_4")]);
+      [PSGame.getString("Cinematic_Intro_Odin_4")], true);
 
-    await PSMenu.endScene();
+    // Close to black — endScene would flash the Space map (see alisIntro)
+    await PSMenu.endSceneToBlack();
 
     PSGame.setFlag(Flags.GOT_ODIN);
     PSGame.gameData.current_planet = Planet.PALMA;
@@ -143,12 +165,16 @@ export class Space {
   private static async noahIntro(): Promise<void> {
     await ScriptEngine.fadeout(25, false);
     PSMenu.setMapOff();
-    // Java: PSMenu.instance.back = new VImage(screen.width, screen.height) - black backdrop
+    // Java: black-VImage backdrop; camera fade must be cleared or it covers
+    // the portraits (see alisIntro)
+    PSMenu.instance.setBlackBackground();
+    await ScriptEngine.fadein(1, false);
 
     await PSMenu.cinematicText(await PSGame.getVImage(PS1Image.CINE_INTRO2),
-      [PSGame.getString("Cinematic_Intro_Odin_2"), PSGame.getString("Cinematic_Intro_Odin_3")]);
+      [PSGame.getString("Cinematic_Intro_Odin_2"), PSGame.getString("Cinematic_Intro_Odin_3")], true);
 
-    await PSMenu.endScene();
+    // Close to black — endScene would flash the Space map (see alisIntro)
+    await PSMenu.endSceneToBlack();
 
     PSGame.gameData.current_planet = Planet.MOTAVIA;
     await PSGame.mapswitchToPlanet(Planet.MOTAVIA, 82, 34);

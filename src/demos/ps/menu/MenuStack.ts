@@ -605,14 +605,23 @@ export class MenuStack {
   }
 
   /**
-   * Wait for specific time delay - direct port of Java waitDelay()
+   * Wait for specific time delay - direct port of Java waitDelay().
+   * With skippable, b2 cuts the wait short (intro cinematics).
    */
-  public async waitDelay(delay: number): Promise<void> {
+  public async waitDelay(delay: number, skippable: boolean = false): Promise<void> {
     return new Promise<void>((resolve) => {
       this.checkPreMenu();
 
       let timer = 0;
       const handleWait = () => {
+        if (skippable) {
+          this.inputManager.updateControls();
+          if (this.inputManager.justPressed('b2')) {
+            resolve();
+            return;
+          }
+        }
+
         if (timer >= delay) {
           resolve();
           return;
@@ -626,6 +635,38 @@ export class MenuStack {
       handleWait();
     }).then(() => {
       this.checkPosMenu();
+    });
+  }
+
+  /**
+   * Skippable variant of waitReady + waitB1 for cinematic pages: resolves
+   * true when b2 skips (works even while the text is still scrolling in),
+   * false when b1/b3/start advances after the page is fully shown.
+   */
+  public async waitReadyThenB1OrSkip(menu: MenuType): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      this.checkPreMenu();
+
+      const handleInput = () => {
+        this.inputManager.updateControls();
+
+        if (this.inputManager.justPressed('b2')) {
+          resolve(true);
+          return;
+        }
+        if (menu.state === MenuState.READY && this.selectPressed()) {
+          resolve(false);
+          return;
+        }
+
+        this.drawMenus();
+        this.scene.time.delayedCall(16, handleInput);
+      };
+
+      handleInput();
+    }).then((skip) => {
+      this.checkPosMenu();
+      return skip;
     });
   }
 

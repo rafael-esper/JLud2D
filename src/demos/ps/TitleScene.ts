@@ -10,7 +10,6 @@ import { ScreenSize, GameType } from './game/GameData';
 import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
 import { PSCancellable } from './menu/MenuStack';
-import { Planet, City } from './game/City';
 import { ScriptEngine } from '../../core/ScriptEngine';
 
 export class TitleScene extends PSScene {
@@ -147,34 +146,25 @@ export class TitleScene extends PSScene {
     // Stop music before starting game
     PSGame.stopMusic();
 
-    if (opt === 0) {
-      // Start as Alis - implement required initialization
-      await PSGame.initPSGame(GameType.PS_ORIGINAL);
+    if (opt === 0 || opt === 1 || opt === 2) {
+      // Java: initPSGame(type); map("space/Space.map") — the Space map script
+      // sees no departure city and runs the opening cinematic, which ends by
+      // switching to the real starting map (Camineet / Scion / Motavia).
+      const gameType = opt === 0 ? GameType.PS_ORIGINAL
+        : opt === 1 ? GameType.PS_START_AS_ODIN
+        : GameType.PS_START_AS_NOAH;
+      await PSGame.initPSGame(gameType);
+      console.log(`TitleScene: Starting new game (${GameType[gameType]}) — intro`);
 
-      console.log("TitleScene: Starting game as Alis in Camineet");
+      // A previous playthrough may have left a Hapsby flight recorded; the
+      // intro branch in Space.startmap keys off fromCity being null
+      PSGame.setFromCity(null);
+      PSGame.setToCity(null);
 
-      // Java: gameData.current_planet = Planet.PALMA; mapswitch(City.CAMINEET, 29, 9)
-      // GameScene loads the map itself, so just set the location state here —
-      // it drives the city music and findAndPlayMusic()
-      PSGame.gameData.current_planet = Planet.PALMA;
-      PSGame.gameData.current_city = City.CAMINEET;
-      PSGame.gameData.visitedCities.add(City.CAMINEET);
-      PSGame.setgotoxy(29, 9);
-
-      // Start GameScene with scene context established
-      this.scene.start('PSGameScene', { config: this.config });
+      // Start GameScene routed into the Space map intro
+      this.scene.start('PSGameScene', { config: this.config, enterIntro: true });
 
       return true;
-    } else if (opt === 1) {
-      // Start as Odin
-      await PSGame.initPSGame(GameType.PS_START_AS_ODIN);
-      console.log("TitleScene: Starting game as Odin");
-      // TODO: map("space/Space.map");
-    } else if (opt === 2) {
-      // Start as Noah
-      await PSGame.initPSGame(GameType.PS_START_AS_NOAH);
-      console.log("TitleScene: Starting game as Noah");
-      // TODO: map("space/Space.map");
     } else if (opt === 4) {
       // Extended
       await PSGame.initPSGame(GameType.PS_ORIGINAL);

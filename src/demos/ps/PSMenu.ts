@@ -583,12 +583,14 @@ export class PSMenu {
   }
 
   /**
-   * Display cinematic text with portrait - direct port of Java cinematicText()
+   * Display cinematic text with portrait - direct port of Java cinematicText().
+   * With skippable, b2 ends this cinematic part immediately (intro).
    */
-  public static async cinematicText(portrait: VImage, texts: string[]): Promise<void> {
+  public static async cinematicText(portrait: VImage, texts: string[], skippable: boolean = false): Promise<void> {
     const portraitBox = MenuImageBox.MenuImage(PSMenu.instance.getScene(), PSMenu.instance, 32, 22, portrait);
     PSMenu.instance.push(portraitBox);
 
+    outer:
     for (let t = 0; t < texts.length; t++) {
       const rows = PSMenu.splitTextIntoRows(texts[t], 30);
 
@@ -604,8 +606,13 @@ export class PSMenu {
         const menuScrollerText = new MenuScrollerText(PSMenu.instance.getScene(), 35, 22 + 113 + 15, strText);
         PSMenu.instance.push(menuScrollerText);
 
-        await PSMenu.instance.waitReady(menuScrollerText);
-        await PSMenu.instance.waitB1();
+        let skipped = false;
+        if (skippable) {
+          skipped = await PSMenu.instance.waitReadyThenB1OrSkip(menuScrollerText);
+        } else {
+          await PSMenu.instance.waitReady(menuScrollerText);
+          await PSMenu.instance.waitB1();
+        }
 
         // If last chunk of text, fade out
         if (t === texts.length - 1 && i + 1 > Math.floor((rows.length - 1) / 4)) {
@@ -613,6 +620,10 @@ export class PSMenu {
         }
 
         PSMenu.instance.pop();
+
+        if (skipped) {
+          break outer;
+        }
       }
     }
 

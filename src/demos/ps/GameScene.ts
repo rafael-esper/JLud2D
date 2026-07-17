@@ -24,6 +24,7 @@ export class GameScene extends Phaser.Scene {
   private tiledMap: any = null;
   private mapNameOverride: string | null = null;
   private enterLoaded: boolean = false;
+  private enterIntro: boolean = false;
   private confirmingExit: boolean = false;
   public mapBasePath: string = 'src/demos/ps/maps';
 
@@ -31,10 +32,11 @@ export class GameScene extends Phaser.Scene {
     super({ key: 'PSGameScene' });
   }
 
-  async init(data: { config: GameConfig; mapName?: string; enterLoaded?: boolean }) {
+  async init(data: { config: GameConfig; mapName?: string; enterLoaded?: boolean; enterIntro?: boolean }) {
     this.config = data.config;
     this.mapNameOverride = data.mapName || null;
     this.enterLoaded = data.enterLoaded || false;
+    this.enterIntro = data.enterIntro || false;
   }
 
   preload() {
@@ -88,6 +90,18 @@ export class GameScene extends Phaser.Scene {
       await ScriptEngine.fadeout(25, true);
       await PSGame.enterLoadedLocation();
       console.log("GameScene: Loaded-game entry complete");
+      return;
+    }
+
+    // New game: run the opening cinematic on the Space map (Java: Title's
+    // newGameMenu calls map("space/Space.map"); Space.startmap sees no
+    // departure city and plays the intro, which itself switches to the real
+    // starting map when it finishes). Coordinates are irrelevant here — the
+    // intro never spawns the party on this map.
+    if (this.enterIntro) {
+      await ScriptEngine.fadeout(1, true);
+      await PSGame.mapswitch('Space.map', 9, 93, false, 'src/demos/ps/space');
+      console.log("GameScene: Intro entry complete");
       return;
     }
 
