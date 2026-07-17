@@ -137,8 +137,8 @@ export class PSMenuMain {
   /**
    * Talk menu — debug/cheat helpers (the Talk option has no gameplay use in
    * the original, so it hosts the cheats; most actions mirror cheatMenu()):
-   * inventory items, quest items, +10 levels, +10000 mesetas, and a random
-   * battles on/off toggle for debugging.
+   * inventory items, quest items, +10 levels, +10000 mesetas, the three
+   * transport vehicles, and a random battles on/off toggle for debugging.
    */
   private static async talkMenu(statusLabelBox: MenuLabelBox, mstBox: MenuLabelBox): Promise<void> {
     while (true) {
@@ -148,6 +148,7 @@ export class PSMenuMain {
         PSGame.getString('Menu_Quest'),
         'Level up',
         'Mesetas',
+        'Transport',
         `Battles: ${PSGame.battlesOff ? 'Off' : 'On'}`
       ], true));
       const opt = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
@@ -203,7 +204,18 @@ export class PSMenuMain {
           break;
         }
 
-        case 4: { // Battles on/off (good for debugging)
+        case 4: { // Transport vehicles
+          const party = PSGame.getParty();
+          for (const vehicle of [OriginalItem.Vehicle_LandMaster, OriginalItem.Vehicle_FlowMover, OriginalItem.Vehicle_IceDecker]) {
+            if (!party.hasQuestItem(PSGame.getItem(vehicle))) {
+              party.addQuestItem(PSGame.getItem(vehicle));
+            }
+          }
+          await PSMenu.Stext('Received the Landrover, Hovercraft and Ice Digger!');
+          break;
+        }
+
+        case 5: { // Battles on/off (good for debugging)
           PSGame.battlesOff = !PSGame.battlesOff;
           await PSMenu.Stext(PSGame.battlesOff
             ? 'Random battles are now disabled.'
