@@ -17,6 +17,36 @@ export class ScriptEngine {
   public static screenFadedOut: boolean = false;
 
   // ============================================================================
+  // TEST SIMULATION
+  // ============================================================================
+  // Direct port of Java core.Script's TEST_SIMULATION/TEST_OPTIONS/TEST_POS.
+  // When TEST_SIMULATION is on, MenuStack's wait* methods (waitOpt, waitB1,
+  // waitReady, ...) resolve immediately instead of polling real input, so a
+  // scripted playthrough (map/menu class calls) can run unattended. waitOpt
+  // reads its answer from TEST_OPTIONS[TEST_POS++], exactly like Java's
+  // Prompt(). Reset both between scripted runs (see resetTestSimulation).
+
+  /** When true, menu prompts answer themselves from TEST_OPTIONS instead of waiting for input. */
+  public static TEST_SIMULATION: boolean = false;
+
+  /** Scripted sequence of menu choices (0-based, matches MenuPromptBox.selected) consumed by waitOpt. */
+  public static TEST_OPTIONS: number[] = [];
+
+  /** Index of the next choice to consume from TEST_OPTIONS. */
+  public static TEST_POS: number = 0;
+
+  /** Next scripted menu choice, mirroring Java's `TEST_OPTIONS[TEST_POS++]`. */
+  public static nextTestOption(): number {
+    return ScriptEngine.TEST_OPTIONS[ScriptEngine.TEST_POS++] ?? 0;
+  }
+
+  /** Reset TEST_POS (and optionally the scripted choices) before a new scripted run. */
+  public static resetTestSimulation(options: number[] = []): void {
+    ScriptEngine.TEST_OPTIONS = options;
+    ScriptEngine.TEST_POS = 0;
+  }
+
+  // ============================================================================
   // SCENE MANAGEMENT
   // ============================================================================
 
@@ -41,8 +71,14 @@ export class ScriptEngine {
   /**
    * Play VGM music by path (or a key previously registered via loadVGM);
    * the track is fetched on first play and streamed instantly after that.
+   *
+   * No-op under TEST_SIMULATION — direct port of Java's Script.load()
+   * returning null during simulation, which made VMusic playback silently
+   * do nothing. Without this, a headless run (no AudioContext) hits an
+   * infinite initialize-retry loop in VGMPlayerAPI and OOMs.
    */
   public static playmusic(key: string, loop?: boolean): boolean {
+    if (ScriptEngine.TEST_SIMULATION) return false;
     return VGMPlayerAPI.playMusic(key, loop);
   }
 
@@ -50,6 +86,7 @@ export class ScriptEngine {
    * Stop VGM music
    */
   public static stopmusic(): void {
+    if (ScriptEngine.TEST_SIMULATION) return;
     VGMPlayerAPI.stopMusic();
   }
 
@@ -58,6 +95,7 @@ export class ScriptEngine {
    * the same track continues where it was interrupted.
    */
   public static pausemusic(): void {
+    if (ScriptEngine.TEST_SIMULATION) return;
     VGMPlayerAPI.pauseMusic();
   }
 
@@ -66,6 +104,7 @@ export class ScriptEngine {
    * should fall back to playmusic().
    */
   public static resumemusic(key: string): boolean {
+    if (ScriptEngine.TEST_SIMULATION) return false;
     return VGMPlayerAPI.resumeMusic(key);
   }
 
@@ -73,6 +112,7 @@ export class ScriptEngine {
    * Set master music volume (0-100, matching Java Script.setMusicVolume)
    */
   public static setMusicVolume(volume: number): void {
+    if (ScriptEngine.TEST_SIMULATION) return;
     VGMPlayerAPI.setMusicVolume(Math.max(0, Math.min(100, volume)) / 100);
   }
 

@@ -5,6 +5,7 @@
 
 import { MenuType } from './MenuType';
 import { MenuStack } from './MenuStack';
+import { ScriptEngine } from '../../../core/ScriptEngine';
 
 export class MenuPromptBox extends MenuType {
   private menuStack: MenuStack;
@@ -16,8 +17,10 @@ export class MenuPromptBox extends MenuType {
   private wx: number;
   private wy: number;
 
-  // Graphics objects for drawing
-  private graphics: Phaser.GameObjects.Graphics;
+  // Graphics objects for drawing. Null under TEST_SIMULATION, where draw()
+  // is never called (the wait loops that invoke it are bypassed) — this lets
+  // a scripted playthrough construct/answer prompts with no real Phaser scene.
+  private graphics: Phaser.GameObjects.Graphics | null = null;
   private textObjects: Phaser.GameObjects.Text[] = [];
   private textObjectsCreated: boolean = false;
 
@@ -43,8 +46,10 @@ export class MenuPromptBox extends MenuType {
     }
 
     // Create graphics object for drawing circles and cursor
-    this.graphics = menuStack.getScene().add.graphics();
-    this.graphics.setScrollFactor(0, 0); // Fixed to screen like other UI elements
+    if (!ScriptEngine.TEST_SIMULATION) {
+      this.graphics = menuStack.getScene().add.graphics();
+      this.graphics.setScrollFactor(0, 0); // Fixed to screen like other UI elements
+    }
   }
 
   public setDisabled(option: number): void {
@@ -82,6 +87,8 @@ export class MenuPromptBox extends MenuType {
   }
 
   public draw(active: boolean): void {
+    if (!this.graphics) return; // never drawn under TEST_SIMULATION
+
     // Clear our own graphics only (don't clear menuStack graphics to preserve previous menus)
     this.graphics.clear();
 
@@ -180,7 +187,7 @@ export class MenuPromptBox extends MenuType {
 
   public destroy(): void {
     // Clean up graphics and text objects
-    this.graphics.destroy();
+    this.graphics?.destroy();
     this.cleanupTextObjects();
   }
 }

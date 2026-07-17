@@ -10,7 +10,8 @@
     "build": "npm run build:worklet && tsc && vite build",
     "preview": "vite preview",
     "serve": "vite preview --port 3080",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
   },
   "keywords": [
     "phaser",
@@ -24,7 +25,8 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0",
-    "vite": "^5.0.0"
+    "vite": "^5.0.0",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "phaser": "^4.2.1"

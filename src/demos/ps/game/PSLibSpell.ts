@@ -58,7 +58,28 @@ export enum PS1Spell {
 }
 
 export class PS1SpellHelper {
-  private static readonly spellConfigs = new Map<PS1Spell, {
+  // Built lazily (not a class-field initializer) because PSLibSpell sits in an
+  // import cycle with PSEffect/PSBattle/Battler/PartyMember: depending on
+  // which module an app entry point reaches first, this class can finish
+  // loading before PSEffect's `Effect` enum body has run, leaving Effect
+  // undefined at class-definition time. Deferring construction to first
+  // actual use (well after the whole cycle has finished loading) sidesteps
+  // the ordering hazard entirely.
+  private static _spellConfigs: Map<PS1Spell, {
+    mpCost: number,
+    nameString: string,
+    effect: Effect
+  }> | null = null;
+
+  private static get spellConfigs() {
+    if (!PS1SpellHelper._spellConfigs) {
+      PS1SpellHelper._spellConfigs = PS1SpellHelper.buildSpellConfigs();
+    }
+    return PS1SpellHelper._spellConfigs;
+  }
+
+  private static buildSpellConfigs() {
+    return new Map<PS1Spell, {
     mpCost: number,
     nameString: string,
     effect: Effect
@@ -100,7 +121,8 @@ export class PS1SpellHelper {
     // Light spell
     [PS1Spell.LIGHT, { mpCost: 2, nameString: "Spell_Light", effect: Effect.LIGHT }],
     [PS1Spell.POWER_CURE, { mpCost: 12, nameString: "Spell_PowerCure", effect: Effect.CURE }]
-  ]);
+    ]);
+  }
 
   public static getMpCost(spell: PS1Spell): number {
     return this.spellConfigs.get(spell)?.mpCost || 0;

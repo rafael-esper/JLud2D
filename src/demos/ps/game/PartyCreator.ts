@@ -16,28 +16,47 @@ interface NameMap {
 }
 
 export class PartyCreator {
-  // Mapping Species -> allowed Jobs
-  private static readonly map_spe_job = new Map<Specie, Job[]>([
-    [Specie.PALMAN, [Job.ADVENTURER, Job.FIGHTER, Job.HUNTER, Job.ESPER, Job.PRIEST]],
-    [Specie.ANDROID, [Job.GUARDIAN, Job.WATCHER]],
-    [Specie.MOTAVIAN, [Job.ADVENTURER, Job.FIGHTER, Job.HUNTER, Job.PRIEST]],
-    [Specie.MUSK_CAT, [Job.HUNTER]],
-    [Specie.DEZORIAN, [Job.ADVENTURER, Job.HUNTER, Job.PRIEST]]
-  ]);
+  // Mapping Species -> allowed Jobs. Built lazily, not as a class-field
+  // initializer: PartyCreator sits in an import cycle through Party/PSGame/
+  // Job/PSLibSpell, so depending on which module an entry point reaches
+  // first, Job's enum body may not have run yet at class-definition time.
+  // Deferring to first use avoids the ordering hazard.
+  private static _map_spe_job: Map<Specie, Job[]> | null = null;
+
+  private static get map_spe_job(): Map<Specie, Job[]> {
+    if (!PartyCreator._map_spe_job) {
+      PartyCreator._map_spe_job = new Map<Specie, Job[]>([
+        [Specie.PALMAN, [Job.ADVENTURER, Job.FIGHTER, Job.HUNTER, Job.ESPER, Job.PRIEST]],
+        [Specie.ANDROID, [Job.GUARDIAN, Job.WATCHER]],
+        [Specie.MOTAVIAN, [Job.ADVENTURER, Job.FIGHTER, Job.HUNTER, Job.PRIEST]],
+        [Specie.MUSK_CAT, [Job.HUNTER]],
+        [Specie.DEZORIAN, [Job.ADVENTURER, Job.HUNTER, Job.PRIEST]]
+      ]);
+    }
+    return PartyCreator._map_spe_job;
+  }
 
   // Names are dependent on gender and race (http://www.babynames1000.com/four-letter/)
-  private static readonly namelist: NameMap[] = [
-    { gender: Gender.FEMALE, spe: Specie.PALMAN, names: ["Alice", "Anie", "Dana", "Erin", "Gwen", "Leah", "Sara", "Tina"] },
-    { gender: Gender.MALE, spe: Specie.PALMAN, names: ["Adam", "Cale", "Drew", "Eward", "Kane", "Luke", "Rian", "Sean"] },
-    { gender: Gender.MALE, spe: Specie.MOTAVIAN, names: ["Brio", "Deon", "Eben", "Illaz", "Rand"] },
-    { gender: Gender.FEMALE, spe: Specie.MOTAVIAN, names: ["Amey", "Bena", "Edra", "Mila", "Tessa"] },
-    { gender: Gender.MALE, spe: Specie.DEZORIAN, names: ["Jhar", "Kaia", "Rujji"] },
-    { gender: Gender.FEMALE, spe: Specie.DEZORIAN, names: ["Jhami", "Khami", "Rezy"] },
-    { gender: Gender.MALE, spe: Specie.MUSK_CAT, names: ["Mian", "Mose", "Nile"] },
-    { gender: Gender.FEMALE, spe: Specie.MUSK_CAT, names: ["Maye", "Mien", "Nyla"] },
-    { gender: Gender.MALE, spe: Specie.ANDROID, names: ["Reed", "Zion", "Waden"] },
-    { gender: Gender.FEMALE, spe: Specie.ANDROID, names: ["Siena", "Riel", "Zoey"] }
-  ];
+  // Lazily built for the same import-cycle-ordering reason as map_spe_job above.
+  private static _namelist: NameMap[] | null = null;
+
+  private static get namelist(): NameMap[] {
+    if (!PartyCreator._namelist) {
+      PartyCreator._namelist = [
+        { gender: Gender.FEMALE, spe: Specie.PALMAN, names: ["Alice", "Anie", "Dana", "Erin", "Gwen", "Leah", "Sara", "Tina"] },
+        { gender: Gender.MALE, spe: Specie.PALMAN, names: ["Adam", "Cale", "Drew", "Eward", "Kane", "Luke", "Rian", "Sean"] },
+        { gender: Gender.MALE, spe: Specie.MOTAVIAN, names: ["Brio", "Deon", "Eben", "Illaz", "Rand"] },
+        { gender: Gender.FEMALE, spe: Specie.MOTAVIAN, names: ["Amey", "Bena", "Edra", "Mila", "Tessa"] },
+        { gender: Gender.MALE, spe: Specie.DEZORIAN, names: ["Jhar", "Kaia", "Rujji"] },
+        { gender: Gender.FEMALE, spe: Specie.DEZORIAN, names: ["Jhami", "Khami", "Rezy"] },
+        { gender: Gender.MALE, spe: Specie.MUSK_CAT, names: ["Mian", "Mose", "Nile"] },
+        { gender: Gender.FEMALE, spe: Specie.MUSK_CAT, names: ["Maye", "Mien", "Nyla"] },
+        { gender: Gender.MALE, spe: Specie.ANDROID, names: ["Reed", "Zion", "Waden"] },
+        { gender: Gender.FEMALE, spe: Specie.ANDROID, names: ["Siena", "Riel", "Zoey"] }
+      ];
+    }
+    return PartyCreator._namelist;
+  }
 
   /**
    * Creates a party with <num> characters, without name repetition, ordered by Species.

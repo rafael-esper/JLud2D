@@ -389,6 +389,18 @@ export class MenuStack {
    * Wait for option selection - direct port of Java waitOpt()
    */
   public async waitOpt(cancellable: PSCancellable): Promise<number> {
+    if (ScriptEngine.TEST_SIMULATION) {
+      // TEST_OPTIONS entries are the final 1-based Prompt()/PromptNext() choice
+      // (0 = Cancel, 1 = first option, ...), matching Java's TEST_SIMULATION
+      // branch which returns TEST_OPTIONS[TEST_POS++] directly as Prompt()'s
+      // result, bypassing the real waitOpt()'s 0-based selected index. Since
+      // callers here (PromptInternal/promptPagedList) still apply their own
+      // 0-based -> 1-based "+1", subtract 1 so the net result lines up. Only
+      // exact for single-page option lists (<= PROMPT_PAGE_SIZE) — a scripted
+      // choice for a paginated (>8 option) list must account for the paging.
+      return ScriptEngine.nextTestOption() - 1;
+    }
+
     return new Promise((resolve) => {
       // Find last MenuPromptBox
       let box: MenuPromptBox | null = null;
@@ -442,6 +454,10 @@ export class MenuStack {
    * Wait for any button press
    */
   public async waitAnyButton(): Promise<boolean> {
+    if (ScriptEngine.TEST_SIMULATION) {
+      return true;
+    }
+
     return new Promise((resolve) => {
       const handleInput = () => {
         this.inputManager.updateControls();
@@ -537,6 +553,10 @@ export class MenuStack {
    * SMS manual: b1, b2 and b3 all continue conversations.
    */
   public async waitB1(): Promise<void> {
+    if (ScriptEngine.TEST_SIMULATION) {
+      return;
+    }
+
     return new Promise<void>((resolve) => {
       this.checkPreMenu();
 
@@ -562,6 +582,10 @@ export class MenuStack {
    * Wait for menu to reach READY state - direct port of Java waitReady()
    */
   public async waitReady(menu: MenuType): Promise<void> {
+    if (ScriptEngine.TEST_SIMULATION) {
+      return;
+    }
+
     return new Promise<void>((resolve) => {
       this.checkPreMenu();
 
@@ -585,6 +609,10 @@ export class MenuStack {
    * Wait for animation to end - direct port of Java waitAnimationEnd()
    */
   public async waitAnimationEnd(menu: MenuType): Promise<void> {
+    if (ScriptEngine.TEST_SIMULATION) {
+      return;
+    }
+
     return new Promise<void>((resolve) => {
       this.checkPreMenu();
 
@@ -609,6 +637,10 @@ export class MenuStack {
    * With skippable, b2 cuts the wait short (intro cinematics).
    */
   public async waitDelay(delay: number, skippable: boolean = false): Promise<void> {
+    if (ScriptEngine.TEST_SIMULATION) {
+      return;
+    }
+
     return new Promise<void>((resolve) => {
       this.checkPreMenu();
 
@@ -644,6 +676,10 @@ export class MenuStack {
    * false when b1/b3/start advances after the page is fully shown.
    */
   public async waitReadyThenB1OrSkip(menu: MenuType): Promise<boolean> {
+    if (ScriptEngine.TEST_SIMULATION) {
+      return false;
+    }
+
     return new Promise<boolean>((resolve) => {
       this.checkPreMenu();
 
@@ -674,6 +710,10 @@ export class MenuStack {
    * Wait for button 1 or timeout - direct port of Java waitB1OrTimeout()
    */
   public async waitB1OrTimeout(menu: MenuType): Promise<void> {
+    if (ScriptEngine.TEST_SIMULATION) {
+      return;
+    }
+
     return new Promise<void>((resolve) => {
       this.checkPreMenu();
 
