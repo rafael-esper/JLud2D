@@ -20,7 +20,15 @@ const necro = (n: NecroType): EntityClothes => n as unknown as EntityClothes;
 export class Gothic {
 
   public static async startmap(): Promise<void> {
-    // Base map initialization is handled by the engine when the map loads.
+    // Java: Gothic.startmap() calls Phantasy.startmap() first. The engine only
+    // runs the scene's generic startmap (allocate party, fade in, menu on) when
+    // the map script has no startmap of its own, so it must be invoked here —
+    // otherwise arrival stays on a black screen with no party allocated.
+    const scene = MainEngine.getCurrentScene() as any;
+    if (scene && typeof scene.startmap === 'function') {
+      await scene.startmap();
+    }
+
     // Java: when SPACESHIP_AREA is set, remove the obstacle at (13,14) and
     // nudge entity 0 away (entitymove "L1 U1 F0" approximated with a direct offset)
     if (PSGame.hasFlag(Flags.SPACESHIP_AREA)) {
@@ -184,7 +192,14 @@ export class Gothic {
 
   public static async spaceship(): Promise<void> {
     await PSMenu.startSceneWithLargeEntity(PSSceneType.FOREST, LargeEntity.HAPSBY);
-    await PSGame.hapsbyRoutine(City.GOTHIC);
+    const dest = await PSGame.hapsbyRoutine(City.GOTHIC);
+    if (dest !== null) {
+      // Close the scene onto black first — the travel chain is awaited inline
+      // (Java deferred the mapswitch until after endScene)
+      await PSMenu.endSceneToBlack();
+      await PSGame.spaceshipRoutineStart(City.GOTHIC, dest);
+      return;
+    }
     await PSMenu.endSceneWithOutcome(PSOutcome.FADE_HOUSE);
   }
 

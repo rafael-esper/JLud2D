@@ -302,8 +302,8 @@ export class MainEngine {
           const verticalX = currentX;
           const verticalY = currentY + (moveY * 16);
 
-          const horizontalBlocked = MainEngine.current_map.getobspixel(horizontalX, horizontalY);
-          const verticalBlocked = MainEngine.current_map.getobspixel(verticalX, verticalY);
+          const horizontalBlocked = MainEngine.current_map.getobspixel(horizontalX, horizontalY) || MainEngine.isEntityObstruction(horizontalX, horizontalY);
+          const verticalBlocked = MainEngine.current_map.getobspixel(verticalX, verticalY) || MainEngine.isEntityObstruction(verticalX, verticalY);
 
           // If both adjacent cells are blocked, don't allow diagonal movement through the corner
           if (horizontalBlocked && verticalBlocked) {
@@ -318,7 +318,12 @@ export class MainEngine {
         const horizontalTargetX = currentX + (moveX * 16);
         const horizontalTargetY = currentY;
 
-        if (MainEngine.current_map && !MainEngine.current_map.getobspixel(horizontalTargetX, horizontalTargetY)) {
+        // Java ObstructAt checks map obs AND entity rects on every path,
+        // including wall slides — without the entity check here a diagonal
+        // press tunnels through obstruction entities (bit the Gothic beggar
+        // guarding the spaceship area)
+        if (MainEngine.current_map && !MainEngine.current_map.getobspixel(horizontalTargetX, horizontalTargetY)
+            && !MainEngine.isEntityObstruction(horizontalTargetX, horizontalTargetY)) {
           // Horizontal movement is possible
           MainEngine.myself.setWaypointRelative(moveX * 16, 0, false);
           canMove = true; // Mark as handled
@@ -327,7 +332,8 @@ export class MainEngine {
           const verticalTargetX = currentX;
           const verticalTargetY = currentY + (moveY * 16);
 
-          if (MainEngine.current_map && !MainEngine.current_map.getobspixel(verticalTargetX, verticalTargetY)) {
+          if (MainEngine.current_map && !MainEngine.current_map.getobspixel(verticalTargetX, verticalTargetY)
+              && !MainEngine.isEntityObstruction(verticalTargetX, verticalTargetY)) {
             // Vertical movement is possible
             MainEngine.myself.setWaypointRelative(0, moveY * 16, false);
             canMove = true; // Mark as handled

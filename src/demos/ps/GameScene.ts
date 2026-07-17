@@ -206,7 +206,7 @@ export class GameScene extends Phaser.Scene {
     // (isScriptActive blips off mid-mapswitch, hence the extra transition gate)
     if (!isMenuActive && PSGame.canTransport && !MainEngine.isScriptActive() && !MainEngine.isMapTransitionActive()) {
       if (this.inputManager.justPressed('b1')) {
-        this.inputManager.unpress(1); // b1 (Java: unpress(1))
+        this.inputManager.unpress(5); // b1 (Java: unpress(1); TS numbering differs)
         PSGame.verifyTransport().catch(error => console.error('GameScene: verifyTransport error:', error));
       }
     }

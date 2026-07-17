@@ -91,7 +91,14 @@ export class Uzo {
 
   public static async spaceship(): Promise<void> {
     await PSMenu.startSceneWithLargeEntity(PSSceneType.DESERT, LargeEntity.HAPSBY);
-    await PSGame.hapsbyRoutine(City.UZO);
+    const dest = await PSGame.hapsbyRoutine(City.UZO);
+    if (dest !== null) {
+      // Close the scene onto black first — the travel chain is awaited inline
+      // (Java deferred the mapswitch until after endScene)
+      await PSMenu.endSceneToBlack();
+      await PSGame.spaceshipRoutineStart(City.UZO, dest);
+      return;
+    }
     await PSMenu.endSceneWithOutcome(PSOutcome.FADE_HOUSE);
   }
 }

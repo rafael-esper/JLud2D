@@ -6,6 +6,7 @@
 import { PSGame } from '../PSGame';
 import { Planet, City } from '../game/City';
 import { PSSceneType, EntityType, EntityClothes, PSMenu } from '../PSMenu';
+import { PSOutcome } from '../menu/MenuStack';
 
 export class Spaceport2 {
 
@@ -26,11 +27,14 @@ export class Spaceport2 {
     await PSMenu.startScene(PSSceneType.SPACESHIP, EntityType.CITY_MAN_BLOND, EntityClothes.BLUE);
 
     if (await PSMenu.Prompt(PSGame.getString("Paseo_Spaceport_Shuttle"), PSGame.getYesNo()) === 1) {
-      // Travel to Spaceport1 on Palma
-      await PSGame.mapswitchToCity(City.SPACEPORT1, 7, 6);
+      // Java: spaceshipRoutineStart only flags the mapswitch and
+      // endScene(FADE_HOUSE) still runs on the (blacked-out) departure map.
+      // Inline here: close the scene onto black, then run the travel chain.
+      await PSMenu.endSceneToBlack();
+      await PSGame.spaceshipRoutineStart(City.PASEO, City.CAMINEET);
+      return;
     }
-
-    await PSMenu.endScene();
+    await PSMenu.endSceneWithOutcome(PSOutcome.FADE_HOUSE);
   }
 
   /**

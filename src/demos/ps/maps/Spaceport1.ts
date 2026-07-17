@@ -8,6 +8,7 @@ import { Planet, City } from '../game/City';
 import { Flags } from '../game/GameData';
 import { OriginalItem } from '../game/PSLibItem';
 import { PSSceneType, EntityType, EntityClothes, PSMenu } from '../PSMenu';
+import { PSOutcome } from '../menu/MenuStack';
 import { PSMenuShop } from '../PSMenuShop';
 import { Dungeon } from '../game/Dungeon';
 import { MainEngine } from '../../../core/MainEngine';
@@ -43,12 +44,14 @@ export class Spaceport1 {
     await PSMenu.startScene(PSSceneType.SPACESHIP, EntityType.CITY_MAN_BLOND, EntityClothes.BLUE);
 
     if (await PSMenu.Prompt(PSGame.getString("Spaceport_Shuttle"), PSGame.getYesNo()) === 1) {
-      await PSMenu.endScene();
-      // Travel to Spaceport2 on Motavia
-      await PSGame.mapswitchToCity(City.SPACEPORT2, 17, 18);
-    } else {
-      await PSMenu.endScene();
+      // Java: spaceshipRoutineStart only flags the mapswitch and
+      // endScene(FADE_HOUSE) still runs on the (blacked-out) departure map.
+      // Inline here: close the scene onto black, then run the travel chain.
+      await PSMenu.endSceneToBlack();
+      await PSGame.spaceshipRoutineStart(City.CAMINEET, City.PASEO);
+      return;
     }
+    await PSMenu.endSceneWithOutcome(PSOutcome.FADE_HOUSE);
   }
 
   /**

@@ -45,6 +45,9 @@ export class PSGame {
   private static canTransportFlag: boolean = false;
   private static fromCity: City | null = null;
   private static toCity: City | null = null;
+  // Transient: set while arriving so the destination planet's startmap runs
+  // the landing approach instead of another launch (same pad coordinates)
+  private static spaceshipLanding: boolean = false;
 
   // Debug cheat (Talk menu): skip all zone-triggered encounters. Not
   // persisted in saves; boss/story fights (startBattle) are unaffected.
@@ -1227,9 +1230,14 @@ export class PSGame {
   }
 
   /**
-   * Hapsby travel menu - direct port of Java hapsbyRoutine()
+   * Hapsby travel menu - direct port of Java hapsbyRoutine(), except it
+   * returns the chosen destination instead of launching. In Java the launch
+   * only flags a deferred mapswitch and the caller's endScene(FADE_HOUSE)
+   * still runs on the departure map; here the travel chain is awaited inline,
+   * so the caller must close its scene first and then run
+   * spaceshipRoutineStart() with the returned city.
    */
-  public static async hapsbyRoutine(city: City): Promise<void> {
+  public static async hapsbyRoutine(city: City): Promise<City | null> {
     let numCity = 0;
     switch (city) {
       case City.GOTHIC: numCity = 1; break;
@@ -1270,12 +1278,11 @@ export class PSGame {
       }
     }
 
-    if (opt !== 0) {
-      switch (opt) {
-        case 1: await this.spaceshipRoutineStart(city, City.GOTHIC); break;
-        case 2: await this.spaceshipRoutineStart(city, City.UZO); break;
-        case 3: await this.spaceshipRoutineStart(city, City.SKURE); break;
-      }
+    switch (opt) {
+      case 1: return City.GOTHIC;
+      case 2: return City.UZO;
+      case 3: return City.SKURE;
+      default: return null;
     }
   }
 
@@ -1320,8 +1327,12 @@ export class PSGame {
       await ScriptEngine.fadeout(1, true); // Java: screen.paintBlack()
     }
 
+    // Java stops the music right after flagging the deferred switch; here the
+    // mapswitch await runs the ENTIRE travel chain (launch → space → arrival,
+    // including the destination city's music), so stop BEFORE it — stopping
+    // after would silence the city the player just arrived in.
+    this.stopMusic();
     await this.mapswitch(PlanetHelper.getMapPath(planet), x, y, false);
-    this.stopMusic(); // don't play music - the launch animation starts it
   }
 
   /**
@@ -1329,6 +1340,13 @@ export class PSGame {
    * The ship rises from the launch pad, the screen fades, and the Space map loads.
    */
   public static async spaceshipRoutineAnimation(chrSpaceship: string): Promise<void> {
+    // Arriving instead of departing? The destination planet's startmap runs
+    // this for the pad coordinates; route to the landing approach.
+    if (this.spaceshipLanding) {
+      await this.spaceshipLandingAnimation(chrSpaceship);
+      return;
+    }
+
     // Java chr paths: "space/spaceship1.chr" / "space/spaceship2.chr"
     const chrName = chrSpaceship.includes('2') ? 'Spaceship2.anim.json' : 'Spaceship1.anim.json';
     await this.getParty().embark(this.getgotox(), this.getgotoy(), chrName, 'src/demos/ps/space');
@@ -1336,19 +1354,49 @@ export class PSGame {
     MainEngine.setEntitiesPaused(true);
     PSMenu.menuOff();
     this.transportOff();
-    await ScriptEngine.fadein(1, true);
 
+    // The launch branch of the planet startmap skips planetAllocate/setupCamera,
+    // so the camera still carries the previous city map's bounds — rebind them
+    // to this map and center on the launch pad. The camera then holds still
+    // for the liftoff and only starts panning in the chase phase below.
+    MainEngine.setupCamera();
     const e = MainEngine.getPlayer();
+    const camX = e ? e.getx() + e.getHotW() / 2 : 160;
+    let camY = e ? e.gety() + e.getHotH() / 2 : 120;
+    MainEngine.setCameraPosition(camX, camY);
+    MainEngine.setCameraTracking(0);
+    await ScriptEngine.fadein(1, true);
+    // fadein unpauses entities on completion; re-pause so Entity.think can't
+    // drag the ship back toward its stale spawn waypoint (incy doesn't update
+    // waypoints — the pull-back froze the ship on the pad for seconds)
+    MainEngine.setEntitiesPaused(true);
+
     const inputManager = (this.currentScene as any)?.inputManager;
 
+    // Liftoff: the ship accelerates up the fixed screen. Chase: once it has
+    // climbed near the top of the view, the camera pans north with it, so the
+    // ship rides just under the top edge while the planet scrolls by beneath
+    // for the rest of the run (entity coords and render wrap on these maps,
+    // and setCameraPosition wraps the scroll, so crossing the seam is seamless).
+    const CHASE_GAP = 56; // px above screen center where the chase engages
+    let risen = 0;
     let velocity = 0;
     while (velocity++ < 320) {
-      if (velocity > 150 && inputManager?.b1) {
-        inputManager.unpress(1);
+      // Java: skippable with b1 once past velocity 150 (b2 accepted here too)
+      if (velocity > 150 && (inputManager?.b1 || inputManager?.b2)) {
+        inputManager.unpress(5); // b1
+        inputManager.unpress(6); // b2
         break;
       }
 
-      e?.incy(-Math.floor(velocity / 25));
+      const dy = Math.floor(velocity / 25);
+      e?.incy(-dy);
+      risen += dy;
+      if (risen > CHASE_GAP) {
+        camY -= dy;
+        MainEngine.setCameraPosition(camX, camY);
+      }
+
       if (velocity % 5 === 0 || velocity % 16 === 0) {
         velocity++;
       }
@@ -1372,14 +1420,24 @@ export class PSGame {
       ? 'Spaceship1.anim.json' : 'Spaceship2.anim.json';
     await this.getParty().embark(this.getgotox(), this.getgotoy(), chrName, 'src/demos/ps/space');
 
+    // Bind the camera to the Space map and center on the ship before the
+    // reveal; tracking stays ON here so the camera follows the ship up past
+    // the departure planet, through the starfield, to the arrival planet
+    MainEngine.setupCamera();
+    MainEngine.handleCameraTracking();
+
     await ScriptEngine.fadein(30, true);
+    // Re-pause: fadein unpauses on completion, and Entity.think would pull
+    // the ship back toward its spawn waypoint, eating 4 of the 5 px/frame
+    MainEngine.setEntitiesPaused(true);
     const e = MainEngine.getPlayer();
     const inputManager = (this.currentScene as any)?.inputManager;
 
     let count = 0;
     while (count++ < 300) {
-      if (inputManager?.b1) {
-        inputManager.unpress(1);
+      if (inputManager?.b1 || inputManager?.b2) {
+        inputManager.unpress(5); // b1
+        inputManager.unpress(6); // b2
         break;
       }
       if (count > 15) {
@@ -1388,12 +1446,103 @@ export class PSGame {
       await this.waitFrames(1);
     }
 
+    await ScriptEngine.fadeout(30, true);
+
+    // Land at the destination pad — the reverse of the launch. (Java cut from
+    // the space flight straight into the destination city; the landing
+    // approach is an intentional addition.) The planet's startmap sees the
+    // pad coordinates and routes into spaceshipLandingAnimation via the flag.
+    this.spaceshipLanding = true;
+    switch (this.getToCity()) {
+      case City.CAMINEET:
+        await this.mapswitchShip(Planet.PALMA, 70, 46);
+        break;
+      case City.PASEO:
+        this.gameData.visitedCities.add(City.PASEO);
+        await this.mapswitchShip(Planet.MOTAVIA, 79, 43);
+        break;
+      case City.GOTHIC:
+        await this.mapswitchShip(Planet.PALMA, 52, 56);
+        break;
+      case City.UZO:
+        await this.mapswitchShip(Planet.MOTAVIA, 92, 64);
+        break;
+      case City.SKURE:
+        this.gameData.visitedCities.add(City.SKURE);
+        await this.mapswitchShip(Planet.DEZORIS, 171, 72);
+        break;
+      default:
+        this.spaceshipLanding = false;
+    }
+  }
+
+  /**
+   * Spaceship landing: the camera holds still on the destination pad while
+   * the ship rises into view from below the screen, decelerating until it
+   * settles on the pad, then the destination city loads. Reached through the
+   * destination planet's startmap (same pad coordinates as a launch) while
+   * spaceshipLanding is set.
+   */
+  private static async spaceshipLandingAnimation(chrSpaceship: string): Promise<void> {
+    this.spaceshipLanding = false;
+
+    const chrName = chrSpaceship.includes('2') ? 'Spaceship2.anim.json' : 'Spaceship1.anim.json';
+    await this.getParty().embark(this.getgotox(), this.getgotoy(), chrName, 'src/demos/ps/space');
+    this.playSound(PS1Sound.SPACESHIP);
+    MainEngine.setEntitiesPaused(true);
+    PSMenu.menuOff();
+    this.transportOff();
+
+    const e = MainEngine.getPlayer();
+    const padY = e?.gety() ?? 0;
+
+    // Approach profile: dy = floor(v/25) px/frame for v = V_START..1, so the
+    // ship comes in at 4 px/frame and eases to a stop exactly on the pad.
+    // The travel distance places its start below the bottom screen edge.
+    const V_START = 120;
+    let travel = 0;
+    for (let v = V_START; v >= 1; v--) {
+      travel += Math.floor(v / 25);
+    }
+    e?.sety(padY + travel);
+
+    // Camera fixed on the pad for the whole approach
+    MainEngine.setupCamera();
+    MainEngine.setCameraTracking(0);
+    if (e) {
+      MainEngine.setCameraPosition(e.getx() + 8, padY + 8);
+    }
+    await ScriptEngine.fadein(1, true);
+    // Re-pause: fadein unpauses on completion, and Entity.think would drag
+    // the ship toward its stale waypoint, corrupting the approach
+    MainEngine.setEntitiesPaused(true);
+
+    const inputManager = (this.currentScene as any)?.inputManager;
+
+    for (let v = V_START; v >= 1; v--) {
+      if (inputManager?.b1 || inputManager?.b2) {
+        inputManager.unpress(5); // b1
+        inputManager.unpress(6); // b2
+        e?.sety(padY); // snap onto the pad
+        break;
+      }
+
+      const dy = Math.floor(v / 25);
+      if (dy > 0) {
+        e?.incy(-dy);
+      }
+      await this.waitFrames(1);
+    }
+    e?.sety(padY); // exact touchdown regardless of rounding
+
+    // A short dwell on the pad before the city fade
+    await this.waitFrames(25);
+
     switch (this.getToCity()) {
       case City.CAMINEET:
         await this.mapswitchToCity(City.SPACEPORT1, 7, 6);
         break;
       case City.PASEO:
-        this.gameData.visitedCities.add(City.PASEO);
         await this.mapswitchToCity(City.SPACEPORT2, 17, 18);
         break;
       case City.GOTHIC:
@@ -1403,7 +1552,6 @@ export class PSGame {
         await this.mapswitchToCity(City.UZO, 30, 19);
         break;
       case City.SKURE:
-        this.gameData.visitedCities.add(City.SKURE);
         await this.mapswitchToCity(City.SKURE_ENTRANCE, 20, 14);
         break;
     }

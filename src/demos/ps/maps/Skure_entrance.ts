@@ -21,7 +21,14 @@ export class Skure_entrance {
 
   public static async spaceship(): Promise<void> {
     await PSMenu.startSceneWithLargeEntity(PSSceneType.ARTIC, LargeEntity.HAPSBY);
-    await PSGame.hapsbyRoutine(City.SKURE);
+    const dest = await PSGame.hapsbyRoutine(City.SKURE);
+    if (dest !== null) {
+      // Close the scene onto black first — the travel chain is awaited inline
+      // (Java deferred the mapswitch until after endScene)
+      await PSMenu.endSceneToBlack();
+      await PSGame.spaceshipRoutineStart(City.SKURE, dest);
+      return;
+    }
     await PSMenu.endSceneWithOutcome(PSOutcome.FADE_HOUSE);
   }
 }

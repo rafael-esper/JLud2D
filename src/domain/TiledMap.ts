@@ -548,6 +548,32 @@ export class TiledMap {
   public getFilename(): string { return this.filename; }
   public getRenderstring(): string { return this.renderstring; }
 
+  /**
+   * Change the layer/entity render order at runtime — Java Map.setRenderstring.
+   * Scripts use it to move an overhead layer below the player, e.g. the
+   * spaceship launch: "1,E,2,R" → "1,2,E,R" so the rising ship draws over the
+   * spaceport. Re-stacks the created tile layers (and their wrap copies) with
+   * the same depth rule as createLayers; entities pick up the new base depth
+   * on the next RenderEntities pass (it re-reads getEntityDepth every frame).
+   */
+  public setRenderstring(renderstring: string): void {
+    this.renderstring = renderstring;
+    if (!this.mapData) return;
+
+    const entityLayerPosition = this.getEntityLayerPosition();
+    let layerIndex = 0;
+    for (const layerData of this.mapData.layers) {
+      if (layerData.type !== 'tilelayer' || !layerData.visible) continue;
+
+      const depth = layerIndex < entityLayerPosition ? layerIndex : layerIndex + 1;
+      this.layers[layerData.name]?.setDepth(depth);
+      for (const copy of this.wrapCopies[layerData.name] ?? []) {
+        copy.setDepth(depth);
+      }
+      layerIndex++;
+    }
+  }
+
   // Setters for wrapping properties
   public isHorizontalWrappable(): boolean {
     return this.horizontalWrappable;

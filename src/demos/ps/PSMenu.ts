@@ -493,6 +493,29 @@ export class PSMenu {
   }
 
   /**
+   * End the scene fading to black and stay black. Used before the spaceship
+   * travel chain: in Java the mapswitch was deferred so endScene(FADE_HOUSE)
+   * ran on a map that was already off (black); here the caller closes the
+   * scene with this and then awaits the travel chain, which reveals the
+   * launch pad itself. Controls/entities stay gated for the same reason.
+   */
+  public static async endSceneToBlack(): Promise<void> {
+    PSMenu.instance.npc = null;
+    PSMenu.instance.clearEntity();
+    const backAnim = PSMenu.instance.backAnim;
+    PSMenu.instance.backAnim = null;
+
+    while (PSMenu.instance.hasMenu()) {
+      PSMenu.instance.pop();
+    }
+    PSMenu.instance.clearGraphics();
+
+    await ScriptEngine.fadeout(25, false);
+    backAnim?.destroy?.();
+    PSMenu.instance.setBackground('');
+  }
+
+  /**
    * End scene with specific outcome - direct port of Java endScene(Outcome)
    */
   public static async endSceneWithOutcome(outcome: PSOutcome): Promise<void> {
