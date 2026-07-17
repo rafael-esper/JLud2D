@@ -17,8 +17,10 @@ import { ScreenSize, GameType, Flags, GameData } from './game/GameData';
 import { Dungeon, DungeonHelper } from './game/Dungeon';
 import { CHR } from '../../domain/CHR';
 import { PS1CHR, PS1CHRHelper } from './game/PSLibCHR';
-import { Item } from './game/Item';
+import { Item, ItemType } from './game/Item';
 import { OriginalItem, PSLibItem } from './game/PSLibItem';
+import { PS1Spell, SpellFactory, PSLibSpell } from './game/PSLibSpell';
+import { Effect } from './game/PSEffect';
 import { PSLibEnemy, GenericEnemy } from './game/PSLibEnemy';
 import { VImage } from './menu/MenuImageBox';
 import { I18nManager } from './game/I18nManager';
@@ -2092,50 +2094,110 @@ export class PSGame {
     // 3. Show initial "Chest Found!" text
     await PSMenu.StextFirst(this.getString("Chest_Found"));
 
-    // 4. Trap detection (if Myau is in party)
-    if (trapped !== Trapped.NO_TRAP && this.getParty().hasMember("Myau")) {
-      await PSMenu.PromptNext(this.getString("Chest_Myau_Sniff"), this.getYesNo());
-      await PSMenu.PromptNext(this.getString("Chest_Trap"), this.getYesNo());
-    }
+    // 4. Members who know the Trap (Untrap) spell get a third prompt option
+    const membersWhoKnowTrap = this.getParty().getMembers()
+      .filter(pm => pm.spells.some(s => s.getEffect() === Effect.TRAP));
 
-    // 5. Ask "Open chest?" with YES/NO menu
-    const openChestChoice = await PSMenu.PromptNext(
-      this.getString("Chest_Open"),
-      this.getYesNo()
-    );
+    // 5. Ask "Open chest?" — Yes / [Untrap] / No
+    let openChest = 0;
+    let trapSpell = false;
+    if (membersWhoKnowTrap.length > 0) {
+      openChest = await PSMenu.PromptNext(this.getString("Chest_Open"),
+        [this.getString("Menu_Choice_Yes"), this.getString("Spell_Untrap"), this.getString("Menu_Choice_No")]);
+      if (openChest === 2) {
+        // Cast Untrap with the first member who can pay the MP cost
+        let chosenMember = membersWhoKnowTrap[0];
+        let counter = 0;
+        while (chosenMember.getMp() < SpellFactory.createSpell(PS1Spell.TRAP).getMpCost()
+               && counter < membersWhoKnowTrap.length - 1) {
+          chosenMember = membersWhoKnowTrap[++counter];
+        }
+
+        const trapSpellObj = SpellFactory.createSpell(PS1Spell.TRAP);
+        const effect = await PSLibSpell.prepareSpell(trapSpellObj, chosenMember);
+        if (effect) {
+          // TRAP_CHEST is a no-op effect: the spell just spends MP and always
+          // "removes" the trap — the chest opens safely below
+          effect.setEffect(Effect.TRAP_CHEST);
+          await PSLibSpell.castSpell(trapSpellObj, effect);
+          trapSpell = true;
+        } else {
+          openChest = 3; // no MP: falls through to "not opened"
+        }
+      }
+    } else {
+      openChest = await PSMenu.PromptNext(this.getString("Chest_Open"), this.getYesNo());
+    }
 
     let chestOpened = false;
 
-    if (openChestChoice === 1) {  // YES is first option; PromptNext returns 1-indexed
-      chestOpened = true;
+    if (openChest === 1 || (openChest === 2 && membersWhoKnowTrap.length > 0)) {
       this.playSound(PS1Sound.CHEST);
 
-      // 6. Play opening animation — run drawMenus() each frame until animation finishes
-      chestSprite.animate(MenuState.ANIM1);
+      // 6. Opening animation + trap resolution (Java: traps have no text of
+      //    their own — the animation, sound and damage tell the story)
+      if (trapSpell) {
+        if (trapped === Trapped.NO_TRAP) {
+          await PSMenu.StextLast(this.getString("Dungeon_No_Trap"));
+        } else {
+          await PSMenu.StextLast(this.getString("Dungeon_Trap"));
+        }
+        chestSprite.animate(MenuState.ANIM1);
+      } else if (trapped === Trapped.NO_TRAP) {
+        chestSprite.animate(MenuState.ANIM1);
+      } else if (trapped === Trapped.EXPLOSION) {
+        chestSprite.animate(MenuState.ANIM1);
+        await PSMenu.instance.waitAnimationEnd(chestSprite);
+
+        chestSprite.animate(MenuState.ANIM2);
+        this.playSound(PS1Sound.TRAP_EXPLOSION);
+        // Damage all alive members
+        for (const member of this.getParty().getMembers()) {
+          if (member.getHp() > 0) {
+            member.setHp(Math.max(1, member.getHp() - ScriptEngine.random(10, 25)
+              - Math.floor((member.getMaxHp() * ScriptEngine.random(20, 30)) / 100)));
+          }
+        }
+      } else if (trapped === Trapped.ARROW) {
+        chestSprite.animate(MenuState.ANIM1);
+        await PSMenu.instance.waitAnimationEnd(chestSprite);
+
+        chestSprite.animate(MenuState.ANIM3);
+        this.playSound(PS1Sound.TRAP_ARROW);
+        // Damage one random alive member
+        const members = this.getParty().getMembers();
+        let randomMember = members[ScriptEngine.random(0, members.length - 1)];
+        while (randomMember.getHp() <= 0) {
+          randomMember = members[ScriptEngine.random(0, members.length - 1)];
+        }
+        randomMember.setHp(Math.max(1, randomMember.getHp() - ScriptEngine.random(5, 15)
+          - Math.floor((randomMember.getMaxHp() * ScriptEngine.random(10, 15)) / 100)));
+      }
+
       await PSMenu.instance.waitAnimationEnd(chestSprite);
 
-      // 7. Handle traps
-      if (trapped === Trapped.EXPLOSION) {
-        chestSprite.animate(MenuState.ANIM2);
-        await PSMenu.instance.waitAnimationEnd(chestSprite);
-        await PSMenu.StextNext(this.getString("Chest_Explosion"));
-        // TODO: Damage all party members
-      } else if (trapped === Trapped.ARROW) {
-        chestSprite.animate(MenuState.ANIM3);
-        await PSMenu.instance.waitAnimationEnd(chestSprite);
-        await PSMenu.StextNext(this.getString("Chest_Arrow"));
-        // TODO: Damage random party member
-      }
-
-      // 8. Show rewards
+      // 7. Rewards
+      chestOpened = true;
       if (mesetas > 0) {
+        if (!item) {
+          await PSMenu.StextLast(this.getString("Chest_Mesetas", "<number>", mesetas.toString()));
+        } else {
+          await PSMenu.StextNext(this.getString("Chest_Mesetas", "<number>", mesetas.toString()));
+        }
         this.getParty().addMesetas(mesetas);
-        await PSMenu.StextNext(this.getString("Chest_Mesetas", "<number>", mesetas.toString()));
       }
-
       if (item) {
-        this.getParty().checkForFullAndAddItem(item);
-        await PSMenu.StextNext(this.getString("Chest_Item", "<item>", item.getName()));
+        await PSMenu.StextLast(this.getString("Chest_Item", "<item>", item.getName()));
+        if (item.type === ItemType.QUEST) {
+          this.getParty().addQuestItem(item);
+        } else {
+          // A full inventory refuses the item — the chest stays closed so the
+          // player can come back for it
+          chestOpened = this.getParty().checkForFullAndAddItem(item);
+        }
+      }
+      if (mesetas === 0 && !item) {
+        await PSMenu.StextLast(this.getString("Chest_Empty"));
       }
     }
 
