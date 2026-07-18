@@ -144,9 +144,25 @@ export class Entity {
     // speeds (the Slow level, or slow NPCs) fall back to a fractional
     // accumulator in speedct so they still creep along.
     const maxStep = this.getSpeed() / 50; // px/frame at Max (Max reproduces the old rate)
-    const target = maxStep * GameSpeed.entitySpeedFactor();
+    let target = maxStep * GameSpeed.entitySpeedFactor();
+
+    // moveTick() advances both axes a full pixel on a diagonal tick, covering
+    // sqrt(2)px of Euclidean distance instead of 1px — without correction the
+    // entity moves ~41% faster diagonally than on a straight axis. Scale the
+    // per-frame budget down by 1/sqrt(2) so ticks-per-frame converge to the
+    // same real-world speed. This makes target irrational, so — unlike the
+    // whole-speed case above — always route it through the fractional
+    // accumulator instead of Math.round: rounding an irrational value fresh
+    // every frame would discard the remainder each time and drift low,
+    // whereas the accumulator carries it forward for a correct long-run
+    // average (the same trick already used for sub-1px/frame speeds).
+    const diagonal = (this.waypointx - this.x) !== 0 && (this.waypointy - this.y) !== 0;
+    if (diagonal) {
+      target /= Math.SQRT2;
+    }
+
     let numTicks: number;
-    if (target >= 1) {
+    if (target >= 1 && !diagonal) {
       numTicks = Math.round(target);
       this.speedct = 0;
     } else {
