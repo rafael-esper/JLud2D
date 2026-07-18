@@ -120,7 +120,10 @@ export class Tajima_cave {
         const battlerList: Battler[] = [];
         battlerList.push(noah);
         battlerList.push(new EnemyBattler(tajima));
-        PSMenu.instance.entitySprite = null;
+        // Destroy the Tajim NPC sprite from startSceneWithCHR above — nulling
+        // the reference alone leaks it, leaving it on screen behind the
+        // battle's own Tajima enemy sprite (duplicated Tajim).
+        PSMenu.instance.clearEntity();
         const battleResult = await battle.startBattleWithBattlers(battlerList);
         await PSMenu.startSceneWithCHR(PSSceneType.CORRIDOR, tajima.getChr());
         if (battleResult === BattleOutcome.WIN) {
