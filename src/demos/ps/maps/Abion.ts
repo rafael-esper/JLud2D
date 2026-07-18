@@ -126,7 +126,11 @@ export class Abion {
       } else {
         await PSMenu.StextLast(PSGame.getString("Abion_DrMadNo"));
       }
-      PSMenu.instance.entitySprite = null;
+      // Destroy the vendor-style CHR sprite (nulling the reference alone leaks
+      // the Phaser image) and wipe the Prompt's lingering text box (see
+      // PSMenu.PromptInternal) so neither shows behind the battle.
+      PSMenu.instance.clearEntity();
+      PSMenu.instance.clearMenus();
       const battle = new PSBattle();
       outcome = await battle.startBattle([drmad], PS1Music.BATTLE);
       if (outcome === BattleOutcome.WIN) {

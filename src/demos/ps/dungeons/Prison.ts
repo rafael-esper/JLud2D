@@ -97,6 +97,9 @@ export class Prison {
         await PSGame.warp(11, 21, false);
       } else {
         await PSMenu.StextLast(PSGame.getString("Gate_Baya_Malay_RobotNo"));
+        // Wipe the Prompt's lingering text box ("Do you have a roadpass?")
+        // so it doesn't show over the battle scene.
+        PSMenu.instance.clearMenus();
         const battle = new PSBattle();
         outcome = await battle.battleScene(PSSceneType.CORRIDOR, robotcop, 3); // Java: changed to 3
       }

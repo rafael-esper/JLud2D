@@ -66,7 +66,11 @@ export class Lassic_castle {
         await PSMenu.StextLast(PSGame.getString("Dark_Castle_LassicNo"));
       }
 
-      PSMenu.instance.entitySprite = null;
+      // Destroy the vendor-style CHR sprite (nulling the reference alone leaks
+      // the Phaser image) and wipe the Prompt's lingering text box so neither
+      // shows behind the battle.
+      PSMenu.instance.clearEntity();
+      PSMenu.instance.clearMenus();
       const battle = new PSBattle();
       const outcome = await battle.startBattle([lassic], PS1Music.LASSIC);
 

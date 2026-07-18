@@ -1317,7 +1317,7 @@ export class PSGame {
    * Switch to a planet map for the spaceship launch - direct port of
    * Java mapswitchShip() (no fade, no music; the launch animation follows)
    */
-  public static async mapswitchShip(planet: Planet, x: number, y: number): Promise<void> {
+  public static async mapswitchShip(planet: Planet, x: number, y: number, stopCurrentMusic: boolean = true): Promise<void> {
     this.gameData.current_dungeon = Dungeon.NONE;
     this.gameData.current_city = null;
     this.gameData.current_planet = planet;
@@ -1330,8 +1330,14 @@ export class PSGame {
     // Java stops the music right after flagging the deferred switch; here the
     // mapswitch await runs the ENTIRE travel chain (launch → space → arrival,
     // including the destination city's music), so stop BEFORE it — stopping
-    // after would silence the city the player just arrived in.
-    this.stopMusic();
+    // after would silence the city the player just arrived in. Only applies to
+    // the departure leg (spaceshipRoutineStart) — the arrival leg
+    // (spaceshipRoutineEnd) passes false so Transport keeps playing through
+    // the landing approach and only stops when mapswitchToCity's music takes
+    // over at the actual disembark.
+    if (stopCurrentMusic) {
+      this.stopMusic();
+    }
     await this.mapswitch(PlanetHelper.getMapPath(planet), x, y, false);
   }
 
@@ -1455,21 +1461,21 @@ export class PSGame {
     this.spaceshipLanding = true;
     switch (this.getToCity()) {
       case City.CAMINEET:
-        await this.mapswitchShip(Planet.PALMA, 70, 46);
+        await this.mapswitchShip(Planet.PALMA, 70, 46, false);
         break;
       case City.PASEO:
         this.gameData.visitedCities.add(City.PASEO);
-        await this.mapswitchShip(Planet.MOTAVIA, 79, 43);
+        await this.mapswitchShip(Planet.MOTAVIA, 79, 43, false);
         break;
       case City.GOTHIC:
-        await this.mapswitchShip(Planet.PALMA, 52, 56);
+        await this.mapswitchShip(Planet.PALMA, 52, 56, false);
         break;
       case City.UZO:
-        await this.mapswitchShip(Planet.MOTAVIA, 92, 64);
+        await this.mapswitchShip(Planet.MOTAVIA, 92, 64, false);
         break;
       case City.SKURE:
         this.gameData.visitedCities.add(City.SKURE);
-        await this.mapswitchShip(Planet.DEZORIS, 171, 72);
+        await this.mapswitchShip(Planet.DEZORIS, 171, 72, false);
         break;
       default:
         this.spaceshipLanding = false;
@@ -1488,7 +1494,9 @@ export class PSGame {
 
     const chrName = chrSpaceship.includes('2') ? 'Spaceship2.anim.json' : 'Spaceship1.anim.json';
     await this.getParty().embark(this.getgotox(), this.getgotoy(), chrName, 'src/demos/ps/space');
-    this.playSound(PS1Sound.SPACESHIP);
+    // No playSound(SPACESHIP) here — Java only plays it once, on departure
+    // (spaceshipRoutineAnimation above); this landing approach is a TS-only
+    // addition (Java cut straight from the space flight to the destination city).
     MainEngine.setEntitiesPaused(true);
     PSMenu.menuOff();
     this.transportOff();

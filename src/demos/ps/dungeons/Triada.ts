@@ -126,10 +126,13 @@ export class Triada {
           await PSMenu.StextLast(PSGame.getString("Triada_RobotYes"));
         } else {
           await PSMenu.StextLast(PSGame.getString("Spaceport_People_Cop_YesLie"));
+          // Wipe the Prompt's lingering text box so it doesn't show over the battle scene.
+          PSMenu.instance.clearMenus();
           outcome = await battle.battleScene(PSSceneType.CORRIDOR, robotcop, 1);
         }
       } else {
         await PSMenu.StextLast(PSGame.getString("Triada_RobotNo"));
+        PSMenu.instance.clearMenus();
         outcome = await battle.battleScene(PSSceneType.CORRIDOR, robotcop, 1);
       }
 

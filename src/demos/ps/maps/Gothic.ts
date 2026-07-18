@@ -30,19 +30,31 @@ export class Gothic {
     }
 
     // Java: when SPACESHIP_AREA is set, remove the obstacle at (13,14) and
-    // nudge entity 0 away (entitymove "L1 U1 F0" approximated with a direct offset)
+    // nudge entity 0 away (entitymove "L1 U1 F0")
     if (PSGame.hasFlag(Flags.SPACESHIP_AREA)) {
       MainEngine.getCurrentMap()?.setobs(13, 14, 0);
-      Gothic.nudgeSpaceshipEntity();
+      void Gothic.nudgeSpaceshipEntity();
     }
   }
 
-  private static nudgeSpaceshipEntity(): void {
+  // Port of Java entitymove(0, "L1 U1 F0") — walks the entity one tile west,
+  // then one tile north, then faces south. Java's do_movescript() only starts
+  // the next leg once the entity is ready() (at its waypoint), so this is a
+  // real walk over several frames, not a teleport; the caller doesn't await
+  // it, matching entitymove's fire-and-forget queuing in Java.
+  private static async nudgeSpaceshipEntity(): Promise<void> {
     const e = MainEngine.getEntity(0);
-    if (e) {
-      e.setxy(e.getx() - 16, e.gety() - 16);
-      e.setFace(EntityDirection.NORTH);
-    }
+    if (!e) return;
+
+    e.setFace(EntityDirection.WEST);
+    e.setWaypointRelative(-16, 0, false);
+    while (!e.ready()) await PSGame.waitFrames(1);
+
+    e.setFace(EntityDirection.NORTH);
+    e.setWaypointRelative(0, -16, false);
+    while (!e.ready()) await PSGame.waitFrames(1);
+
+    e.setFace(EntityDirection.SOUTH);
   }
 
   public static async hospital(): Promise<void> {
@@ -149,7 +161,7 @@ export class Gothic {
       await PSMenu.Stext(PSGame.getString("Gothic_People_Ent3_hapsby"));
       if (!PSGame.hasFlag(Flags.SPACESHIP_AREA)) {
         MainEngine.getCurrentMap()?.setobs(13, 14, 0);
-        Gothic.nudgeSpaceshipEntity();
+        void Gothic.nudgeSpaceshipEntity();
       }
       PSGame.setFlag(Flags.SPACESHIP_AREA);
     }
