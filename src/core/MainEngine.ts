@@ -302,8 +302,16 @@ export class MainEngine {
           const verticalX = currentX;
           const verticalY = currentY + (moveY * 16);
 
-          const horizontalBlocked = MainEngine.current_map.getobspixel(horizontalX, horizontalY) || MainEngine.isEntityObstruction(horizontalX, horizontalY);
-          const verticalBlocked = MainEngine.current_map.getobspixel(verticalX, verticalY) || MainEngine.isEntityObstruction(verticalX, verticalY);
+          // Map obstruction uses the artwork at the exact corner being cut
+          // through, not the whole flanking tile — a partially-drawn tile
+          // (e.g. a diagonal wall) can leave that corner open even though
+          // the tile itself is obstruction-flagged.
+          const flank = MainEngine.current_map.getDiagonalFlankObstruction(
+            Math.floor(currentX / 16), Math.floor(currentY / 16), moveX, moveY
+          );
+
+          const horizontalBlocked = flank.horizontalBlocked || MainEngine.isEntityObstruction(horizontalX, horizontalY);
+          const verticalBlocked = flank.verticalBlocked || MainEngine.isEntityObstruction(verticalX, verticalY);
 
           // If both adjacent cells are blocked, don't allow diagonal movement through the corner
           if (horizontalBlocked && verticalBlocked) {

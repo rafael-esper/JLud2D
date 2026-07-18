@@ -63,6 +63,11 @@ export class TiledMap {
   // Java constants ported from MapTiledJSON.java
   private static readonly META_LAYER = 2; // Meta layer offset from end
   private static readonly ZONE_OFFSET = 19; // Obs offset for tile IDs
+  private static readonly NUMOBS = 20; // Java Tileset.NUMOBS — meta tiles with per-pixel obs art
+
+  // Per-pixel obstruction masks (Java Tileset.obsPixels), built once per meta tileset
+  // image and shared across every map that references it (e.g. default.meta.png).
+  private static obsPixelsCache: Map<string, Uint8Array> = new Map();
 
   // Map properties
   private width: number = 30;
@@ -954,11 +959,11 @@ export class TiledMap {
 
 
   /**
-   * Get obstacle at tile coordinates (Java getobs method)
+   * Resolve the Meta layer tile at (x, y), applying the same wrap-around
+   * mod arithmetic as Java's MapTiledJSON.getobspixel. Returns null when the
+   * coordinate is off an unwrappable edge (caller should treat that as blocked).
    */
-  public getobs(x: number, y: number): boolean {
-    // On wrappable axes a coordinate past the edge refers to the opposite
-    // side of the map (Java MapTiledJSON.getobspixel mod arithmetic)
+  private resolveMetaTile(x: number, y: number): number | null {
     if (this.horizontalWrappable) {
       x = ((x % this.width) + this.width) % this.width;
     }
@@ -966,18 +971,25 @@ export class TiledMap {
       y = ((y % this.height) + this.height) % this.height;
     }
     if (x < 0 || y < 0 || x >= this.getWidth() || y >= this.getHeight()) {
+      return null;
+    }
+
+    if (!this.mapData || !this.mapData.layers || this.mapData.layers.length === 0) {
+      return 0;
+    }
+
+    const metaLayerIndex = this.mapData.layers.length - TiledMap.META_LAYER;
+    return this.gettile(x, y, metaLayerIndex);
+  }
+
+  /**
+   * Get obstacle at tile coordinates (Java getobs method)
+   */
+  public getobs(x: number, y: number): boolean {
+    const metaTile = this.resolveMetaTile(x, y);
+    if (metaTile === null) {
       return true;
     }
-
-    // Check Meta layer for obstructions (simple version)
-    if (!this.mapData || !this.mapData.layers || this.mapData.layers.length === 0) {
-      return false;
-    }
-
-    // Find Meta layer by name
-    let metaLayerIndex = this.mapData.layers.length - TiledMap.META_LAYER;
-    const metaTile = this.gettile(x, y, metaLayerIndex);
-
     return this.isObs(metaTile);
   }
 
@@ -990,6 +1002,108 @@ export class TiledMap {
     return this.getobs(tileX, tileY);
   }
 
+  /**
+   * For a diagonal step, checks whether the two tiles flanking the move
+   * (reached by moving only X, or only Y — see MainEngine.ProcessControls)
+   * actually cover the exact corner the player is cutting through. A meta
+   * tile that's obstruction-flagged but only partially drawn (e.g. a "\" or
+   * "/" diagonal wall, meta index 3/4) leaves two of its four corners open;
+   * this samples the tileset artwork at that specific corner instead of
+   * treating the whole tile as solid, so a diagonal step through the open
+   * corner of such tiles isn't blocked the way a fully-solid tile would be.
+   */
+  public getDiagonalFlankObstruction(
+    currentTileX: number,
+    currentTileY: number,
+    moveX: number,
+    moveY: number
+  ): { horizontalBlocked: boolean; verticalBlocked: boolean } {
+    const targetTileX = currentTileX + moveX;
+    const targetTileY = currentTileY + moveY;
+    const tw = this.tilewidth;
+    const th = this.tileheight;
+
+    // The shared corner point sits on the "far" edge of each flanking tile
+    // in the axis it moved along, and the "near" edge in the axis it didn't.
+    const horizontalBlocked = this.isTileCornerObstructed(
+      targetTileX, currentTileY,
+      moveX > 0 ? 0 : tw - 1,
+      moveY > 0 ? th - 1 : 0
+    );
+    const verticalBlocked = this.isTileCornerObstructed(
+      currentTileX, targetTileY,
+      moveX > 0 ? tw - 1 : 0,
+      moveY > 0 ? 0 : th - 1
+    );
+
+    return { horizontalBlocked, verticalBlocked };
+  }
+
+  private isTileCornerObstructed(tileX: number, tileY: number, px: number, py: number): boolean {
+    const metaTile = this.resolveMetaTile(tileX, tileY);
+    if (metaTile === null) {
+      return true;
+    }
+    if (!this.isObs(metaTile)) {
+      return false;
+    }
+
+    const obsPixels = this.getMetaObsPixels();
+    const firstGid = this.getMetaTileset().getFirstGid();
+    const localTile = metaTile - firstGid;
+    if (localTile <= 0) {
+      return false;
+    }
+    if (!obsPixels || localTile >= TiledMap.NUMOBS) {
+      return true; // no art data, or a zone-encoded obstruction — fail safe to full block
+    }
+
+    return obsPixels[localTile * this.tilewidth * this.tileheight + py * this.tilewidth + px] !== 0;
+  }
+
+  /**
+   * Build (once per meta tileset image, cached across maps) a per-pixel
+   * obstruction mask from the tileset artwork itself — Java's Tileset.loadTiles
+   * treats any non-transparent pixel in the first NUMOBS tiles as obstructed.
+   * Returns null until the tileset's texture has finished loading.
+   */
+  private getMetaObsPixels(): Uint8Array | null {
+    const tilesetData = this.mapData ? this.mapData.tilesets[this.mapData.tilesets.length - 1] : null;
+    if (!tilesetData) return null;
+
+    const imageKey = `tileset-${tilesetData.image.replace('.png', '')}`;
+    const cached = TiledMap.obsPixelsCache.get(imageKey);
+    if (cached) return cached;
+
+    if (!this.scene.textures.exists(imageKey)) return null;
+    const source = this.scene.textures.get(imageKey).getSourceImage();
+    if (!(source instanceof HTMLImageElement || source instanceof HTMLCanvasElement)) return null;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = tilesetData.imagewidth;
+    canvas.height = tilesetData.imageheight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(source, 0, 0);
+
+    const { tilewidth, tileheight, columns, margin = 0, spacing = 0 } = tilesetData;
+    const obsPixels = new Uint8Array(TiledMap.NUMOBS * tilewidth * tileheight);
+
+    for (let t = 0; t < TiledMap.NUMOBS; t++) {
+      const tileX = margin + (t % columns) * (tilewidth + spacing);
+      const tileY = margin + Math.floor(t / columns) * (tileheight + spacing);
+      const imageData = ctx.getImageData(tileX, tileY, tilewidth, tileheight).data;
+      for (let py = 0; py < tileheight; py++) {
+        for (let px = 0; px < tilewidth; px++) {
+          const alpha = imageData[(py * tilewidth + px) * 4 + 3];
+          obsPixels[t * tilewidth * tileheight + py * tilewidth + px] = alpha === 0 ? 0 : 1;
+        }
+      }
+    }
+
+    TiledMap.obsPixelsCache.set(imageKey, obsPixels);
+    return obsPixels;
+  }
 
   public isObs(t: number): boolean {
        const firstGid = this.getMetaTileset().getFirstGid();
