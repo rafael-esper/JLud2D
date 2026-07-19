@@ -566,6 +566,12 @@ export class PSMenu {
       // overworld ProcessControls can't change the player's facing between here
       // and warpBack (which reads that facing to pick the step-back direction).
       MainEngine.setScriptActive(true);
+      // Clear scene background (e.g. ALTAR) now that the screen is black. It's
+      // masked by the dungeon render texture while walking, but a later exit
+      // (e.g. Bypass) hides that texture and would expose this orphaned sprite
+      // on top of the next map if it isn't destroyed here.
+      backAnim?.destroy?.();
+      PSMenu.instance.setBackground('');
       // Java: PSDungeon.warpBack(2) — step off the event tile so it doesn't
       // re-trigger, redraw the view while black, then reveal it (the Phaser
       // camera fade persists until an explicit fadein, unlike Java's screen).
@@ -826,10 +832,7 @@ export class PSMenu {
    * Set map render mode off - direct port of Java setMapOff()
    */
   public static setMapOff(): void {
-    // TODO: Implement map rendering control
-    // if (current_map !== null) {
-    //   current_map.setRenderstring('R');
-    // }
+    PSGame.currentDungeon?.hideRenderTexture();
   }
 
   /**

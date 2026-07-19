@@ -192,9 +192,23 @@ export class Paseo {
     } else if (PSGame.hasFlag(Flags.DEFEAT_LASSIC)) {
       await PSMenu.startScene(PSSceneType.PALACE, SpecialEntity.NONE);
       await PSMenu.Stext(PSGame.getString("Paseo_Mansion_Darkfalz"));
-      PSGame.playSound(PS1Sound.TRAP_FALL);
-      await ScriptEngine.fadeout(25, false);
-      // Java: PSMenu.instance.back = new VImage(...) - black backdrop
+      await PSGame.playSound(PS1Sound.TRAP_FALL);
+
+      // Trapdoor gives way underfoot — shake the screen (same pattern as
+      // PSBattle's earthquakeEffect) then drop the player with a rapid fade,
+      // quicker than the usual 25-frame scene fade.
+      const scene = PSGame.getCurrentScene();
+      if (scene) {
+        scene.cameras.main.shake(200, 0.01);
+        await PSMenu.instance.waitDelay(12);
+      }
+
+      await ScriptEngine.fadeout(10, false);
+      // Java: PSMenu.instance.back = new VImage(...) - black backdrop. Also
+      // destroys the PALACE background left over from startScene() above,
+      // which would otherwise leak (masked by the dungeon RT until a later
+      // load/exit exposes it, same class of bug as the Lassic ALTAR leak).
+      PSMenu.instance.setBlackBackground(1950);
 
       await PSGame.mapswitchToDungeon(Dungeon.DARKFALZ_DUNGEON);
       return;

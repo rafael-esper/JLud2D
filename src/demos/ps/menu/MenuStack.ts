@@ -68,6 +68,11 @@ export class MenuStack {
 
   // Background and entity rendering
   public back: Phaser.GameObjects.Image | null = null;
+  // Bumped on every setBackground() call; a deferred load-complete callback
+  // only applies itself if it's still the most recent request, so a stale
+  // callback from a superseded call can't stomp a newer background with an
+  // orphaned image (see setBackground()).
+  private backgroundRequestId: number = 0;
   public npc: any = null;
   public entitySprite: Phaser.GameObjects.Image | null = null;
   public entityX: number = 0;
@@ -208,6 +213,7 @@ export class MenuStack {
    * so portraits at depth 2000+ remain visible.
    */
   public setBlackBackground(depth: number = 1996): void {
+    this.backgroundRequestId++; // invalidate any in-flight setBackground() load
     if (this.back) {
       this.back.destroy();
       this.back = null;
@@ -244,6 +250,12 @@ export class MenuStack {
       this.back = null;
     }
 
+    // Invalidate any in-flight load-complete callback from a prior call to
+    // this method — without this, a slow first-use image load can finish
+    // after a later setBackground()/clearBackground() call and stomp the
+    // (by then correct) background with a stale, orphaned image.
+    const requestId = ++this.backgroundRequestId;
+
     if (imagePath && imagePath.trim() !== '') {
       // Check if this is already a texture key (no file path separators)
       const isTextureKey = !imagePath.includes('/') && !imagePath.includes('.');
@@ -259,6 +271,9 @@ export class MenuStack {
       } else if (!isTextureKey) {
         // Load the image first, then create (only if it's a file path, not a texture key)
         this.scene.load.once('complete', () => {
+          if (requestId !== this.backgroundRequestId) {
+            return; // superseded by a later setBackground()/clearBackground() call
+          }
           this.back = this.scene.add.image(0, 0, imageKey);
           this.back.setOrigin(0, 0);
           this.back.setDepth(1950); // Above entities, below menu boxes and text
@@ -480,6 +495,7 @@ export class MenuStack {
    * Clear background
    */
   public clearBackground(): void {
+    this.backgroundRequestId++; // invalidate any in-flight setBackground() load
     if (this.back) {
       this.back.destroy();
       this.back = null;

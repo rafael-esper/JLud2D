@@ -740,6 +740,16 @@ export class PSGame {
         this.currentDungeon.hideRenderTexture();
       }
 
+      // Safety net: destroy any scene background/backAnim left over from a
+      // caller that forgot to clean up (e.g. a scene ended without going
+      // through endScene()'s cleanup). Cheap no-op when already clear, and in
+      // particular catches in-game "Load Game" (PSGame.loadGame ->
+      // enterLoadedLocation -> here), which reuses the running GameScene
+      // instance without a Phaser scene restart, so nothing else would clear it.
+      PSMenu.instance.backAnim?.destroy?.();
+      PSMenu.instance.backAnim = null;
+      PSMenu.instance.clearBackground();
+
       // Start the new map's music BEFORE the map script runs. In Java, map()
       // only flags the switch and playMusic() runs right after, so the music is
       // already playing when the new map's startmap script (which may animate

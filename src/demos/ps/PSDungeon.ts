@@ -268,8 +268,8 @@ export class PSDungeon {
     if (this.isDark) {
       await PSMenu.startScene(PSSceneType.BLACK, SpecialEntity.NONE);
       await PSMenu.Stext(PSGame.getString("Dungeon_Black"));
-      PSGame.menuOn();
     }
+    PSGame.menuOn();
 
     MainEngine.setScriptActive(true);
     MainEngine.setEntitiesPaused(true);

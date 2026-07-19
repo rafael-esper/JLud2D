@@ -59,6 +59,7 @@ export class Lassic_castle {
 
       const lassic = PSLibEnemy.getEnemyByEnum(PS1Enemy.LASSIC)!;
       await lassic.loadCHR(currentScene);
+      PSMenu.setMapOff();
       await PSMenu.startSceneWithCHR(PSSceneType.ALTAR, lassic.getChr());
       if (await PSMenu.Prompt(PSGame.getString("Dark_Castle_Lassic"), PSGame.getYesNo()) === 1) {
         await PSMenu.StextLast(PSGame.getString("Dark_Castle_LassicYes"));
@@ -86,6 +87,7 @@ export class Lassic_castle {
       }
       await PSMenu.endScene();
     } else {
+      PSMenu.setMapOff();
       await PSMenu.startScene(PSSceneType.ALTAR, SpecialEntity.NONE);
       await PSMenu.instance.waitAnyButton();
       await PSMenu.endScene();
