@@ -1593,6 +1593,10 @@ export class PSGame {
     await PSMenu.Stext(this.getString("Cinematic_Ending_1"));
 
     await PSMenu.startScene(PSSceneType.CORRIDOR, SpecialEntity.NONE);
+    // Java: back = new VImage(...) - black backdrop. CORRIDOR keeps whatever
+    // backdrop is already set (the BAYA sky), so establish it here or the
+    // portraits play over the sky instead of black.
+    PSMenu.instance.setBlackBackground();
     await PSMenu.cinematicText(await this.getVImage(PS1Image.CINE_ALIS), [this.getString("Cinematic_Ending_2")]);
     await PSMenu.cinematicText(await this.getVImage(PS1Image.CINE_ODIN), [this.getString("Cinematic_Ending_3")]);
     await PSMenu.cinematicText(await this.getVImage(PS1Image.CINE_NOAH), [this.getString("Cinematic_Ending_4")]);

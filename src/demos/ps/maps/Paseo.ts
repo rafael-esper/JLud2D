@@ -187,6 +187,12 @@ export class Paseo {
       }
       await PSMenu.StextLast(PSGame.getString("Paseo_Governor_EndOk"));
 
+      // PromptNext (Paseo_Governor_End) leaves its text box on the stack (see
+      // PSMenu.PromptInternal); endGameRoutine's startScene(BAYA) doesn't clear
+      // the menu stack, so without this it lingers over the ending cutscene.
+      PSMenu.instance.clearMenus();
+      await PSMenu.instance.waitDelay(30);
+
       await PSGame.endGameRoutine();
       return;
     } else if (PSGame.hasFlag(Flags.DEFEAT_LASSIC)) {
