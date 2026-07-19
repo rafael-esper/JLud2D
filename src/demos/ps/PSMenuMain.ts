@@ -310,6 +310,8 @@ export class PSMenuMain {
       `${PSGame.getString('Menu_Options_Music')}: ${PSGame.gameData.musicVolume}`,
       `${PSGame.getString('Menu_Options_Messages')}: ${PSGame.gameData.battleInformation ? PSGame.getString('Menu_Choice_Yes') : PSGame.getString('Menu_Choice_No')}`,
       `${PSGame.getString('Menu_Options_Delay')}: ${PSGame.gameData.dungeonDelay}`,
+      `${PSGame.getString('Menu_Options_Rewards')}: ${PSGame.getString('Menu_Options_Rewards_' + PSGame.gameData.rewardMultiplier)}`,
+      `${PSGame.getString('Menu_Options_Encounters')}: ${PSGame.getString('Menu_Options_Encounters_' + PSMenuMain.encounterRateIndex())}`,
       PSGame.getString('Menu_Language'),
       PSGame.getString('Title_Screen')
     ], true));
@@ -369,11 +371,45 @@ export class PSMenuMain {
         break;
       }
 
-      case 4: // Language
+      case 4: { // Reward Multiplier
+        const mult = await PSMenu.Prompt(
+          PSGame.getString('Menu_Options_Rewards_Desc'),
+          [
+            PSGame.getString('Menu_Options_Rewards_1'),
+            PSGame.getString('Menu_Options_Rewards_2'),
+            PSGame.getString('Menu_Options_Rewards_3'),
+            PSGame.getString('Menu_Options_Rewards_4'),
+            PSGame.getString('Menu_Options_Rewards_5')
+          ]
+        );
+        PSMenu.instance.pop(); // text box left by Prompt
+        if (mult > 0) {
+          PSGame.gameData.rewardMultiplier = mult;
+        }
+        break;
+      }
+
+      case 5: { // Encounter Rate
+        const reduction = await PSMenu.Prompt(
+          PSGame.getString('Menu_Options_Encounters_Desc'),
+          [
+            PSGame.getString('Menu_Options_Encounters_1'),
+            PSGame.getString('Menu_Options_Encounters_2'),
+            PSGame.getString('Menu_Options_Encounters_3')
+          ]
+        );
+        PSMenu.instance.pop(); // text box left by Prompt
+        if (reduction > 0) {
+          PSGame.gameData.encounterRateReduction = [0, 50, 75][reduction - 1];
+        }
+        break;
+      }
+
+      case 6: // Language
         await PSGame.languageMenu(PSMenu.instance);
         break;
 
-      case 5: { // Title Screen
+      case 7: { // Title Screen
         const confirmExit = await PSMenu.Prompt(
           PSGame.getString('Menu_Exit_Prompt'),
           PSGame.getYesNo()
@@ -391,6 +427,12 @@ export class PSMenuMain {
 
     PSMenu.instance.pop();
     return false;
+  }
+
+  /** Maps gameData.encounterRateReduction (0/50/75) to its 1-based label index. */
+  private static encounterRateIndex(): number {
+    const idx = [0, 50, 75].indexOf(PSGame.gameData.encounterRateReduction);
+    return idx >= 0 ? idx + 1 : 1;
   }
 
   /**

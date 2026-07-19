@@ -340,6 +340,8 @@ export class GameData {
   public dungeonDelay: number = 4; // varies between 1-4
   public battleInformation: boolean = true;
   public locale: string = 'en'; // Simplified from Java Locale
+  public rewardMultiplier: number = 1; // mesetas/exp multiplier: 1, 2, 3, 4 or 5
+  public encounterRateReduction: number = 0; // random battle reduction: 0, 50 or 75 (percent)
 
   // Game state flags using Set instead of Java EnumSet
   public flags: Set<Flags> = new Set();
@@ -417,6 +419,8 @@ export class GameData {
       dungeonDelay: this.dungeonDelay,
       battleInformation: this.battleInformation,
       locale: this.locale,
+      rewardMultiplier: this.rewardMultiplier,
+      encounterRateReduction: this.encounterRateReduction,
       flags: Array.from(this.flags),
       chestFlags: Array.from(this.chestFlags),
       trapFlags: Array.from(this.trapFlags),
@@ -449,6 +453,8 @@ export class GameData {
     gameData.dungeonDelay = data.dungeonDelay ?? 4;
     gameData.battleInformation = data.battleInformation !== undefined ? data.battleInformation : true;
     gameData.locale = data.locale ?? 'en';
+    gameData.rewardMultiplier = data.rewardMultiplier ?? 1;
+    gameData.encounterRateReduction = data.encounterRateReduction ?? 0;
     gameData.gameType = data.gameType ?? null;
     gameData.screenSize = data.screenSize ?? null;
     gameData.current_planet = data.current_planet ?? null;

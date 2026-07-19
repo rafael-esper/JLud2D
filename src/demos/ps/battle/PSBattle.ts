@@ -1108,6 +1108,11 @@ export class PSBattle {
       }
     }
 
+    // Options menu: mesetas/exp multiplier
+    const rewardMultiplier = PSGame.gameData?.rewardMultiplier ?? 1;
+    gainedExp *= rewardMultiplier;
+    gainedMst *= rewardMultiplier;
+
     // Stop music (Java: Script.stopmusic()) — through PSGame so currentMusic
     // is cleared and the next battle's playMusic() actually restarts the track
     PSGame.stopMusic();

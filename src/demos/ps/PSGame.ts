@@ -2062,6 +2062,12 @@ export class PSGame {
       return BattleOutcome.WIN;
     }
 
+    // Options menu: reduce random encounter frequency
+    const encounterReduction = this.gameData?.encounterRateReduction ?? 0;
+    if (encounterReduction > 0 && ScriptEngine.random(1, 100) <= encounterReduction) {
+      return BattleOutcome.WIN;
+    }
+
     // Convert enemy enums to Enemy instances
     const { PSLibEnemy } = await import('./game/PSLibEnemy');
     const enemyInstances: any[] = [];
@@ -2099,6 +2105,12 @@ export class PSGame {
 
     // Diminish battle frequency when on transport (Java parity)
     if (this.isOnTransport() && ScriptEngine.random(1, 2) === 1) {
+      return BattleOutcome.WIN;
+    }
+
+    // Options menu: reduce random encounter frequency
+    const encounterReduction = this.gameData?.encounterRateReduction ?? 0;
+    if (encounterReduction > 0 && ScriptEngine.random(1, 100) <= encounterReduction) {
       return BattleOutcome.WIN;
     }
 
