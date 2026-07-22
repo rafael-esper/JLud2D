@@ -430,6 +430,18 @@ export class ScriptEngine {
     // Render entities at their current positions before fade-in
     MainEngine.RenderEntities();
 
+    // cameras.main is briefly undefined while its scene is mid-shutdown/restart
+    // (Phaser's CameraManager.shutdown() nulls it until the next START event).
+    // Skip the visual fade rather than crash, but still run the completion
+    // side-effects so callers don't get stuck with entities paused forever.
+    if (!currentScene.cameras.main) {
+      console.warn("ScriptEngine: cameras.main unavailable for fade in, skipping");
+      ScriptEngine.screenFadedOut = false;
+      MainEngine.setEntitiesPaused(false);
+      ScriptEngine.clearInputs();
+      return;
+    }
+
     return new Promise<void>((resolve) => {
       // Restore camera alpha to 1 and then use fadeIn
       currentScene.cameras.main.setAlpha(1);
@@ -475,6 +487,18 @@ export class ScriptEngine {
     // Convert frame duration to milliseconds (16ms per frame at 60fps),
     // shortened/lengthened by the global game speed
     const durationMs = GameSpeed.scaleDelay(duration * 16);
+
+    // cameras.main is briefly undefined while its scene is mid-shutdown/restart
+    // (Phaser's CameraManager.shutdown() nulls it until the next START event).
+    // Skip the visual fade rather than crash, but still run the completion
+    // side-effects so callers don't get stuck with controls/entities paused.
+    if (!currentScene.cameras.main) {
+      console.warn("ScriptEngine: cameras.main unavailable for fade out, skipping");
+      ScriptEngine.screenFadedOut = true;
+      ScriptEngine.clearInputs();
+      MainEngine.setScriptActive(false);
+      return;
+    }
 
     return new Promise<void>((resolve) => {
       // Use native Phaser camera fade
