@@ -193,17 +193,25 @@ export class GameScene extends Phaser.Scene {
    * Main game loop - handles input, entity updates, and map animations
    */
   update(_time: number, delta: number): void {
-    // Update input controls FIRST (like Demo1)
-    this.inputManager.updateControls();
+    // Check if PSMenu is active and should pause game (also pause while the
+    // generic exit-confirmation dialog is up)
+    const isMenuActive = (this.menuStack && this.menuStack.hasMenu()) || this.confirmingExit;
+
+    // Update input controls FIRST (like Demo1) — but only when no menu/dialog
+    // owns its own polling loop. MenuStack and ConfirmDialog both run their
+    // own scene.time.delayedCall loop that calls updateControls() every
+    // frame; calling it again here too would advance prevStart/prevMenu a
+    // step ahead of theirs, clobbering the justPressed edge (e.g. Start/Enter
+    // silently stops registering inside the exit-confirm dialog). Mirrors the
+    // same gate PSScene.update() already uses.
+    if (!isMenuActive) {
+      this.inputManager.updateControls();
+    }
 
     // Update tile animations
     if (this.tiledMap) {
       this.tiledMap.updateAnimations(delta);
     }
-
-    // Check if PSMenu is active and should pause game (also pause while the
-    // generic exit-confirmation dialog is up)
-    const isMenuActive = (this.menuStack && this.menuStack.hasMenu()) || this.confirmingExit;
 
     if (!isMenuActive) {
       // Update engine only when menu is not active - this handles player movement, entity updates, camera tracking

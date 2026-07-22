@@ -183,20 +183,31 @@ export class EmulatorUI {
     document.body.appendChild(this.root);
 
     this.bar.addEventListener('click', (ev) => this.onBarClick(ev));
+    this.wireTouchTap(this.bar, '.emu-btn', (btn) => this.runBarAction(btn as HTMLButtonElement));
+
     this.scrim.addEventListener('click', (ev) => {
       if (ev.target === this.scrim) this.closePanel();
     });
+    this.wireTouchTap(this.scrim, undefined, (_target, ev) => {
+      if (ev.target === this.scrim) this.closePanel();
+    });
+
     this.panel.addEventListener('click', (ev) => this.onPanelClick(ev));
+    this.wireTouchTap(this.panel, '[data-act], .emu-chip, [data-aspect]', (_target, ev) => this.onPanelClick(ev as MouseEvent));
 
     const slider = this.volPop.querySelector<HTMLInputElement>('#emu-vol-slider')!;
     slider.addEventListener('input', () => this.setVolume(Number(slider.value) / 100, false));
     slider.addEventListener('change', () => this.setVolume(Number(slider.value) / 100, true));
-    this.volPop.querySelector<HTMLButtonElement>('#emu-mute')!
-      .addEventListener('click', () => this.setMuted(!this.muted));
+    const muteBtn = this.volPop.querySelector<HTMLButtonElement>('#emu-mute')!;
+    muteBtn.addEventListener('click', () => this.setMuted(!this.muted));
+    this.wireTouchTap(muteBtn, undefined, () => this.setMuted(!this.muted));
 
     this.speedPop.addEventListener('click', (ev) => {
       const btn = (ev.target as HTMLElement).closest<HTMLButtonElement>('[data-speed]');
       if (btn) this.setSpeedLevel(btn.dataset.speed as SpeedLevel);
+    });
+    this.wireTouchTap(this.speedPop, '[data-speed]', (btn) => {
+      this.setSpeedLevel((btn as HTMLElement).dataset.speed as SpeedLevel);
     });
     this.refreshSpeedButtons();
 
@@ -211,6 +222,10 @@ export class EmulatorUI {
   private onBarClick(ev: MouseEvent): void {
     const btn = (ev.target as HTMLElement).closest<HTMLButtonElement>('.emu-btn');
     if (!btn) return;
+    this.runBarAction(btn);
+  }
+
+  private runBarAction(btn: HTMLButtonElement): void {
     this.showBar();
 
     switch (btn.dataset.act) {
@@ -255,6 +270,41 @@ export class EmulatorUI {
 
     if (btn.dataset.act !== 'volume') this.volPop.hidden = true;
     if (btn.dataset.act !== 'speed') this.speedPop.hidden = true;
+  }
+
+  /**
+   * Touch fallback for delegated 'click' handlers. On this page <body> sets
+   * touch-action:none (needed to stop the game canvas from panning/zooming),
+   * and some mobile browsers then never synthesize the compatibility 'click'
+   * after touchend — the button's :active style flashes but nothing fires.
+   * Handles the tap directly on 'pointerdown' for touch pointers only and
+   * preventDefault()s to swallow the resulting ghost click (matches the
+   * virtual gamepad's approach in index.html). Mouse and keyboard activation
+   * are untouched — they keep using the normal 'click' listener alongside
+   * this one, so this must never double-fire for them.
+   *
+   * `selector` narrows which descendants respond, so untargeted touches
+   * (panel scrolling, slider dragging) pass through without preventDefault.
+   * Omit it to match the element itself (e.g. a single button, or the scrim
+   * backdrop where the handler re-checks ev.target itself).
+   */
+  private wireTouchTap(
+    el: HTMLElement,
+    selector: string | undefined,
+    handler: (target: HTMLElement, ev: PointerEvent) => void
+  ): void {
+    el.addEventListener('pointerdown', (ev) => {
+      if (ev.pointerType !== 'touch') return;
+      // No selector means "el itself, and nothing else" (e.g. the scrim
+      // backdrop, or a leaf button) — anything else in the subtree (panel
+      // scroll content, slider) must fall through untouched.
+      const target = selector
+        ? (ev.target as HTMLElement).closest<HTMLElement>(selector)
+        : (ev.target === el ? el : null);
+      if (!target) return;
+      ev.preventDefault();
+      handler(target, ev);
+    });
   }
 
   // ------------------------------------------------------------ auto-hide
