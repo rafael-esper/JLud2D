@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>JLud2D - Phaser 4 Port</title>
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
+    <style>
+        :root {
+            --safe-t: env(safe-area-inset-top, 0px);
+            --safe-b: env(safe-area-inset-bottom, 0px);
+            --safe-l: env(safe-area-inset-left, 0px);
+            --safe-r: env(safe-area-inset-right, 0px);
+        }
+        html, body {
+            height:100%; margin:0; background:#111; color:#eee;
+            font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;
+            -webkit-user-select:none; user-select:none;
+            -ms-touch-action:none; touch-action:none;
+            overflow:hidden;
+        }
+        /* The container owns the viewport; Phaser Scale.FIT fits the canvas inside it.
+           100dvh tracks the mobile browser chrome (URL bar) automatically. */
+        #game-container {
+            position:fixed; top:0; left:0; width:100%;
+            height:100vh;  /* fallback */
+            height:100dvh;
+            overflow:hidden;
+            background:#000;
+        }
+        /* In portrait with on-screen controls open, shrink the game area above them */
+        @media (orientation: portrait) {
+            #game-container.controls-open {
+                height:calc(100vh - 180px);
+                height:calc(100dvh - 180px - var(--safe-b));
+            }
+        }
+        canvas {
+            image-rendering: crisp-edges;   /* fallback */
+            image-rendering: pixelated;     /* preferred: must come last */
+        }
+
+        /* On-screen controls (outside Phaser canvas) */
+        .control-button {
+            position: fixed;
+            width:64px; height:64px;
+            border-radius:12px;
+            background: rgba(255,255,255,0.06);
+            display:flex; align-items:center; justify-content:center;
+            color:#fff; font-weight:700; font-size:18px;
+            backdrop-filter: blur(4px);
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.6);
+            user-select:none;
+            border: none;
+            cursor: pointer;
+        }
+        .control-button:active { transform: translateY(2px); opacity:0.9; }
+
+        /* Button positions - fixed CSS positioning, offset by device safe areas
+           (home indicator / notch) so controls stay reachable on phones */
+        #btn-b1 { right:calc(182px + var(--safe-r)); bottom:calc(18px + var(--safe-b)); }  /* Bottom row, left */
+        #btn-b2 { right:calc(100px + var(--safe-r)); bottom:calc(18px + var(--safe-b)); }  /* Bottom row, center */
+        #btn-b3 { right:calc(18px + var(--safe-r)); bottom:calc(18px + var(--safe-b)); }   /* Bottom row, right */
+        #btn-b4 { right:calc(182px + var(--safe-r)); bottom:calc(88px + var(--safe-b)); }  /* Top row, left */
+        #btn-b5 { right:calc(100px + var(--safe-r)); bottom:calc(88px + var(--safe-b)); }  /* Top row, center */
+        #btn-b6 { right:calc(18px + var(--safe-r)); bottom:calc(88px + var(--safe-b)); }   /* Top row, right */
+        #btn-pause { right:calc(100px + var(--safe-r)); bottom:calc(158px + var(--safe-b)); width:44px; height:32px; border-radius:8px; font-size:12px; }
+        #btn-start { right:calc(18px + var(--safe-r)); bottom:calc(158px + var(--safe-b)); width:44px; height:32px; border-radius:8px; font-size:12px; }
+
+        /* Joystick area - fixed CSS positioning */
+        #joy-area {
+            position:fixed; left:calc(18px + var(--safe-l)); bottom:calc(18px + var(--safe-b));
+            width:30vmin; height:30vmin; max-width:200px; max-height:200px;
+            touch-action:none;
+        }
+
+        /* Instructions */
+        #instructions {
+            position:absolute; left:50%; transform:translateX(-50%); bottom:8px;
+            background:rgba(0,0,0,0.35); color:#ddd; padding:6px 10px; border-radius:8px; font-size:13px;
+            z-index: 10;
+        }
+
+        /* Hidden controls class */
+        .controls-hidden {
+            display: none !important;
+        }
+
+        /* Hide all mobile controls by default
+           (toggled via the emulator UI's Touch pad button) */
+        .control-button,
+        #joy-area {
+            display: none;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <h2>JLud2D - Phaser 4 Port</h2>
+        <p>Loading configuration...</p>
+    </div>
+
+    <div id="game-container"></div>
+
+    <!-- Mobile Controls -->
+    <div id="joy-area" aria-hidden="true"></div>
+    <button id="btn-b1" class="control-button" aria-label="B1">B1</button>
+    <button id="btn-b2" class="control-button" aria-label="B2">B2</button>
+    <button id="btn-b3" class="control-button" aria-label="B3">B3</button>
+    <button id="btn-b4" class="control-button" aria-label="B4">B4</button>
+    <button id="btn-b5" class="control-button" aria-label="B5">B5</button>
+    <button id="btn-b6" class="control-button" aria-label="B6">B6</button>
+    <button id="btn-pause" class="control-button" aria-label="Pause">Pause</button>
+    <button id="btn-start" class="control-button" aria-label="Start">Start</button>
+
+    <!-- Phaser 3.80 (using CDN for now) -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
+
+    <!-- VGM Core Libraries loaded dynamically by VGM module -->
+
+    <!-- Game scripts -->
+    <script type="module" src="src/main.ts"></script>
+
+    <script>
+        // Mobile Controls Manager
+        class MobileControlsManager {
+            constructor() {
+                this.isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+                // Visibility is toggled by the emulator UI's Touch pad button
+                this.controlsVisible = false; // Start hidden by default
+                this.buttonStates = {
+                    b1: false, b2: false, b3: false, b4: false, b5: false, b6: false, start: false, pause: false
+                };
+                this.joystickState = { active: false, dx: 0, dy: 0 };
+                this.activeButtons = ['b1', 'b2']; // Default: most demos use 2 buttons
+                this.init();
+            }
+
+            init() {
+                this.setupJoystick();
+                this.setupButtons();
+                this.updateControlsVisibility();
+            }
+
+            setActiveButtons(buttonList) {
+                this.activeButtons = buttonList;
+                // Only update visibility if controls are currently visible
+                if (this.controlsVisible) {
+                    this.updateButtonVisibility();
+                }
+            }
+
+            updateButtonVisibility() {
+                const allButtons = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'start', 'pause'];
+
+                allButtons.forEach(btn => {
+                    const element = document.getElementById(`btn-${btn}`);
+                    if (element) {
+                        // Start and Pause buttons are always shown when controls are visible
+                        if (this.controlsVisible && (this.activeButtons.includes(btn) || btn === 'start' || btn === 'pause')) {
+                            element.classList.remove('controls-hidden');
+                            element.style.display = 'flex';
+                        } else {
+                            element.classList.add('controls-hidden');
+                            element.style.display = 'none';
+                        }
+                    }
+                });
+            }
+
+            setupJoystick() {
+                const joyArea = document.getElementById('joy-area');
+                const canvas = document.createElement('canvas');
+                canvas.width = joyArea.clientWidth;
+                canvas.height = joyArea.clientHeight;
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                canvas.style.touchAction = 'none';
+                joyArea.appendChild(canvas);
+
+                const ctx = canvas.getContext('2d');
+                this.joyCanvas = canvas;
+                this.joyCtx = ctx;
+
+                this.drawJoystick();
+
+                let activePointerId = null;
+                joyArea.addEventListener('pointerdown', (ev) => {
+                    ev.preventDefault();
+                    joyArea.setPointerCapture(ev.pointerId);
+                    activePointerId = ev.pointerId;
+                    this.joystickState.active = true;
+                    const rect = canvas.getBoundingClientRect();
+                    const cx = rect.width/2, cy = rect.height/2;
+                    const x = ev.clientX - rect.left;
+                    const y = ev.clientY - rect.top;
+                    this.joystickState.dx = x - cx;
+                    this.joystickState.dy = y - cy;
+                    this.drawJoystick();
+                });
+
+                joyArea.addEventListener('pointermove', (ev) => {
+                    if (ev.pointerId !== activePointerId) return;
+                    ev.preventDefault();
+                    const rect = canvas.getBoundingClientRect();
+                    const cx = rect.width/2, cy = rect.height/2;
+                    const x = ev.clientX - rect.left;
+                    const y = ev.clientY - rect.top;
+                    const dx = x - cx, dy = y - cy;
+                    const maxR = Math.min(cx,cy)*0.75;
+                    const mag = Math.sqrt(dx*dx + dy*dy);
+                    let nx = dx, ny = dy;
+                    if (mag > maxR) {
+                        nx = dx / mag * maxR;
+                        ny = dy / mag * maxR;
+                    }
+                    this.joystickState.dx = nx;
+                    this.joystickState.dy = ny;
+                    this.drawJoystick();
+                });
+
+                joyArea.addEventListener('pointerup', (ev) => {
+                    if (ev.pointerId !== activePointerId) return;
+                    this.joystickState.active = false;
+                    this.joystickState.dx = 0;
+                    this.joystickState.dy = 0;
+                    activePointerId = null;
+                    try { joyArea.releasePointerCapture(ev.pointerId); } catch(e){}
+                    this.drawJoystick();
+                });
+
+                joyArea.addEventListener('pointercancel', (ev) => {
+                    this.joystickState.active = false;
+                    this.joystickState.dx = 0;
+                    this.joystickState.dy = 0;
+                    activePointerId = null;
+                    this.drawJoystick();
+                });
+
+                // Resize observer for responsive joystick
+                const resizeObserver = new ResizeObserver(() => {
+                    canvas.width = joyArea.clientWidth * devicePixelRatio;
+                    canvas.height = joyArea.clientHeight * devicePixelRatio;
+                    canvas.style.width = '100%';
+                    canvas.style.height = '100%';
+                    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+                    this.drawJoystick();
+                });
+                resizeObserver.observe(joyArea);
+            }
+
+            drawJoystick() {
+                if (!this.joyCtx || !this.joyCanvas) return;
+                const ctx = this.joyCtx;
+                const canvas = this.joyCanvas;
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                const cx = canvas.width/2, cy = canvas.height/2;
+                // base circle
+                ctx.globalAlpha = 0.18; ctx.fillStyle = '#ffffff';
+                ctx.beginPath(); ctx.arc(cx, cy, Math.min(cx,cy)*0.9, 0, Math.PI*2); ctx.fill();
+                // knob
+                const knobX = cx + (this.joystickState.dx || 0);
+                const knobY = cy + (this.joystickState.dy || 0);
+                ctx.globalAlpha = 0.95; ctx.fillStyle = '#00aaff';
+                ctx.beginPath(); ctx.arc(knobX, knobY, Math.min(cx,cy)*0.28, 0, Math.PI*2); ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+
+            setupButtons() {
+                const buttonIds = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'start', 'pause'];
+                buttonIds.forEach(btnId => {
+                    const button = document.getElementById(`btn-${btnId}`);
+                    if (button) {
+                        this.addPressHandlers(button,
+                            () => { this.buttonStates[btnId] = true; },
+                            () => { this.buttonStates[btnId] = false; }
+                        );
+                    }
+                });
+            }
+
+            addPressHandlers(el, onDown, onUp) {
+                el.addEventListener('pointerdown', (ev) => { ev.preventDefault(); onDown(); });
+                window.addEventListener('pointerup', (ev) => { onUp(); });
+                el.addEventListener('pointercancel', (ev) => { onUp(); });
+                el.addEventListener('lostpointercapture', (ev) => { onUp(); });
+            }
+
+            updateControlsVisibility() {
+                const joyArea = document.getElementById('joy-area');
+
+                // Reserve space for the controls in portrait (CSS media query) and
+                // let Phaser Scale.FIT re-fit the canvas right away
+                const container = document.getElementById('game-container');
+                if (container) {
+                    container.classList.toggle('controls-open', this.controlsVisible);
+                }
+                window.dispatchEvent(new Event('resize'));
+
+                if (joyArea) {
+                    if (this.controlsVisible) {
+                        joyArea.classList.remove('controls-hidden');
+                        joyArea.style.display = 'block';
+                    } else {
+                        joyArea.classList.add('controls-hidden');
+                        joyArea.style.display = 'none';
+                    }
+                }
+
+                const allButtons = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'start', 'pause'];
+                allButtons.forEach(btnName => {
+                    const element = document.getElementById(`btn-${btnName}`);
+                    if (element) {
+                        if (this.controlsVisible) {
+                            element.classList.remove('controls-hidden');
+                            element.style.display = 'flex';
+                        } else {
+                            element.classList.add('controls-hidden');
+                            element.style.display = 'none';
+                        }
+                    }
+                });
+
+                if (this.controlsVisible) {
+                    this.updateButtonVisibility();
+                }
+            }
+
+            getButtonState(button) {
+                return this.buttonStates[button] || false;
+            }
+
+            getJoystickState() {
+                return { ...this.joystickState };
+            }
+        }
+
+        // Global mobile controls instance
+        window.mobileControls = new MobileControlsManager();
+
+        // Hide loading screen once game starts
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const loading = document.getElementById('loading');
+                if (loading) {
+                    loading.classList.add('hidden');
+                }
+            }, 2000);
+        });
+
+        // Simple error handling
+        window.addEventListener('error', (event) => {
+            console.error('Game error:', event.error);
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.innerHTML = '<h2>Error Loading Game</h2><p>Check console for details</p>';
+            }
+        });
+    </script>
+</body>
+</html>

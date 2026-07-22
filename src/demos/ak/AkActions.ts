@@ -1,0 +1,698 @@
+/**
+ * AkActions - Alex Kidd Action System
+ * Handles punching, events, and zone processing for the AK demo
+ * Port of Java punch/event system
+ */
+
+import { MainEngine } from '../../core/MainEngine';
+import { ScriptEngine } from '../../core/ScriptEngine';
+import { AkMusic } from './music';
+import { Condition, Status, Action } from './AkMovement';
+import { AkCore } from './AkCore';
+import { AkSprites } from './AkSprites';
+import { Sound } from '../../domain/Sound';
+import { MapScene } from './MapScene';
+
+export class AkActions {
+  // Punch-related state
+  private static pdelay: number = 0;
+  private static tdelay: number = 0;
+
+  // Constants for zones and tiles
+  static readonly ZONE_GOLD1 = 1;
+  static readonly ZONE_GOLD2 = 2;
+  static readonly ZONE_ROCK = 3;
+  static readonly ZONE_STAR = 4;
+  static readonly ZONE_RICE = 5;
+  static readonly ZONE_SWIM = 6;
+  static readonly ZONE_ITEM = 7;
+  static readonly ZONE_SKULL = 8;
+  static readonly ZONE_DEATH = 9;
+  static readonly ZONE_WIND_IN = 10;
+  static readonly ZONE_WIND_OUT = 11;
+  static readonly ZONE_STAIR = 12;
+  static readonly ZONE_MOTO_SHOP = 13;
+  static readonly ZONE_BRACELET = 14;
+  static readonly ZONE_HELI_SHOP = 15;
+
+  private static readonly TILE_LAYER = 1;
+  private static readonly TILE_GOLD_BIG = 362;    // Example tile ID for big gold
+  private static readonly TILE_GOLD_SMALL = 363;  // Example tile ID for small gold
+  private static readonly NULL_ZONE = 0
+  private static readonly NULL_TILE = 0
+
+  // Player dimensions for collision
+  private static playerDimensions = {
+    x: 0, y: 0, width: 0, height: 0
+  };
+
+  /**
+   * Punch action (Java punch method)
+   */
+  public static punch(
+    state: Status,
+    condition: Condition,
+    velocity: number,
+    friction: number,
+    action: Action
+  ): { velocity: number; action: Action } {
+
+    let newVelocity = velocity;
+    let newAction = action;
+    let ge: number, he: number = 0;
+
+    if (state === Status.WALKING) {
+      if (condition === Condition.WALK) {
+        newVelocity = friction * velocity / 10;
+      }
+    }
+
+    if (this.pdelay === 0 && condition !== Condition.HELI && condition !== Condition.SURF) {
+      if (!AkCore.getHasBrac()) {
+        Sound.playSound('snd_punch');
+      }
+      this.unpress(1);
+      newAction = Action.PUNCHING;
+
+      const player = MainEngine.getPlayer();
+      if (player) {
+
+        // Calculate punch coordinates
+        const HoOffset = player.getFace() * 32;
+        const zx = (player.getx() + HoOffset) >> 4;
+        const zy = (player.gety() + 16) >> 4; // Use same offset as getpunch loop start
+
+
+        const punchResult = this.getpunch(HoOffset, condition, zx, zy);
+        ge = punchResult.zone;
+        if (ge >= 3 && ge <= 8) { // Events that are processed by punch (Rock=3, Star=4, Rice=5, Swim=6, Item=7, Skull=8)
+          const resultAction = this.callEvent(ge, punchResult.actualZx, punchResult.actualZy);
+          if (resultAction) {
+            newAction = resultAction;
+          }
+        } 
+      } 
+    }
+
+    this.pdelay++;
+
+    if (condition === Condition.HELI || condition === Condition.SURF) {
+      he = 9;
+    }
+
+    if (this.pdelay >= 6 + he) {
+      this.pdelay = 0;
+      if (newAction === Action.PUNCHING) {
+        newAction = Action.NONE;
+      }
+    }
+
+    return { velocity: newVelocity, action: newAction };
+  }
+
+  /**
+   * Get punch collision detection (Java getpunch method)
+   * Returns an object with zone and actual coordinates where the zone was found
+   */
+  public static getpunch(_HoOffset: number, condition: Condition, zx: number, zy: number): { zone: number, actualZx: number, actualZy: number } {
+
+    let a: number, UpOffset: number;
+    UpOffset = 12;
+
+    if (condition === Condition.MOTO) {
+      UpOffset -= 12;
+      console.log(`AkActions: MOTO condition, UpOffset adjusted to ${UpOffset}`);
+    }
+
+    const player = MainEngine.getPlayer();
+    const currentMap = MainEngine.getCurrentMap();
+
+    if (!player || !currentMap) {
+      console.log(`AkActions: getpunch() - missing player or map`);
+      return { zone: 0, actualZx: zx, actualZy: zy };
+    }
+
+    for (a = UpOffset; a < 28; a += 2) {
+      const currentZy = (player.gety() + a) >> 4;
+      const zone = currentMap.getzone(zx, currentZy);
+
+      if (zone >= 3) {
+        return { zone: zone, actualZx: zx, actualZy: currentZy }; // Return actual coordinates
+      }
+    }
+
+    return { zone: 0, actualZx: zx, actualZy: zy };
+  }
+
+  /**
+   * Call event handler (Java callEvent method)
+   */
+  public static callEvent(num: number, zx: number, zy: number): Action | null {
+
+    const currentMap = MainEngine.getCurrentMap();
+    if (!currentMap) {
+      console.error('AkActions: No current map for event handling');
+      return null;
+    }
+
+    console.log(`AkActions: Event ${num} triggered at (${zx}, ${zy})`);
+
+    switch (num) {
+      case this.ZONE_GOLD1: // Gold I
+        currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
+        currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
+        Sound.playSound('snd_gold');
+        AkCore.addGold(20);
+        break;
+
+      case this.ZONE_GOLD2: // Gold II
+        currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
+        currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
+        Sound.playSound('snd_gold');
+        AkCore.addGold(10);
+        break;
+
+      case this.ZONE_ROCK: // Rock
+        Sound.playSound('snd_rock');
+
+        // Determine rock type based on background tile
+        const backgroundTile = currentMap.gettile(zx, zy, 1);
+        if (backgroundTile === 32 || backgroundTile === 52) {
+          this.addSprite(zx << 4, zy << 4, 3); // cave rock
+        } else if (backgroundTile === 65) {
+          this.addSprite(zx, zy << 4, 2); // sea rock
+        } else {
+          this.addSprite(zx << 4, zy << 4, 1); // common rock
+        }
+
+        currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
+        currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
+        currentMap.setobs(zx, zy, 0);
+        break;
+
+      case this.ZONE_STAR: // Star
+        Sound.playSound('snd_star');
+        currentMap.setobs(zx, zy, 0);
+
+        // Random gold generation (0 or 1)
+        const randomValue = this.random(0, 1);
+        if (randomValue === 0) {
+          currentMap.settile(zx, zy, this.TILE_LAYER, this.TILE_GOLD_BIG);
+          currentMap.setzone(zx, zy, this.ZONE_GOLD1);
+        } else {
+          currentMap.settile(zx, zy, this.TILE_LAYER, this.TILE_GOLD_SMALL);
+          currentMap.setzone(zx, zy, this.ZONE_GOLD2);
+        }
+
+        this.addSprite(zx << 4, zy << 4, 0); // star effect
+        break;
+
+      case this.ZONE_RICE: // Rice (zone 5)
+        console.log(`AkActions: Processing ZONE_RICE event`);
+        currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
+        currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
+        MapScene.DoLevel();
+        break;
+
+      case this.ZONE_SWIM: // Swim (zone 6)
+        const scene = MainEngine.getCurrentScene() as any;
+        const movement = scene.movement;
+
+        // Only change to swim if not already swimming or in star mode
+        if (movement.getCondition() !== Condition.SWIM && movement.getCondition() !== Condition.STAR) {
+          movement.setCondition(Condition.SWIM);
+          movement.setState(Status.STOPPED);
+
+          // Change music to swim music
+          ScriptEngine.playmusic(AkMusic.SWIM);
+
+          // Play water sound and animate player going into water
+          scene.sound.play('snd_water');
+
+          const player = MainEngine.getPlayer()!;
+          // Move player down more to reach water level
+          for (let j = 0; j < 20; j++) {
+            player.incy(2);
+          }
+        }
+        break;
+
+      case this.ZONE_ITEM: // Item (zone 7)
+        Sound.playSound('snd_item');
+        currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
+        currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
+        currentMap.setobs(zx, zy, 0); // Remove obstruction when collected
+        this.addSprite(zx << 4, zy << 4, 0);
+        console.log(`AkActions: Item collected at (${zx}, ${zy})`);
+        break;
+
+      case this.ZONE_SKULL: // Skull (zone 8)
+        console.log(`AkActions: Processing ZONE_SKULL event`);
+        Sound.playSound('snd_hit');
+        currentMap.settile(zx, zy, AkActions.TILE_LAYER, AkActions.NULL_TILE);
+        currentMap.setzone(zx, zy, AkActions.NULL_ZONE);
+        currentMap.setobs(zx, zy, 0);
+        this.addSprite(zx << 4, zy << 4, 0);
+        if (!AkCore.getHasBrac()) {
+          console.log(`AkActions: Skull effect - setting action to TREMBLING`);
+          return Action.TREMBLING;
+        }
+        console.log(`AkActions: Skull processed at (${zx}, ${zy})`);
+        break;
+
+      case this.ZONE_DEATH: // Death (zone 9)
+        console.log(`AkActions: Processing ZONE_DEATH event`);
+        this.hitPlayer(2);
+        break;
+
+      default:
+        console.log(`AkActions: Unhandled event ${num}`);
+    }
+
+    return null;
+  }
+
+  /**
+   * Play sound effect
+   */
+  /*private static playsound(sound: Phaser.Sound.BaseSound): void {
+    if (sound && typeof sound.play === 'function') {
+      try {
+        sound.play();
+      } catch (error) {
+        console.log('AkActions: Error playing sound:', error);
+      }
+    } else {
+      console.log('AkActions: Sound not loaded, undefined, or invalid');
+    }
+  }*/
+
+  /**
+   * Unpress button (placeholder)
+   */
+  private static unpress(button: number): void {
+    // TODO: Implement button unpress logic
+    console.log(`AkActions: Unpress button ${button}`);
+  }
+
+
+  /**
+   * Reset punch delay (useful for testing/debugging)
+   */
+  public static resetPunchDelay(): void {
+    this.pdelay = 0;
+  }
+
+  /**
+   * Set bracelet status
+   */
+  public static setHasBrac(hasBrac: boolean): void {
+    AkCore.setHasBrac(hasBrac);
+  }
+
+  /**
+   * Get current punch delay (for debugging)
+   */
+  public static getPunchDelay(): number {
+    return this.pdelay;
+  }
+
+  /**
+   * Handle showPlayer punch action logic
+   */
+  public static getPlayerFrame(action: Action, condition: Condition): number | null {
+    const player = MainEngine.getPlayer();
+    if (!player) return null;
+
+    if (action === Action.PUNCHING) { // punching
+      if (condition === Condition.SWIM) {
+        this.setDimensions(player.getx() + 10, player.gety() + 11, 13, 12);
+        return 17 - (player.getFace() * 3); // swimming
+      } else {
+        this.setDimensions(player.getx() + 12, player.gety() + 6, 8, 20);
+        return 5 - player.getFace(); // walking
+      }
+    }
+
+    return null; // No special frame for punch action
+  }
+
+  /**
+   * Handle punch controls logic (after switch condition)
+   */
+  public static handlePunchControls(
+    condition: Condition,
+    b1: boolean,
+    left: boolean,
+    right: boolean,
+    state: Status,
+    velocity: number,
+    friction: number,
+    action: Action
+  ): { state: Status; velocity: number; action: Action } {
+    let newState = state;
+    let newVelocity = velocity;
+    let newAction = action;
+
+    if (condition !== Condition.MOTO && condition !== Condition.STAR && condition !== Condition.ROPE) {
+      if (b1 || this.pdelay > 0) { // punch, bracelete, tiro (button b1)
+        if (this.tdelay === 0) {
+          const punchResult = this.punch(newState, condition, newVelocity, friction, newAction);
+          newVelocity = punchResult.velocity;
+          newAction = punchResult.action;
+        }
+        if (this.pdelay === 2) {
+          const player = MainEngine.getPlayer();
+          if (player) {
+            if (AkCore.getHasBrac() && condition === Condition.WALK) {
+              this.addSprite(
+                player.getx() + (player.getFace() * 30),
+                player.gety() + 14,
+                12 + player.getFace()
+              ); // bracelete
+            }
+            if (condition === Condition.HELI || condition === Condition.SURF) {
+              this.addSprite(
+                player.getx() + (player.getFace() * 30),
+                player.gety() + 14,
+                14 + player.getFace()
+              ); // tiro
+            }
+          }
+        }
+      }
+      if (!left && !right && newState === Status.WALKING && condition !== Condition.SURF) {
+        newState = Status.STOPPED;
+        newVelocity = friction * newVelocity / 10;
+      }
+      if (newAction === Action.TREMBLING || this.tdelay > 0) {
+        newAction = this.tremble(newAction);
+      }
+    }
+
+    return { state: newState, velocity: newVelocity, action: newAction };
+  }
+
+  /**
+   * Set player collision dimensions (Java setDimensions method)
+   */
+  private static setDimensions(x: number, y: number, width: number, height: number): void {
+    this.playerDimensions.x = x;
+    this.playerDimensions.y = y;
+    this.playerDimensions.width = width;
+    this.playerDimensions.height = height;
+  }
+
+  /**
+   * Add sprite (bracelet, shot, etc.) (Java addSprite method)
+   */
+  static addSprite(x: number, y: number, spriteId: number): void {
+    AkSprites.addSprite(x, y, spriteId);
+  }
+
+  /**
+   * Handle trembling action (Java tremble method)
+   */
+  private static tremble(action: Action): Action {
+    // TODO: Implement tremble logic
+    console.log(`AkActions: Tremble action`);
+
+    this.tdelay++;
+    if (this.tdelay >= 10) { // Example duration
+      this.tdelay = 0;
+      if (action === Action.TREMBLING) {
+        return Action.NONE;
+      }
+    }
+
+    return action;
+  }
+
+  /**
+   * Get player dimensions (for external access)
+   */
+  public static getPlayerDimensions() {
+    return { ...this.playerDimensions };
+  }
+
+  /**
+   * Get/Set tdelay for external access
+   */
+  public static getTdelay(): number {
+    return this.tdelay;
+  }
+
+  public static setTdelay(value: number): void {
+    this.tdelay = value;
+  }
+
+  /**
+   * Random number generator (Java random method)
+   */
+  private static random(min: number, max: number): number {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  /**
+   * Get current gold amount
+   */
+  public static getGold(): number {
+    return AkCore.getGold();
+  }
+
+  /**
+   * Set gold amount
+   */
+  public static setGold(amount: number): void {
+    AkCore.setGold(amount);
+  }
+
+  /**
+   * Handle player getting hit by enemy (moved from AkEnemies)
+   * @param type 1 by monster, 2 naturally, 3 fire
+   */
+  public static hitPlayer(type: number): void {
+    // Check invincibility state
+    if (AkCore.getInvincible() > 0) {
+      return; // Player is currently invincible
+    }
+
+    // Check if already dying
+    if (AkCore.getIsDying()) {
+      return; // Player is already in death sequence
+    }
+
+    // Check if player is punching - invincible while attacking
+    if (AkCore.getAction() === Action.PUNCHING) {
+      return;
+    }
+
+    // Check current condition - if in STAR mode, player is invincible
+    const currentCondition = AkCore.getCondition();
+    if (currentCondition === Condition.STAR) {
+      return;
+    }
+
+    // If in MOTO condition and hit by monster (type 1), ignore
+    if (currentCondition === Condition.MOTO && type === 1) {
+      return;
+    }
+
+    // Reduce energy/health first
+    if (AkCore.getEnergy() > 0) {
+      AkCore.decrementEnergy();
+    }
+
+    console.log(`AkActions: Player hit by type ${type} (1=monster, 2=natural, 3=fire). Energy: ${AkCore.getEnergy()}`);
+
+    // Die (Angel animation) - block all input immediately
+    if (AkCore.getEnergy() === 0 || type === 2) {
+      // Set dying state immediately to block all input and collision
+      AkCore.setIsDying(true);
+      AkCore.setInvincible(9999); // Max invincibility during death sequence
+      this.performDeathSequence(type);
+    } else {
+      // Normal hit - set invincibility frames
+      AkCore.setInvincible(120);
+    }
+
+    // Play hit sound effect
+    Sound.playSound('snd_hit');
+  }
+
+  // Death sequence variables
+  private static originalX: number = 0;
+  private static originalY: number = 0;
+  private static gameOverActive: boolean = false;
+  private static deathFrameCounter: number = 0;
+  private static originalCameraTracking: number = 0;
+  private static deathSequenceCompleted: boolean = false;
+
+  /**
+   * Perform death sequence with Angel animation (Java hitPlayer death code)
+   */
+  private static performDeathSequence(_type: number): void {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    // Store original position
+    this.originalX = player.getx();
+    this.originalY = player.gety();
+    console.log(`AkActions: Death started, storing original position (${this.originalX}, ${this.originalY})`);
+
+    // Stop camera tracking and music immediately
+    this.originalCameraTracking = MainEngine.getCameraTracking();
+    MainEngine.setCameraTracking(0);
+    ScriptEngine.stopmusic();
+
+    // Play death sound immediately
+    Sound.playSound('snd_death');
+
+    // Start death frame counter
+    this.deathFrameCounter = 0;
+    this.deathSequenceCompleted = false;
+  }
+
+  /**
+   * Update death sequence (called from game loop)
+   */
+  public static updateDeathSequence(): void {
+    if (!AkCore.getIsDying() || this.deathSequenceCompleted) return;
+
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    this.deathFrameCounter++;
+
+    // Move up 1 pixel every frame (original was 200 moves over 200 frames)
+    player.incy(-1);
+
+    // After 200 frames, complete the sequence ONCE
+    if (this.deathFrameCounter >= 200) {
+      // Mark sequence as completed to prevent repeated calls
+      this.deathSequenceCompleted = true;
+      this.completeDeathSequence();
+    }
+  }
+
+  /**
+   * Complete the death sequence and restore player state
+   */
+  private static completeDeathSequence(): void {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    // Restore camera tracking
+    MainEngine.setCameraTracking(this.originalCameraTracking);
+
+    // Reset player position
+    console.log(`AkActions: Restoring player to (${this.originalX}, ${this.originalY})`);
+    player.setx(this.originalX);
+    player.sety(this.originalY);
+    AkCore.setEnergy(3); // Restore full energy
+    AkCore.setInvincible(180); // Give 3 seconds of invincibility to avoid immediate re-death
+    // Reset to normal condition and state
+    const currentCondition = AkCore.getCondition();
+    if (currentCondition === Condition.SWIM) {
+      AkCore.setCondition(Condition.SWIM);
+      AkCore.setState(Status.STOPPED); // Reset to stopped state
+    } else {
+      AkCore.setCondition(Condition.WALK);
+      AkCore.setState(Status.STOPPED); // Reset to stopped state
+    }
+
+    // Reset action to normal
+    AkCore.setAction(Action.NONE);
+
+    // Clear dying state - back to normal gameplay
+    AkCore.setIsDying(false);
+
+    // Restart appropriate music based on condition
+    const restoredCondition = AkCore.getCondition();
+    if (restoredCondition === Condition.SWIM) {
+      ScriptEngine.playmusic(AkMusic.SWIM);
+    } else if (restoredCondition === Condition.MOTO) {
+      ScriptEngine.playmusic(AkMusic.MOTO);
+    } else {
+      // Default field music for WALK, FLY, HELI, SURF, etc.
+      ScriptEngine.playmusic(AkMusic.FIELD);
+    }
+
+    console.log(`AkActions: Music restarted for condition ${restoredCondition}`);
+  }
+
+  /**
+   * Game Over screen (Java gameOver method)
+   */
+  static gameOver(): void {
+    if (this.gameOverActive) return; // Prevent multiple game over screens
+    this.gameOverActive = true;
+
+    const scene = MainEngine.getCurrentScene();
+    if (!scene) return;
+
+    // Create game over display
+    this.showGameOverScreen();
+
+    // Wait for input to restart
+    this.waitForRestartInput();
+  }
+
+  /**
+   * Show game over screen with black background and text
+   */
+  private static showGameOverScreen(): void {
+    // Clear all UI elements and fill screen with black
+    ScriptEngine.clearUIGraphics();
+    ScriptEngine.clearUITexts();
+    ScriptEngine.rectfill(0, 0, 320, 240, {r: 0, g: 0, b: 0});
+
+    // Display game over text
+    ScriptEngine.printString(120, 100, null, "GAME OVER");
+    ScriptEngine.printString(10, 120, null, "Not enough money to buy a new life (< $500)");
+  }
+
+  /**
+   * Wait for B1 input to restart the game
+   */
+  private static waitForRestartInput(): void {
+    const scene = MainEngine.getCurrentScene();
+    if (!scene) return;
+
+    const checkInput = () => {
+      const inputManager = (scene as any).inputManager;
+      if (inputManager && inputManager.justPressed('b1')) {
+        // Reset game state
+        AkCore.setInvincible(0);
+        AkCore.setEnergy(3);
+        AkCore.setGold(0);
+        AkCore.setIsDying(false);
+        MapScene.setLevelId(1); // Reset to level 1
+        this.gameOverActive = false;
+
+        // Restart the game (equivalent to autoexec)
+        MapScene.showMapScreen();
+      } else {
+        // Continue checking for input
+        scene.time.delayedCall(100, checkInput);
+      }
+    };
+
+    checkInput();
+  }
+
+
+  /**
+   * Reset all action states
+   */
+  public static reset(): void {
+    this.pdelay = 0;
+    this.tdelay = 0;
+    this.originalX = 0;
+    this.originalY = 0;
+    this.gameOverActive = false;
+    AkCore.setHasBrac(false);
+    AkCore.setGold(0);
+    this.playerDimensions = { x: 0, y: 0, width: 0, height: 0 };
+  }
+}

@@ -1,0 +1,244 @@
+/**
+ * MenuTextBox - PS Text Box Component
+ * Simplified implementation based on MenuPromptBox (which works correctly)
+ */
+
+import { MenuType, MenuState } from './MenuType';
+import { MenuStack } from './MenuStack';
+import { ScriptEngine } from '../../../core/ScriptEngine';
+
+export class MenuTextBox extends MenuType {
+  private menuStack: MenuStack;
+  private text: string[];
+  private x: number;
+  private y: number;
+  private wx: number;
+  private wy: number;
+  private hasMore: boolean;
+  private textDelay: number;
+
+  // Text objects only - no private graphics
+  private textObjects: Phaser.GameObjects.Text[] = [];
+  private isDestroyed: boolean = false;
+  private textObjectsCreated: boolean = false;
+
+  // "More text" indicator (Java: MenuStack.moreIcon, Next_Icon.png)
+  private static readonly MORE_ICON_KEY = 'menu_next_icon';
+  private static readonly MORE_ICON_PATH = 'src/demos/ps/images/original/Next_Icon.png';
+  private static moreIconLoadStarted: boolean = false;
+  private moreIconImage: Phaser.GameObjects.Image | null = null;
+  private bobCounter: number = 0;
+
+  constructor(
+    menuStack: MenuStack,
+    x: number,
+    y: number,
+    wx: number,
+    wy: number,
+    r1: string,
+    r2: string,
+    hasDelay: boolean,
+    hasMore: boolean
+  ) {
+    super();
+
+    this.menuStack = menuStack;
+    this.x = x;
+    this.y = y;
+    this.wx = wx;
+    this.wy = wy;
+    this.text = [r1, r2];
+    this.textDelay = 0; // (r1.length + r2.length) * 1 in Java, but set to 0 for immediate display
+    this.hasMore = hasMore;
+
+    if (hasDelay) {
+      this.drawDelay = MenuType.MAX_DELAY;
+    }
+  }
+
+  private createTextObjects(): void {
+    // Clean up existing text objects
+    this.cleanupTextObjects();
+
+    const scene = (this.menuStack as any).scene;
+    if (!scene) return;
+
+    // Text sits inside this menu's depth band (see MenuStack.getMenuDepth)
+    const baseDepth = this.menuStack.getMenuDepth(this) + 5;
+
+    // Create first line text object (initially empty, will be updated in draw)
+    const textObj1 = scene.add.text(
+      this.x + 1 + MenuStack.fontXSize,
+      this.y + MenuStack.fontYSize + 6 - 12,
+      '',
+      {
+        fontSize: `${MenuStack.fontYSize}px`,
+        fontFamily: 'monospace',
+        fontStyle: 'bold',
+        color: '#ffffff'
+      }
+    );
+    textObj1.setOrigin(0, 0);
+    textObj1.setDepth(baseDepth);
+    textObj1.setScrollFactor(0, 0);
+    textObj1.setVisible(false); // Initially hidden, shown during draw
+    this.textObjects.push(textObj1);
+
+    // Create second line text object (initially empty, will be updated in draw)
+    const textObj2 = scene.add.text(
+      this.x + 1 + MenuStack.fontXSize,
+      this.y + MenuStack.fontYSize * 2 + 6 + MenuStack.BETWEEN_ROWS_SPACE - 12,
+      '',
+      {
+        fontSize: `${MenuStack.fontYSize}px`,
+        fontFamily: 'monospace',
+        fontStyle: 'bold',
+        color: '#ffffff'
+      }
+    );
+    textObj2.setOrigin(0, 0);
+    textObj2.setDepth(baseDepth);
+    textObj2.setScrollFactor(0, 0);
+    textObj2.setVisible(false); // Initially hidden, shown during draw
+    this.textObjects.push(textObj2);
+  }
+
+  private cleanupTextObjects(): void {
+    for (const textObj of this.textObjects) {
+      if (textObj && textObj.destroy) {
+        textObj.destroy();
+      }
+    }
+    this.textObjects = [];
+    this.textObjectsCreated = false;
+  }
+
+
+  public endTextDelay(): boolean {
+    if (this.textDelay < (this.text[0].length + this.text[1].length)) {
+      this.textDelay = this.text[0].length + this.text[1].length;
+      return true;
+    }
+    return false;
+  }
+
+  public draw(active: boolean): void {
+    // Don't draw if this menu has been destroyed/popped
+    if (this.isDestroyed) {
+      return;
+    }
+    if (this.drawDelay > 0) {
+      // Opening animation - box grows from center (like MenuPromptBox)
+      this.drawDelay--;
+      const specwx = ((MenuType.MAX_DELAY - this.drawDelay) / MenuType.MAX_DELAY) * this.wx;
+      const middle = (this.x + (this.x + this.wx)) / 2;
+      this.menuStack.drawBox(Math.floor(middle - specwx / 2), this.y, Math.floor(specwx), this.wy);
+
+      // Hide text during animation or if not active
+      this.textObjects.forEach(textObj => textObj.setVisible(false));
+      this.moreIconImage?.setVisible(false);
+    } else {
+      const menus = (this.menuStack as any).menus;
+      const lastMenuTextBox = [...menus].reverse().find((m: any) => m instanceof MenuTextBox);
+
+      if (lastMenuTextBox === this) {
+        this.menuStack.drawBox(this.x, this.y, this.wx, this.wy);
+      }
+
+      // Create text objects only once when delay finishes
+      if (!this.textObjectsCreated) {
+        this.createTextObjects();
+        this.textObjectsCreated = true;
+      }
+
+      // Check if this is the most recent text box (to avoid overlapping old text)
+      const thisIndex = menus.indexOf(this);
+      const isLatestTextBox = thisIndex === menus.length - 1 ||
+                              !menus.slice(thisIndex + 1).some((m: MenuType) => m.constructor.name === 'MenuTextBox');
+
+      // Always update text content and animation
+      const firstLineText = ScriptEngine.left(this.text[0], this.textDelay);
+      if (this.textObjects[0]) {
+        this.textObjects[0].setText(firstLineText);
+        this.textObjects[0].setVisible(isLatestTextBox && firstLineText.length > 0);
+      }
+
+      const secondLineText = this.textDelay > this.text[0].length
+        ? ScriptEngine.left(this.text[1], this.textDelay - this.text[0].length)
+        : '';
+      if (this.textObjects[1]) {
+        this.textObjects[1].setText(secondLineText);
+        this.textObjects[1].setVisible(isLatestTextBox && secondLineText.length > 0);
+      }
+
+      // Update text animation and state — faithful port of the Java counter:
+      // textDelay keeps counting past the text length, and once it exceeds
+      // 3x the text length plus 3x MAX_DELAY the box closes itself, which is
+      // what ends waitB1OrTimeout() for timeout textboxes (dodge/block etc.)
+      const totalLength = this.text[0].length + this.text[1].length;
+
+      // SMS manual: press and hold b1/b2/b3 to speed up conversation text
+      // (matters on follow-up pages, where the held button gives no new edge)
+      const input = this.menuStack.getInputManager();
+      if (active && this.textDelay < totalLength && (input.b1 || input.b2 || input.b3)) {
+        this.textDelay += 2;
+      }
+
+      if (this.state !== MenuState.CLOSE && this.textDelay++ > totalLength) {
+        this.state = MenuState.READY;
+
+        if (this.textDelay++ > 3 * totalLength + MenuType.MAX_DELAY * 3) {
+          this.state = MenuState.CLOSE; // For timeout textboxes
+        }
+      }
+
+      // Bobbing "more" icon — Java: screen.tblit(wx+wy-40,
+      // y+wy-8 + cos(systemtime/8)*3, moreIcon)
+      if (this.state !== MenuState.TEXT && this.hasMore && active) {
+        this.showMoreIcon();
+      } else {
+        this.moreIconImage?.setVisible(false);
+      }
+    }
+  }
+
+  private showMoreIcon(): void {
+    const scene = this.menuStack.getScene();
+    if (!scene) return;
+
+    if (!scene.textures.exists(MenuTextBox.MORE_ICON_KEY)) {
+      if (!MenuTextBox.moreIconLoadStarted) {
+        MenuTextBox.moreIconLoadStarted = true;
+        scene.load.image(MenuTextBox.MORE_ICON_KEY, MenuTextBox.MORE_ICON_PATH);
+        scene.load.start();
+      }
+      return; // Shows once the texture finishes loading on a later draw
+    }
+
+    if (!this.moreIconImage) {
+      this.moreIconImage = scene.add.image(0, 0, MenuTextBox.MORE_ICON_KEY);
+      this.moreIconImage.setOrigin(0, 0);
+      this.moreIconImage.setScrollFactor(0, 0);
+    }
+
+    // Icon renders at the top of this menu's depth band, like the prompt cursor
+    this.moreIconImage.setDepth(this.menuStack.getMenuDepth(this) + 6);
+    const bob = Math.cos(this.bobCounter++ / 8) * 3;
+    this.moreIconImage.setPosition(this.wx + this.wy - 40, Math.floor(this.y + this.wy - 8 + bob));
+    this.moreIconImage.setVisible(true);
+  }
+
+
+  public destroy(): void {
+    // Mark as destroyed to prevent further drawing
+    this.isDestroyed = true;
+
+    // Clean up text objects using the standard method
+    this.cleanupTextObjects();
+
+    if (this.moreIconImage) {
+      this.moreIconImage.destroy();
+      this.moreIconImage = null;
+    }
+  }
+}

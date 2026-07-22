@@ -1,0 +1,34 @@
+{
+  "name": "jlud2d-phaser4-port",
+  "version": "1.0.0",
+  "description": "JLud2D Java game engine ported to TypeScript with Phaser 4",
+  "main": "src/main.ts",
+  "type": "module",
+  "scripts": {
+    "build:worklet": "node scripts/build-worklet.mjs",
+    "dev": "npm run build:worklet && vite",
+    "build": "npm run build:worklet && tsc && vite build",
+    "preview": "vite preview",
+    "serve": "vite preview --port 3080",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "phaser",
+    "typescript",
+    "game-engine",
+    "2d-games",
+    "jlud2d"
+  ],
+  "author": "JLud2D Port Team",
+  "license": "GPL-3.0-or-later",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "phaser": "^4.2.1"
+  }
+}

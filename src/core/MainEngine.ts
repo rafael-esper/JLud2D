@@ -1,0 +1,1497 @@
+// Main Engine: Manages entities, player controls, and core game systems
+import { Entity, EntityDirection } from '../domain/Entity';
+
+export class MainEngine {
+  // Entity system
+  protected static entities: Entity[] = [];
+  protected static numentities: number = 0;
+  protected static player: number = -1; // Index of player entity
+
+  // Player movement state
+  protected static myself: Entity | null = null;
+  protected static playerstep: number = 4;
+  protected static cameratracking: number = 0; // 0 = manual, 1 = follow player
+  protected static playerdiagonals: boolean = true;
+  protected static smoothdiagonals: boolean = true;
+
+  // Input state (for ProcessControls)
+  protected static up: boolean = false;
+  protected static down: boolean = false;
+  protected static left: boolean = false;
+  protected static right: boolean = false;
+  protected static lastplayerdir: number = EntityDirection.SOUTH;
+
+  // Game state
+  protected static invc: number = 0; // Script/cutscene active flag
+  // While a first-person dungeon owns input, the overworld ProcessControls must
+  // not touch the player at all. invc/scriptActive is toggled off momentarily by
+  // every ScriptEngine.fadeout (stairs warps, doors), and a held key leaking
+  // through that blip rewrites the dungeon player's face/waypoint. This flag is a
+  // hard gate independent of fade timing; PSDungeon sets it around its loop.
+  protected static playerControlsSuspended: boolean = false;
+  // While a map switch is in flight (fadeout → asset fetch → startmap), invc
+  // blips to 0 (fadeout completion re-enables it) and entity pausing toggles,
+  // so neither is a reliable lock. This hard gate spans the whole transition:
+  // set by PSGame's mapswitch entry points, cleared when startEngine finishes.
+  // It keeps zone triggers and player controls from starting a second,
+  // concurrent map switch (which cross-contaminates gotoxy between switches).
+  protected static mapTransitionActive: boolean = false;
+  protected static current_map: any = null; // TiledMap instance
+  protected static entitiespaused: boolean = false; // For screen transitions
+
+  // Camera system
+  protected static current_scene: Phaser.Scene | null = null;
+  protected static current_config: any = null;
+  protected static cameraSpeed: number = 4;
+  protected static screenTransitioning: boolean = false;
+
+  // Zone and event system (for PS demo)
+  protected static px: number = 0; // Player tile X position
+  protected static py: number = 0; // Player tile Y position
+  protected static prev_px: number = 0; // Player tile X position before the last step
+  protected static prev_py: number = 0; // Player tile Y position before the last step
+  protected static event_tx: number = 0; // Event trigger tile X
+  protected static event_ty: number = 0; // Event trigger tile Y
+  protected static event_zone: number = 0; // Current event zone
+  protected static timer: number = 0; // System timer
+  protected static lastentitythink: number = 0; // Last entity think time
+  protected static systemtime: number = 0; // Current system time
+  protected static done: boolean = false; // Game done flag
+  protected static isLoadingMap: boolean = false; // Flag to prevent concurrent map loading
+
+  // System path for resource loading (like Java systemclass)
+  protected static systemPath: string = '';
+
+
+  /**
+   * Set system path for resource loading (like Java setSystemPath)
+   */
+  public static setSystemPath(path: string): void {
+    MainEngine.systemPath = path;
+    console.log(`System path set to: ${path}`);
+  }
+
+  public static getSystemPath(): string {
+    return MainEngine.systemPath;
+  }
+
+  public static updateResponsiveScaler(config: any): void {
+    try {
+      // Get global game instance
+      const globalGame = (window as any).game;
+      if (globalGame && globalGame.updateScaling) {
+        console.log(`MainEngine: Updating ResponsiveScaler base resolution to ${config.xRes}x${config.yRes}`);
+        globalGame.updateScaling(config);
+      } else {
+        console.warn('MainEngine: Cannot update ResponsiveScaler - global game instance not available');
+      }
+    } catch (error) {
+      console.error('MainEngine: Error updating ResponsiveScaler:', error);
+    }
+  }
+
+  public static async initMainEngine(mapname?: string): Promise<any> {
+    try {
+      // Load config from system path (like Java Config.loadConfig)
+      const configPath = `${MainEngine.systemPath}/config.json`;
+      console.log(`Loading config from: ${configPath}`);
+
+      const response = await fetch(configPath);
+      if (!response.ok) {
+        throw new Error(`Failed to load config from ${configPath}`);
+      }
+
+      const configData = await response.json();
+      const { GameConfig } = await import('../config/GameConfig');
+      const config = new GameConfig(configData);
+
+      console.log('Config loaded:', config);
+
+      // Use mapname from parameter or fallback to config (like Java)
+      if (!mapname || mapname === '') {
+        mapname = config.mapName;
+        console.log(`Mapname from config file: ${mapname}`);
+      }
+
+      // Store config
+      MainEngine.current_config = config;
+
+      // Update ResponsiveScaler to use demo's resolution for scaling
+      MainEngine.updateResponsiveScaler(config);
+
+      return { config, mapname };
+    } catch (error) {
+      console.error('Error in initMainEngine:', error);
+      // Fallback to default config
+      const { GameConfig } = await import('../config/GameConfig');
+      const config = new GameConfig();
+      MainEngine.current_config = config;
+
+      return { config, mapname: mapname || '' };
+    }
+  }
+
+  public static async AllocateEntity(scene: Phaser.Scene, x: number, y: number, chr: string, basePath: string): Promise<number> {
+    const entity = new Entity(x, y, chr);
+    entity.setIndex(MainEngine.numentities);
+
+    // Get entity depth from current map
+    let entityDepth = 5; // Default depth
+    if (MainEngine.current_map && typeof MainEngine.current_map.getEntityDepth === 'function') {
+      entityDepth = MainEngine.current_map.getEntityDepth();
+    }
+
+    // Initialize the entity sprite with proper depth
+    await entity.initSprite(scene, entityDepth, basePath);
+
+    // Add to entity list
+    MainEngine.entities.push(entity);
+    const entityIndex = MainEngine.numentities++;
+
+    return entityIndex;
+  }
+
+  public static async entityspawn(scene: Phaser.Scene, x: number, y: number, chrname: string, basePath: string): Promise<number> {
+    return await MainEngine.AllocateEntity(scene, x, y, chrname, basePath);
+  }
+
+  public static setplayer(entityIndex: number): Entity | null {
+    if (entityIndex < 0 || entityIndex >= MainEngine.numentities) {
+      MainEngine.player = -1;
+      MainEngine.myself = null;
+      console.error(`setplayer: Invalid entity index ${entityIndex}`);
+      return null;
+    }
+
+    MainEngine.player = entityIndex;
+    MainEngine.myself = MainEngine.entities[entityIndex];
+
+    return MainEngine.myself;
+  }
+
+  public static entitystalk(stalkerIndex: number, stalkeeIndex: number): void {
+    if (stalkerIndex < 0 || stalkerIndex >= MainEngine.numentities) {
+      return;
+    }
+    if (stalkeeIndex < 0 || stalkeeIndex >= MainEngine.numentities) {
+      MainEngine.entities[stalkerIndex].clear_stalk();
+      return;
+    }
+
+    const stalker = MainEngine.entities[stalkerIndex];
+    const stalkee = MainEngine.entities[stalkeeIndex];
+
+    // Position stalker at stalkee's position
+    stalker.setx(stalkee.getx());
+    stalker.sety(stalkee.gety());
+
+    // Set up stalking behavior
+    stalker.stalk(stalkee);
+  }
+
+  public static updateEntities(): void {
+    // Skip entity updates when entities are paused (during screen transitions)
+    if (MainEngine.entitiespaused) {
+      return;
+    }
+
+    for (let i = 0; i < MainEngine.numentities; i++) {
+      if (MainEngine.entities[i].isActive()) {
+        MainEngine.entities[i].think();
+      }
+    }
+  }
+
+  public static setEntitiesPaused(paused: boolean): void {
+    MainEngine.entitiespaused = paused;
+  }
+
+  /**
+   * Set entities paused state with timing reset (port of Java setentitiespaused)
+   * When resuming from pause, resets entity think timing to prevent time jumps
+   * @param paused Whether to pause entities
+   */
+  public static setEntitiesPausedWithTiming(paused: boolean): void {
+    MainEngine.entitiespaused = paused;
+    if (!MainEngine.entitiespaused) {
+      MainEngine.lastentitythink = MainEngine.systemtime;
+    }
+  }
+
+  public static ProcessControls(inputManager: any): void {
+
+    // Hard gate: while the first-person dungeon owns input, never drive the
+    // overworld player from here (see playerControlsSuspended). Independent of
+    // the invc/scriptActive fade blips that let held keys corrupt the facing.
+    if (MainEngine.playerControlsSuspended) {
+      return;
+    }
+
+    // Same hard gate for map switches: invc blips to 0 mid-transition (fadeout
+    // completion), which would let held keys move the player or b1 activate
+    // zones on the outgoing map while the new one is still loading.
+    if (MainEngine.mapTransitionActive) {
+      return;
+    }
+
+    if (MainEngine.isScriptActive()) {
+      return;
+    }
+
+    // Update input state from input manager
+    MainEngine.up = inputManager.up;
+    MainEngine.down = inputManager.down;
+    MainEngine.left = inputManager.left;
+    MainEngine.right = inputManager.right;
+
+    // No player movement can be done if there's no ready player, or if there's a script active
+    if (MainEngine.myself === null || !MainEngine.myself.ready() || MainEngine.invc !== 0) {
+      return;
+    }
+
+    // Kill contradictory input
+    if (MainEngine.up && MainEngine.down) {
+      MainEngine.up = MainEngine.down = false;
+    }
+    if (MainEngine.left && MainEngine.right) {
+      MainEngine.left = MainEngine.right = false;
+    }
+
+    // Determine movement direction
+    let moveX = 0;
+    let moveY = 0;
+
+    if (MainEngine.left) moveX = -1;
+    if (MainEngine.right) moveX = 1;
+    if (MainEngine.up) moveY = -1;
+    if (MainEngine.down) moveY = 1;
+
+    // Apply movement with Java-style facing and obstruction checking
+    if (moveX !== 0 || moveY !== 0) {
+      let newDirection: number = EntityDirection.SOUTH;
+      if (moveX !== 0) {
+        newDirection = moveX > 0 ? EntityDirection.EAST : EntityDirection.WEST;
+      } else if (moveY !== 0) {
+        newDirection = moveY > 0 ? EntityDirection.SOUTH : EntityDirection.NORTH;
+      }
+
+      // Set face immediately, regardless of obstruction
+      MainEngine.myself.setFace(newDirection);
+
+      // Calculate target position for obstruction check
+      const currentX = MainEngine.myself.getx();
+      const currentY = MainEngine.myself.gety();
+      const targetX = currentX + (moveX * 16); // Convert tile movement to pixels
+      const targetY = currentY + (moveY * 16); // Convert tile movement to pixels
+
+      // Check for obstructions at target position using pixel coordinates
+      let canMove = true;
+      if (MainEngine.current_map) {
+        canMove = !MainEngine.current_map.getobspixel(targetX, targetY);
+
+        // Additional check for entity obstructions (for demos that use them)
+        if (canMove) {
+          canMove = !MainEngine.isEntityObstruction(targetX, targetY);
+        }
+
+        // For diagonal movement, also check that we can't squeeze between diagonal obstacles
+        if (canMove && moveX !== 0 && moveY !== 0) {
+          // Check the two adjacent cells for diagonal movement
+          const horizontalX = currentX + (moveX * 16);
+          const horizontalY = currentY;
+          const verticalX = currentX;
+          const verticalY = currentY + (moveY * 16);
+
+          // Map obstruction uses the artwork at the exact corner being cut
+          // through, not the whole flanking tile — a partially-drawn tile
+          // (e.g. a diagonal wall) can leave that corner open even though
+          // the tile itself is obstruction-flagged.
+          const flank = MainEngine.current_map.getDiagonalFlankObstruction(
+            Math.floor(currentX / 16), Math.floor(currentY / 16), moveX, moveY
+          );
+
+          const horizontalBlocked = flank.horizontalBlocked || MainEngine.isEntityObstruction(horizontalX, horizontalY);
+          const verticalBlocked = flank.verticalBlocked || MainEngine.isEntityObstruction(verticalX, verticalY);
+
+          // If both adjacent cells are blocked, don't allow diagonal movement through the corner
+          if (horizontalBlocked && verticalBlocked) {
+            canMove = false;
+          }
+        }
+      }
+
+      // If diagonal movement is blocked, try fallback to single direction
+      if (!canMove && moveX !== 0 && moveY !== 0) {
+        // Try horizontal movement first
+        const horizontalTargetX = currentX + (moveX * 16);
+        const horizontalTargetY = currentY;
+
+        // Java ObstructAt checks map obs AND entity rects on every path,
+        // including wall slides — without the entity check here a diagonal
+        // press tunnels through obstruction entities (bit the Gothic beggar
+        // guarding the spaceship area)
+        if (MainEngine.current_map && !MainEngine.current_map.getobspixel(horizontalTargetX, horizontalTargetY)
+            && !MainEngine.isEntityObstruction(horizontalTargetX, horizontalTargetY)) {
+          // Horizontal movement is possible
+          MainEngine.myself.setWaypointRelative(moveX * 16, 0, false);
+          canMove = true; // Mark as handled
+        } else {
+          // Try vertical movement
+          const verticalTargetX = currentX;
+          const verticalTargetY = currentY + (moveY * 16);
+
+          if (MainEngine.current_map && !MainEngine.current_map.getobspixel(verticalTargetX, verticalTargetY)
+              && !MainEngine.isEntityObstruction(verticalTargetX, verticalTargetY)) {
+            // Vertical movement is possible
+            MainEngine.myself.setWaypointRelative(0, moveY * 16, false);
+            canMove = true; // Mark as handled
+          }
+        }
+      } else if (canMove) {
+        // Original diagonal or straight movement is possible
+        MainEngine.myself.setWaypointRelative(moveX * 16, moveY * 16, false);
+      }
+      // If still blocked after fallback attempts, no movement occurs
+
+      // Update last player direction for diagonal handling
+      MainEngine.lastplayerdir = newDirection;
+    }
+
+    // Check for entity/zone activation with B1 button
+    if (inputManager.justPressed('b1')) {
+      let ex = 0, ey = 0;
+
+      // Calculate position in front of player based on facing direction
+      const playerChr = MainEngine.myself.getChr();
+      if (!playerChr) {
+        console.warn('MainEngine: Player has no CHR, cannot calculate activation position');
+        return;
+      }
+
+      switch (MainEngine.myself.getFace()) {
+        case EntityDirection.NORTH:
+          ex = MainEngine.myself.getx() + (playerChr.getHw() / 2);
+          ey = MainEngine.myself.gety() - 1;
+          break;
+        case EntityDirection.SOUTH:
+          ex = MainEngine.myself.getx() + (playerChr.getHw() / 2);
+          ey = MainEngine.myself.gety() + playerChr.getHh() + 1;
+          break;
+        case EntityDirection.WEST:
+          ex = MainEngine.myself.getx() - 8; // Use more significant offset for reliable detection
+          ey = MainEngine.myself.gety() + (playerChr.getHh() / 2);
+          break;
+        case EntityDirection.EAST:
+          ex = MainEngine.myself.getx() + playerChr.getHw() + 8; // Consistent offset for east
+          ey = MainEngine.myself.gety() + (playerChr.getHh() / 2);
+          break;
+      }
+
+      // First try to find entity at the calculated position
+      const entityIndex = MainEngine.EntityAt(ex, ey);
+      if (entityIndex !== -1) {
+        const targetEntity = MainEngine.entities[entityIndex];
+
+        // Make entity face player (autoface behavior)
+        if (targetEntity.isAutoface()) {
+          switch (MainEngine.myself.getFace()) {
+            case EntityDirection.NORTH:
+              targetEntity.setFace(EntityDirection.SOUTH);
+              break;
+            case EntityDirection.SOUTH:
+              targetEntity.setFace(EntityDirection.NORTH);
+              break;
+            case EntityDirection.WEST:
+              targetEntity.setFace(EntityDirection.EAST);
+              break;
+            case EntityDirection.EAST:
+              targetEntity.setFace(EntityDirection.WEST);
+              break;
+          }
+
+          // Update entity sprite immediately after facing change
+          targetEntity.draw();
+        }
+
+        // Execute entity's activation script
+        const activationScript = targetEntity.getActivationScript && targetEntity.getActivationScript();
+        if (activationScript) {
+          console.log(`MainEngine: Activating entity ${entityIndex} with script: ${activationScript}`);
+          MainEngine.callEntityScript(activationScript);
+        } else {
+          console.log(`MainEngine: Entity ${entityIndex} has no activation script`);
+        }
+      } else {
+        // No entity found, check for map zone activation
+        if (MainEngine.current_map && MainEngine.current_map.getzone) {
+          // Convert pixel coordinates to tile coordinates
+          const tileX = Math.floor(ex / 16);
+          const tileY = Math.floor(ey / 16);
+
+          const zone = MainEngine.current_map.getzone(tileX, tileY);
+          if (zone > 0) {
+            // Only activate zones marked as obstruction (method 1)
+            const method = MainEngine.current_map.getMethodZone(zone);
+            if (method === 1) {
+              const script = MainEngine.current_map.getScriptZone(zone);
+              if (script && script.trim() !== '') {
+                console.log(`MainEngine: Activating obstruction zone ${zone} with script: ${script}`);
+                MainEngine.callScriptFunction(script);
+              } else {
+                console.log(`MainEngine: Obstruction zone ${zone} has no script`);
+              }
+            }
+          }
+        } else {
+          console.log('MainEngine: No entity found and no map available for zone checking');
+        }
+      }
+    }
+  }
+
+  public static RenderEntities(): void {
+    // Sort entities by Y position for proper depth ordering
+    const sortedEntities = [...MainEngine.entities].sort((a, b) => a.gety() - b.gety());
+
+    // Get the base entity depth from the map's renderString
+    const baseEntityDepth = MainEngine.current_map ? MainEngine.current_map.getEntityDepth() : 2;
+
+    // Update sprite depths based on sorted order for proper Y-sorting
+    for (let i = 0; i < sortedEntities.length; i++) {
+      const entity = sortedEntities[i];
+      if (entity.isActive() && entity.isVisible()) {
+        const sprite = entity.getSprite();
+        if (sprite) {
+          // Use map's entity depth as base, then add small Y-based offset for sorting
+          // This keeps entities in their proper layer while allowing Y-sorting within that layer
+          let depth = baseEntityDepth + (entity.gety() * 0.001);
+
+          // Give player a tiny depth advantage to appear above other entities at same Y
+          if (entity === MainEngine.myself) {
+            depth += 0.0001;
+          }
+
+          sprite.setDepth(depth);
+        }
+        entity.draw();
+      }
+    }
+  }
+
+  public static getPlayer(): Entity | null {
+    return MainEngine.myself;
+  }
+
+  public static getCurrentMap(): any {
+    return MainEngine.current_map;
+  }
+
+  private static isEntityObstruction(x: number, y: number): boolean {
+    if (!MainEngine.entities || MainEngine.entities.length === 0) {
+      return false;
+    }
+    const hasObstructionEntities = MainEngine.entities.some(entity => {
+      try {
+        return entity &&
+               typeof entity.isActive === 'function' && entity.isActive() &&
+               typeof entity.isObstruction === 'function' && entity.isObstruction();
+      } catch (error) {
+        return false;
+      }
+    });
+    if (!hasObstructionEntities) {
+      return false;
+    }
+
+    const tileWidth = MainEngine.current_map ? MainEngine.current_map.getTileWidth() : 16;
+    const tileHeight = MainEngine.current_map ? MainEngine.current_map.getTileHeight() : 16;
+    const tileX = Math.floor(x / tileWidth);
+    const tileY = Math.floor(y / tileHeight);
+
+    for (const entity of MainEngine.entities) {
+      try {
+        if (!entity ||
+            typeof entity.isActive !== 'function' || !entity.isActive() ||
+            typeof entity.isObstruction !== 'function' || !entity.isObstruction() ||
+            typeof entity.getx !== 'function' || typeof entity.gety !== 'function') {
+          continue;
+        }
+
+        // Check if entity is at the same tile position
+        const entityTileX = Math.floor(entity.getx() / tileWidth);
+        const entityTileY = Math.floor(entity.gety() / tileHeight);
+
+        if (entityTileX === tileX && entityTileY === tileY) {
+          return true;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+
+    return false;
+  }
+
+  public static getPlayerIndex(): number {
+    return MainEngine.player;
+  }
+
+  public static getEntity(index: number): Entity | null {
+    if (index < 0 || index >= MainEngine.numentities) {
+      return null;
+    }
+    return MainEngine.entities[index];
+  }
+
+  public static getEntities(): Entity[] {
+    return MainEngine.entities;
+  }
+
+  public static getEntityByIndex(index: number): Entity | null {
+    if (index < 0 || index >= MainEngine.entities.length) {
+      return null;
+    }
+    return MainEngine.entities[index];
+  }
+
+  public static getNumEntities(): number {
+    return MainEngine.numentities;
+  }
+
+  /**
+   * Find entity at specified position - direct port of Java EntityAt()
+   */
+  public static EntityAt(x: number, y: number): number {
+    for (let i = 0; i < MainEngine.numentities; i++) {
+      const entity = MainEngine.entities[i];
+      const chr = entity.getChr();
+
+      if (entity.isActive() && chr &&
+          x >= entity.getx() &&
+          x < entity.getx() + chr.getHw() &&
+          y >= entity.gety() &&
+          y < entity.gety() + chr.getHh()) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  /**
+   * Call entity script function - use existing generic script system
+   */
+  public static async callEntityScript(scriptName: string): Promise<void> {
+    console.log(`MainEngine: Calling entity script: ${scriptName}`);
+    // Use the existing generic callScriptFunction which already handles script contexts
+    MainEngine.callScriptFunction(scriptName);
+  }
+
+  public static getCameraTracking(): number {
+    return MainEngine.cameratracking;
+  }
+
+  public static setCameraTracking(mode: number): void {
+    MainEngine.cameratracking = mode;
+  }
+
+  public static setCurrentMap(map: any): void {
+    MainEngine.current_map = map;
+  }
+
+  public static clearEntities(): void {
+    // Destroy all entity sprites
+    for (const entity of MainEngine.entities) {
+      entity.destroy();
+    }
+
+    MainEngine.entities = [];
+    MainEngine.numentities = 0;
+    MainEngine.player = -1;
+    MainEngine.myself = null;
+  }
+
+  public static cleanup(): void {
+    // Clear entities
+    MainEngine.clearEntities();
+
+    // Destroy map if it exists
+    if (MainEngine.current_map && typeof MainEngine.current_map.destroy === 'function') {
+      MainEngine.current_map.destroy();
+    }
+    MainEngine.current_map = null;
+
+    // Reset other state
+    MainEngine.current_scene = null;
+    MainEngine.current_config = null;
+    MainEngine.cameratracking = 0;
+    MainEngine.entitiespaused = false;
+    MainEngine.screenTransitioning = false;
+  }
+
+  public static setScriptActive(active: boolean): void {
+    MainEngine.invc = active ? 1 : 0;
+  }
+
+  /**
+   * Suspend/resume overworld player controls. Set true while a first-person
+   * dungeon owns input so ProcessControls never moves or re-faces the player,
+   * regardless of the invc/scriptActive blips that fades introduce.
+   */
+  public static setPlayerControlsSuspended(suspended: boolean): void {
+    MainEngine.playerControlsSuspended = suspended;
+  }
+
+  public static isScriptActive(): boolean {
+    return MainEngine.invc !== 0;
+  }
+
+  /**
+   * Mark a map switch as in flight. Set by PSGame's mapswitch entry points
+   * before their first await; cleared by startEngine when the new map (and any
+   * nested transition it chains into) has finished loading.
+   */
+  public static setMapTransitionActive(active: boolean): void {
+    MainEngine.mapTransitionActive = active;
+  }
+
+  public static isMapTransitionActive(): boolean {
+    return MainEngine.mapTransitionActive;
+  }
+
+  public static setPlayerStep(step: number): void {
+    MainEngine.playerstep = step;
+  }
+
+  public static getPlayerStep(): number {
+    return MainEngine.playerstep;
+  }
+
+  public static getPlayerDiagonals(): boolean {
+    return MainEngine.playerdiagonals;
+  }
+
+  public static setPlayerDiagonals(enabled: boolean): void {
+    MainEngine.playerdiagonals = enabled;
+  }
+
+  public static getSmoothDiagonals(): boolean {
+    return MainEngine.smoothdiagonals;
+  }
+
+  public static setSmoothDiagonals(enabled: boolean): void {
+    MainEngine.smoothdiagonals = enabled;
+  }
+
+  /**
+   * Execute player movement sequence (simplified version of Java playermove)
+   * @param sequence Animation sequence string (e.g., "Z12 W3 Z13 W3 H")
+   */
+  public static playermove(sequence: string): void {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    // Parse and execute animation sequence with proper timing
+    // Commands: Z## = set frame ##, W## = wait ## frames, H = halt/stop
+    const commands = sequence.split(' ');
+    let currentDelay = 0;
+
+    for (let i = 0; i < commands.length; i++) {
+      const command = commands[i];
+
+      if (command.startsWith('Z')) {
+        const frameNum = parseInt(command.substring(1));
+        if (!isNaN(frameNum)) {
+          // Schedule frame change at current delay
+          setTimeout(() => {
+            player.setSpecframe(frameNum);
+          }, currentDelay);
+        }
+      } else if (command.startsWith('W')) {
+        const waitFrames = parseInt(command.substring(1));
+        if (!isNaN(waitFrames)) {
+          currentDelay += waitFrames * 16; // Convert frames to milliseconds (assuming 60fps)
+        }
+      } else if (command === 'H') {
+        // Reset to normal animation after total sequence
+        setTimeout(() => {
+          player.setSpecframe(-1); // -1 means use normal animation
+        }, currentDelay);
+        break;
+      }
+    }
+  }
+
+  public static setCurrentScene(scene: Phaser.Scene, config: any): void {
+    MainEngine.current_scene = scene;
+    MainEngine.current_config = config;
+  }
+
+  public static getCurrentScene(): Phaser.Scene | null {
+    return MainEngine.current_scene;
+  }
+
+  public static setupCamera(): void {
+    if (!MainEngine.current_map || !MainEngine.current_scene || !MainEngine.current_config) return;
+
+    const scene = MainEngine.current_scene;
+
+    // Calculate map bounds in pixels
+    const mapWidth = MainEngine.current_map.getWidth() * MainEngine.current_map.getTileWidth();
+    const mapHeight = MainEngine.current_map.getHeight() * MainEngine.current_map.getTileHeight();
+
+    // Wrappable maps (the planets) scroll freely across the map edges;
+    // setCameraPosition wraps the scroll with mod arithmetic instead of
+    // clamping (Java complyToLimits skips its clamp for wrappable maps).
+    const hWrap = !!MainEngine.current_map.isHorizontalWrappable?.();
+    const vWrap = !!MainEngine.current_map.isVerticalWrappable?.();
+    if (hWrap || vWrap) {
+      scene.cameras.main.removeBounds();
+    } else {
+      // Set camera bounds to the map size (this constrains scrolling)
+      scene.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
+    }
+
+    // Set initial camera position using map's start position
+    const startX = MainEngine.current_map.getStartX() * MainEngine.current_map.getTileWidth();
+    const startY = MainEngine.current_map.getStartY() * MainEngine.current_map.getTileHeight();
+
+    // Center camera on start position with proper clamping
+    MainEngine.setCameraPosition(startX, startY);
+  }
+
+  /**
+   * Set camera position with proper clamping
+   * Equivalent to Demo1Scene.setCameraPosition()
+   */
+  public static setCameraPosition(x: number, y: number): void {
+    if (!MainEngine.current_map || !MainEngine.current_scene) return;
+
+    const camera = MainEngine.current_scene.cameras.main;
+    if (!camera || camera.width === undefined || camera.height === undefined) return;
+
+    const mapWidth = MainEngine.current_map.getWidth() * MainEngine.current_map.getTileWidth();
+    const mapHeight = MainEngine.current_map.getHeight() * MainEngine.current_map.getTileHeight();
+
+    // Camera viewport dimensions (like Java camera.viewportWidth/2)
+    const camViewportHalfX = camera.width / 2;
+    const camViewportHalfY = camera.height / 2;
+
+    // Clamp camera position to map bounds (like Java MathUtils.clamp) —
+    // except on wrappable axes, which scroll freely and wrap below
+    const hWrap = !!MainEngine.current_map.isHorizontalWrappable?.();
+    const vWrap = !!MainEngine.current_map.isVerticalWrappable?.();
+    const clampedX = hWrap ? x : Math.max(camViewportHalfX, Math.min(x, mapWidth - camViewportHalfX));
+    const clampedY = vWrap ? y : Math.max(camViewportHalfY, Math.min(y, mapHeight - camViewportHalfY));
+
+    // Set camera position (Phaser uses centerOn which is like setting camera.position in Java)
+    camera.centerOn(clampedX, clampedY);
+
+    // Keep the scroll inside [0, mapSize) on wrappable axes. The part of the
+    // view that sticks out past the far edge is covered by the wrap-copy
+    // layers TiledMap creates (Java blitLayer's mod-arithmetic plotting).
+    if (hWrap) {
+      camera.scrollX = ((camera.scrollX % mapWidth) + mapWidth) % mapWidth;
+    }
+    if (vWrap) {
+      camera.scrollY = ((camera.scrollY % mapHeight) + mapHeight) % mapHeight;
+    }
+  }
+
+  /**
+   * Handle manual camera movement
+   * Equivalent to Demo1Scene.handleCameraMovement()
+   */
+  public static handleCameraMovement(inputManager: any): void {
+    if (!MainEngine.current_scene) return;
+
+    let moveX = 0;
+    let moveY = 0;
+
+    if (inputManager.left) {
+      moveX = -MainEngine.cameraSpeed;
+    }
+    if (inputManager.right) {
+      moveX = MainEngine.cameraSpeed;
+    }
+    if (inputManager.up) {
+      moveY = -MainEngine.cameraSpeed;
+    }
+    if (inputManager.down) {
+      moveY = MainEngine.cameraSpeed;
+    }
+
+    // Apply camera movement with proper clamping
+    if (moveX !== 0 || moveY !== 0) {
+      const camera = MainEngine.current_scene.cameras.main;
+      const newX = camera.centerX + moveX;
+      const newY = camera.centerY + moveY;
+
+      // Use the same clamping logic as setCameraPosition
+      MainEngine.setCameraPosition(newX, newY);
+    }
+  }
+
+  /**
+   * Handle screen transition mode (mode 3) like Java implementation
+   */
+  private static handleScreenTransition(): void {
+    if (!MainEngine.current_scene || !MainEngine.current_config) return;
+    if (MainEngine.screenTransitioning) return; // Already in transition
+
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    const camera = MainEngine.current_scene.cameras.main;
+    const screenWidth = MainEngine.current_config.xRes;
+    const screenHeight = MainEngine.current_config.yRes;
+
+    // Initialize camera to player's screen if not properly aligned
+    const playerPixelX = player.getx();
+    const playerPixelY = player.gety();
+
+    // Calculate which screen the player is on
+    const playerScreenX = Math.floor(playerPixelX / screenWidth);
+    const playerScreenY = Math.floor(playerPixelY / screenHeight);
+
+    // Calculate the center of the player's current screen
+    const expectedCameraX = (playerScreenX * screenWidth) + (screenWidth / 2);
+    const expectedCameraY = (playerScreenY * screenHeight) + (screenHeight / 2);
+
+    // If camera is not aligned to a screen boundary, align it first
+    const currentCameraX = camera.centerX;
+    const currentCameraY = camera.centerY;
+
+    const cameraOffsetX = Math.abs(currentCameraX - expectedCameraX);
+    const cameraOffsetY = Math.abs(currentCameraY - expectedCameraY);
+
+    // If camera is not properly aligned (tolerance of 4 pixels), snap it to player's screen
+    if (cameraOffsetX > 4 || cameraOffsetY > 4) {
+      MainEngine.setCameraPosition(expectedCameraX, expectedCameraY);
+      return; // Wait one frame before checking transitions
+    }
+
+    // Now check for screen transitions
+    // Get current camera screen position (top-left corner equivalent to Java xwin, ywin)
+    const xwin = camera.centerX - screenWidth / 2;
+    const ywin = camera.centerY - screenHeight / 2;
+
+    // Calculate player position relative to current screen boundaries
+    const relativeX = playerPixelX - xwin;
+    const relativeY = playerPixelY - ywin;
+
+    let scrollDirection = '';
+    let scrollX = 0;
+    let scrollY = 0;
+
+    // Check boundaries like Java (with -8 pixel threshold)
+    if (relativeX <= -8) {
+      scrollDirection = 'left';
+      scrollX = -screenWidth;
+    } else if (relativeX >= screenWidth) {
+      scrollDirection = 'right';
+      scrollX = screenWidth;
+    } else if (relativeY <= -8) {
+      scrollDirection = 'up';
+      scrollY = -screenHeight;
+    } else if (relativeY >= screenHeight) {
+      scrollDirection = 'down';
+      scrollY = screenHeight;
+    }
+
+    // If transition needed, perform animated scroll
+    if (scrollDirection) {
+      MainEngine.performScreenTransition(scrollX, scrollY, scrollDirection);
+    }
+  }
+
+  /**
+   * Perform animated screen transition like Java implementation
+   */
+  private static performScreenTransition(scrollX: number, scrollY: number, _direction: string): void {
+    if (!MainEngine.current_scene) return;
+
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    MainEngine.screenTransitioning = true;
+
+    // Pause entities during transition (like Java setentitiespaused(true))
+    MainEngine.setEntitiesPaused(true);
+
+    const camera = MainEngine.current_scene.cameras.main;
+    const startX = camera.centerX;
+    const startY = camera.centerY;
+    const targetX = startX + scrollX;
+    const targetY = startY + scrollY;
+
+    // Calculate transition duration based on Java's 4-pixel increments
+    // At 60fps, move 4 pixels per frame = 240 pixels per second
+    const distance = Math.sqrt(scrollX * scrollX + scrollY * scrollY);
+    const duration = (distance / 4) * (1000 / 60); // Convert to milliseconds
+
+    // Create smooth camera transition using Phaser tween
+    MainEngine.current_scene.tweens.add({
+      targets: { x: startX, y: startY },
+      x: targetX,
+      y: targetY,
+      duration: duration,
+      ease: 'Linear',
+      onUpdate: (tween: Phaser.Tweens.Tween) => {
+        const value = tween.getValue();
+        const currentX = (value as any).x;
+        const currentY = (value as any).y;
+
+        // Update camera position
+        camera.setScroll(currentX - camera.width / 2, currentY - camera.height / 2);
+      },
+      onComplete: () => {
+        // Ensure final position is exact
+        camera.setScroll(targetX - camera.width / 2, targetY - camera.height / 2);
+
+        // Resume entities (like Java setentitiespaused(false))
+        MainEngine.setEntitiesPaused(false);
+        MainEngine.screenTransitioning = false;
+      }
+    });
+  }
+
+  /**
+   * Handle camera tracking - follow the player
+   * Equivalent to Demo1Scene.handleCameraTracking()
+   */
+  public static handleCameraTracking(): void {
+    const player = MainEngine.getPlayer();
+    if (!player) return;
+
+    // Handle different camera tracking modes
+    switch (MainEngine.cameratracking) {
+      case 1: // Standard following mode
+        {
+          // Get player center position
+          const playerX = player.getx() + (player.getHotW() / 2);
+          const playerY = player.gety() + (player.getHotH() / 2);
+
+          // Set camera to follow player (with same clamping as manual movement)
+          MainEngine.setCameraPosition(playerX, playerY);
+        }
+        break;
+
+      case 3: // Screen Transition mode (Golden Axe Warrior style)
+        {
+          MainEngine.handleScreenTransition();
+        }
+        break;
+
+      default:
+        // No camera tracking
+        break;
+    }
+  }
+
+  /**
+   * Load map and initialize - combines map loading with initialization
+   */
+  public static async loadAndInitMap(scene: Phaser.Scene, mapFilename: string, basePath: string): Promise<any> {
+    // Import TiledMap here to avoid circular dependencies
+    const { TiledMap } = await import('../domain/TiledMap');
+
+    // Load the tilemap
+    const tiledMap = await TiledMap.loadMap(scene, mapFilename, basePath);
+
+    if (tiledMap) {
+      // Start the map
+      await tiledMap.startMap();
+
+      // Set current map reference
+      MainEngine.setCurrentMap(tiledMap);
+
+      // Load script context for this map
+      await MainEngine.loadScriptContextForMap(mapFilename, basePath);
+    } else {
+      console.error('MainEngine: Failed to load TiledMap');
+    }
+
+    return tiledMap;
+  }
+
+  /**
+   * Map initialization - equivalent to Demo1.mapinit()
+   * Spawns the player character and sets up camera tracking
+   */
+  public static async mapinit(scene: Phaser.Scene, chrname: string, basePath: string): Promise<void> {
+    if (!MainEngine.current_map) {
+      console.error('MainEngine.mapinit: current_map not set');
+      return;
+    }
+
+    // Get start position from map (matching Java demo logic)
+    let gotox = 0;
+    let gotoy = 0;
+
+    if (gotox === 0 && gotoy === 0) {
+      // Use map start position
+      gotox = MainEngine.current_map.getStartX(); // current_map.getStartX() equivalent
+      gotoy = MainEngine.current_map.getStartY(); // current_map.getStartY() equivalent
+    }
+
+    // Spawn player entity (equivalent to entityspawn + setplayer)
+    const playerIndex = await MainEngine.entityspawn(scene, gotox, gotoy, chrname, basePath);
+    MainEngine.setplayer(playerIndex);
+
+    // Enable camera tracking (equivalent to cameratracking = 1)
+    MainEngine.setCameraTracking(1);
+
+    // Set player properties (matching Java demo)
+    MainEngine.setPlayerStep(4);
+    const player = MainEngine.getPlayer();
+    if (player) {
+      player.setSpeed(100); // Reduced speed for better animation timing
+
+      // Center camera on player initially
+      const playerPixelX = player.getx();
+      const playerPixelY = player.gety();
+
+      MainEngine.setCameraPosition(playerPixelX, playerPixelY);
+    }
+
+  }
+
+  /**
+   * Generic update method for handling camera and movement
+   * Should be called from scene update() method
+   */
+  public static updateEngine(inputManager: any): void {
+    // Process player controls BEFORE the entity think pass. In the Java engine
+    // (EntityImpl.think), the player's ProcessControls() runs *inside* the tick
+    // loop at the instant the entity is ready(), so the next waypoint is set and
+    // movement continues in the same tick — framect advances continuously. Here
+    // ProcessControls is decoupled from Entity.think(); if it ran *after*
+    // TimedProcessEntities, then at every tile boundary the player would be
+    // ready() with no waypoint yet, stalling framect and injecting the idle
+    // frame (frame 0) into the middle of the walk cycle. Running it first
+    // restores Java's ordering and a smooth, correctly-ordered walk animation.
+    const player = MainEngine.getPlayer();
+    if (player) {
+      // Process player controls
+      MainEngine.ProcessControls(inputManager);
+    }
+
+    // Entities think once per rendered frame. Entity.think() computes a constant
+    // whole-pixel step per frame (scaled by the game-speed level), which keeps
+    // motion smooth without needing a second tick pass here.
+    MainEngine.TimedProcessEntities();
+
+    // Handle camera movement after the player has moved this frame
+    if (player) {
+      // Handle camera tracking if enabled
+      if (MainEngine.getCameraTracking() > 0) {
+        MainEngine.handleCameraTracking();
+      }
+    } else {
+      // Fallback to manual camera movement
+      MainEngine.handleCameraMovement(inputManager);
+    }
+  }
+
+  public static setCameraSpeed(speed: number): void {
+    MainEngine.cameraSpeed = speed;
+  }
+
+  public static getCameraSpeed(): number {
+    return MainEngine.cameraSpeed;
+  }
+
+
+
+  public static CheckZone(): void {
+    if (!MainEngine.current_map) return;
+
+    // Don't trigger zone events when entities are paused (during animations/transitions)
+    if (MainEngine.entitiespaused) return;
+
+    // Don't trigger zone events when scripts are active (during cutscenes/spaceport transitions)
+    if (MainEngine.invc !== 0) return;
+
+    // Don't trigger zone events while a map switch is in flight — a zone firing
+    // here starts a second concurrent mapswitch whose gotoxy clobbers the first
+    // (e.g. the spaceport walk animations end exactly on the camineet/parolit
+    // entrance zones of Palma)
+    if (MainEngine.mapTransitionActive) return;
+
+    const cur_timer = MainEngine.timer;
+    const cz = MainEngine.current_map.getzone(MainEngine.px, MainEngine.py);
+
+    if (cz > 0) {
+      const percent = MainEngine.current_map.getPercentZone(cz);
+      const script = MainEngine.current_map.getScriptZone(cz);
+
+      const rnd = Math.floor(255 * Math.random());
+
+      if (rnd < percent) {
+        MainEngine.event_zone = cz;
+        MainEngine.callScriptFunction(script);
+      }
+    }
+    MainEngine.timer = cur_timer;
+  }
+
+  /**
+   * Timed entity processing with zone checking
+   * Called from update loop
+   */
+  public static TimedProcessEntities(): void {
+    if (MainEngine.entitiespaused) {
+      return;
+    }
+
+    // Update system time (once per rendered frame; the game-speed scaling
+    // happens inside Entity.think() via the speed accumulator)
+    MainEngine.systemtime++;
+
+    while (MainEngine.lastentitythink < MainEngine.systemtime) {
+      if (MainEngine.done) break;
+
+      // Note: px and py are now only updated when movement is detected below
+
+      MainEngine.updateEntities();
+
+      if (MainEngine.invc === 0) {
+        // Note: ProcessControls needs inputManager, will be called separately in updateEngine
+        // MainEngine.ProcessControls();
+      }
+
+      if (MainEngine.myself !== null && MainEngine.invc === 0 && !MainEngine.entitiespaused) {
+        // Check if player has moved to a new tile (using center of sprite for better "settled" detection)
+        const hw = MainEngine.myself.getChr()?.getHw() || 16;
+        const hh = MainEngine.myself.getChr()?.getHh() || 16;
+        const playerX = MainEngine.myself.getx();
+        const playerY = MainEngine.myself.gety();
+        // Use center of sprite for zone detection
+        const centerX = playerX + (hw / 2);
+        const centerY = playerY + (hh / 2);
+        let new_px = Math.floor(centerX / 16);
+        let new_py = Math.floor(centerY / 16);
+
+        // On wrappable maps the tile past the far edge is the first tile
+        // again — keep px/py (and thus event_tx/ty) inside the map
+        const map = MainEngine.current_map;
+        if (map?.isHorizontalWrappable?.()) {
+          const w = map.getWidth();
+          new_px = ((new_px % w) + w) % w;
+        }
+        if (map?.isVerticalWrappable?.()) {
+          const h = map.getHeight();
+          new_py = ((new_py % h) + h) % h;
+        }
+
+        if ((MainEngine.px !== new_px) || (MainEngine.py !== new_py)) {
+          MainEngine.prev_px = MainEngine.px;
+          MainEngine.prev_py = MainEngine.py;
+          MainEngine.px = new_px;
+          MainEngine.py = new_py;
+
+          MainEngine.event_tx = MainEngine.px;
+          MainEngine.event_ty = MainEngine.py;
+
+          MainEngine.onStep();
+          MainEngine.CheckZone();
+          MainEngine.afterStep();
+        }
+      }
+      MainEngine.lastentitythink++;
+    }
+  }
+
+  public static onStep(): void {
+    // Default implementation - override in city-specific scripts
+  }
+
+  public static afterStep(): void {
+    // Default implementation - override in city-specific scripts
+  }
+
+  public static getPx(): number {
+    return MainEngine.px;
+  }
+
+  public static getPy(): number {
+    return MainEngine.py;
+  }
+
+  /** Tile the player was standing on before the step that just triggered a zone event. */
+  public static getPrevPx(): number {
+    return MainEngine.prev_px;
+  }
+
+  /** Tile the player was standing on before the step that just triggered a zone event. */
+  public static getPrevPy(): number {
+    return MainEngine.prev_py;
+  }
+
+  public static getEventZone(): number {
+    return MainEngine.event_zone;
+  }
+
+  /** Tile X of the event that most recently triggered (captured at trigger time). */
+  public static getEventTx(): number {
+    return MainEngine.event_tx;
+  }
+
+  /** Tile Y of the event that most recently triggered (captured at trigger time). */
+  public static getEventTy(): number {
+    return MainEngine.event_ty;
+  }
+
+  /**
+   * Reset the event tile to the player's freshly spawned position. Called
+   * when the party is (re)allocated onto a map so that a subsequent
+   * PSMenu.endScene()/regroup() call (e.g. after a scene that itself
+   * switches maps, like the interplanetary shuttle) anchors to the new
+   * map's coordinates instead of a stale tile left over from wherever the
+   * player activated the scene.
+   */
+  public static setEventTile(x: number, y: number): void {
+    MainEngine.event_tx = x;
+    MainEngine.event_ty = y;
+  }
+
+  // Current script context (set by the current map/scene)
+  protected static currentScriptContext: any = null;
+
+  public static setScriptContext(context: any): void {
+    MainEngine.currentScriptContext = context;
+  }
+
+  public static getScriptContext(): any {
+    return MainEngine.currentScriptContext;
+  }
+
+  public static async loadScriptContextForMap(mapName: string, basePath: string): Promise<void> {
+    try {
+      // Extract map name without extension (e.g., "Camineet.map.json" -> "Camineet")
+      const scriptName = mapName.replace('.map.json', '');
+
+      // Build the exact same path as the map, but with .ts extension
+      const absoluteScriptPath = `${basePath}/${scriptName}`;
+
+      // Convert absolute path to relative import path
+      // Remove 'src/' prefix and add '../' to make it relative from core/
+      const relativePath = absoluteScriptPath.replace(/^src\//, '../');
+
+      console.log(`Loading script context from: ${absoluteScriptPath}`);
+
+      // Dynamically import the script module using relative path
+      const scriptModule = await import(/* @vite-ignore */ relativePath);
+
+      // Look for a class with the same name as the script
+      if (scriptModule[scriptName]) {
+        MainEngine.setScriptContext(scriptModule[scriptName]);
+        console.log(`Script context loaded: ${scriptName}`);
+      } else {
+        console.warn(`Script class ${scriptName} not found in module ${relativePath}`);
+      }
+    } catch (error) {
+      console.warn(`Could not load script context for map ${mapName}:`, error);
+      // Clear script context if loading fails
+      MainEngine.setScriptContext(null);
+    }
+  }
+
+  /**
+   * Call script function by name - generic script calling system
+   */
+  public static callScriptFunction(functionName: string): void {
+    if (!functionName || functionName === "") {
+      return;
+    }
+
+    console.log(`Calling script function: ${functionName}`);
+
+    try {
+      // First, try to find the function in the current scene
+      const currentScene = MainEngine.getCurrentScene();
+      if (currentScene) {
+        const sceneConstructor = (currentScene as any).constructor;
+        if (typeof sceneConstructor[functionName] === 'function') {
+          console.log(`Executing ${functionName}() from current scene`);
+          const result = sceneConstructor[functionName]();
+          // If the function returns a promise, handle it properly
+          if (result && typeof result.then === 'function') {
+            result.catch((error: any) => {
+              console.error(`Error in async script function ${functionName}:`, error);
+            });
+          }
+          return;
+        }
+      }
+
+      // If not found in scene, try the current script context
+      if (!MainEngine.currentScriptContext) {
+        console.warn(`No script context set and function ${functionName} not found in scene`);
+        return;
+      }
+
+      // Check if the function exists in the current script context
+      if (typeof MainEngine.currentScriptContext[functionName] === 'function') {
+        console.log(`Executing ${functionName}() from script context`);
+        const result = MainEngine.currentScriptContext[functionName]();
+        // If the function returns a promise, handle it properly
+        if (result && typeof result.then === 'function') {
+          result.catch((error: any) => {
+            console.error(`Error in async script function ${functionName}:`, error);
+          });
+        }
+      } else {
+        console.warn(`Function ${functionName} not found in current script context or scene`);
+      }
+    } catch (error) {
+      console.error(`Error calling script function ${functionName}:`, error);
+    }
+  }
+
+  /**
+   * Engine restart with new map - port of Java engine_start()
+   */
+  public static async startEngine(mapname: string, basePath?: string): Promise<void> {
+    // Prevent concurrent map loading to make mapswitch idempotent
+    if (MainEngine.isLoadingMap) {
+      console.log(`MainEngine.startEngine: Already loading a map, ignoring duplicate call for ${mapname}`);
+      return;
+    }
+
+    console.log(`MainEngine.startEngine: Starting map load for ${mapname}`);
+    MainEngine.isLoadingMap = true;
+
+    try {
+      // Clear entities (equivalent to numentities = 0; entities.clear();)
+      MainEngine.clearEntities();
+
+    // Destroy previous map completely before loading new one
+    if (MainEngine.current_map) {
+      console.log('MainEngine: Destroying previous map');
+      MainEngine.current_map.destroy();
+      MainEngine.current_map = null;
+    }
+
+    // Clear any remaining tilemap layers from scene
+    const scene = MainEngine.current_scene;
+    if (scene) {
+      scene.children.list.forEach((child: Phaser.GameObjects.GameObject) => {
+        if (child.type === 'TilemapLayer') {
+          console.log('MainEngine: Destroying orphaned tilemap layer');
+          child.destroy();
+        }
+      });
+    }
+
+    // Reset player references (equivalent to player = -1; myself = null;)
+    // Already handled by clearEntities()
+
+    // Reset window position (equivalent to xwin = ywin = 0;)
+    // TODO: Implement when window/camera system is ready
+
+    // Reset done flag (equivalent to done = false;)
+    MainEngine.done = false;
+
+    // Fix .map to .json (same logic as Java)
+    if (mapname.toLowerCase().endsWith('.map')) {
+      console.warn(`Warning: .map file instead of expected JSON: ${mapname}`);
+      mapname = mapname
+        .replace('.map', '.map.json')
+        .replace('.Map', '.map.json')
+        .replace('.MAP', '.map.json');
+    }
+
+    // Load and start the new map
+      console.log(`MainEngine: Loading map ${mapname}`);
+
+      // Import TiledMap here to avoid circular dependencies
+      const { TiledMap } = await import('../domain/TiledMap');
+
+      // Load the map (equivalent to MapTiledJSON.loadMap(mapname))
+      let gameScene = MainEngine.current_scene as any;
+      const mapBasePath = basePath || (gameScene?.mapBasePath);
+
+      console.log(`MainEngine: Scene available: ${!!gameScene}`);
+      if (!gameScene) {
+        console.error(`MainEngine: No scene available for loading map ${mapname}`);
+        return;
+      }
+
+      const current_map = await TiledMap.loadMap(gameScene, mapname, mapBasePath);
+
+      if (current_map) {
+        // Start the map (equivalent to current_map.startMap())
+        await current_map.startMap();
+
+        // Set current map reference
+        MainEngine.setCurrentMap(current_map);
+
+        // Load script context for this map
+        await MainEngine.loadScriptContextForMap(mapname, mapBasePath);
+
+        // Update scene's tiledMap reference for animations and other systems
+        const currentScene = MainEngine.getCurrentScene() as any;
+        if (currentScene) {
+          currentScene.tiledMap = current_map;
+        }
+
+        // Reset loading flag before calling startmap to allow nested map transitions
+        MainEngine.isLoadingMap = false;
+
+        // Call script context's startmap method if available (for PS map scripts like Palma.ts)
+        const scriptContext = MainEngine.getScriptContext();
+        if (scriptContext && 'startmap' in scriptContext && typeof scriptContext.startmap === 'function') {
+          console.log(`MainEngine: Calling startmap() on script context`);
+          await scriptContext.startmap();
+        } else if (currentScene && 'startmap' in currentScene && typeof currentScene.startmap === 'function') {
+          // Fallback: Call scene's post-map-load initialization if available
+          await currentScene.startmap();
+        } else {
+          // Fallback: For non-PS scenes, unpause entities and re-enable controls
+          MainEngine.setEntitiesPaused(false);
+          MainEngine.setScriptActive(false);
+        }
+
+        // Sync the zone-tracking tile to the player's spawn position. px/py
+        // survive map switches, so without this the first tick on the new map
+        // sees a phantom "step" from the previous map's tile and runs CheckZone
+        // on the spawn tile — firing any zone the party spawns on.
+        if (MainEngine.myself) {
+          const chr = MainEngine.myself.getChr();
+          const hw = chr?.getHw() || 16;
+          const hh = chr?.getHh() || 16;
+          MainEngine.px = Math.floor((MainEngine.myself.getx() + hw / 2) / 16);
+          MainEngine.py = Math.floor((MainEngine.myself.gety() + hh / 2) / 16);
+          MainEngine.prev_px = MainEngine.px;
+          MainEngine.prev_py = MainEngine.py;
+        }
+
+        // Reset timer (equivalent to timer = 0;)
+        MainEngine.timer = 0;
+
+        // Reset entity timing (equivalent to lastentitythink = systemtime;)
+        MainEngine.lastentitythink = MainEngine.systemtime;
+
+        // Note: setEntitiesPaused(false) is called after map loads and entities are spawned
+      }
+
+    } catch (error) {
+      console.error(`MainEngine: Failed to load map ${mapname}:`, error);
+    } finally {
+      // Transition finished (or failed) — release the zone/controls gate. The
+      // duplicate-call path above returns before this try, so a dropped
+      // concurrent call never releases the gate under the real load.
+      MainEngine.setMapTransitionActive(false);
+
+      // Ensure loading flag is reset in case of errors (normal case resets earlier)
+      if (MainEngine.isLoadingMap) {
+        MainEngine.isLoadingMap = false;
+        console.log(`MainEngine.startEngine: Map loading flag reset after error for ${mapname}`);
+      }
+    }
+  }
+}
+
+// Make MainEngine available globally to avoid circular import issues
+(globalThis as any).MainEngine = MainEngine;

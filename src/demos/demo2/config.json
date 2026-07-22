@@ -1,9 +1,0 @@
-{
-  "xRes" : 256,
-  "yRes" : 160,
-  "logConsole" : true,
-  "windowMode" : true,
-  "doubleWindowMode" : false,
-  "noSound" : false,
-  "mapName" : "goldw.map.json"
-}

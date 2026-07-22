@@ -1,9 +1,0 @@
-{
-  "xRes" : 320,
-  "yRes" : 240,
-  "logConsole" : true,
-  "windowMode" : true,
-  "doubleWindowMode" : true,
-  "noSound" : false,
-  "mapName" : Title.map.json
-}

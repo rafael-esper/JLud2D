@@ -7,7 +7,7 @@
   "hw" : 16,
   "hh" : 16,
   "idle" : [ 0, 0, 0, 0, 0 ],
-  "animbuf" : [ null, "F0W0", "F1W0", "F2W0", "F3W0", "F0W0", "F1W0", "F2W0", "F3W0" ],
+  "animbuf" : [ null, "F0W1", "F1W1", "F2W1", "F3W1", "F0W1", "F1W1", "F2W1", "F3W1" ],
   "imageName" : "Ak.png",
   "columns" : 6,
   "spacing" : 1
