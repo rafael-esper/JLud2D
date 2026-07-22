@@ -104,6 +104,7 @@ export class EmulatorUI {
     this.wireAspect();
     this.applyVolumeWhenReady();
     if (this.muted) this.setMuted(true); // restore persisted mute in the UI
+    this.syncTouchButtonIcon(); // reflect the touch pad's default-on state on mobile
     this.showBar();
   }
 
@@ -393,6 +394,15 @@ export class EmulatorUI {
     mc.updateControlsVisibility();
     this.bar.querySelector<HTMLButtonElement>('[data-act="touch"]')!
       .classList.toggle('emu-active', mc.controlsVisible);
+  }
+
+  /** Matches the toolbar icon to the touch pad's initial visibility (on by
+   *  default on touch devices, see index.html's MobileControlsManager). */
+  private syncTouchButtonIcon(): void {
+    const mc = (window as any).mobileControls;
+    if (!mc) return;
+    this.bar.querySelector<HTMLButtonElement>('[data-act="touch"]')!
+      .classList.toggle('emu-active', !!mc.controlsVisible);
   }
 
   // ----------------------------------------------------------- fullscreen

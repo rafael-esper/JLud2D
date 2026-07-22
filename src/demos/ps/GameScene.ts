@@ -62,7 +62,9 @@ export class GameScene extends Phaser.Scene {
     // Initialize input manager (like Demo1, but with the PS key layout)
     const controlsConfig = createPSControlsConfig();
     this.inputManager = new InputManager(this, controlsConfig);
-    this.inputManager.setMobileButtons([]);
+    // Overworld needs b1 (board/leave transport), b2, and b3 (open main menu);
+    // start/pause are always included by setMobileButtons.
+    this.inputManager.setMobileButtons(['b1', 'b2', 'b3']);
 
     // Initialize menu stack for PSMenu system
     this.menuStack = new MenuStack(this, this.inputManager);

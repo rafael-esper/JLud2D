@@ -141,8 +141,10 @@
         class MobileControlsManager {
             constructor() {
                 this.isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-                // Visibility is toggled by the emulator UI's Touch pad button
-                this.controlsVisible = false; // Start hidden by default
+                // Visibility is toggled by the emulator UI's Touch pad button.
+                // On touch devices there's no other way to press buttons, so
+                // start with the pad shown; desktop starts hidden.
+                this.controlsVisible = this.isTouch;
                 this.buttonStates = {
                     b1: false, b2: false, b3: false, b4: false, b5: false, b6: false, start: false, pause: false
                 };
