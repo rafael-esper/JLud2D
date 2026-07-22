@@ -51,29 +51,33 @@ export class Demo2Scene extends Phaser.Scene {
   }
 
   async create() {
-    const controlsConfig = new ControlsConfig();
-    this.inputManager = new InputManager(this, controlsConfig);
-    this.fpsDisplay = new FPSDisplay(this);
+    try {
+      const controlsConfig = new ControlsConfig();
+      this.inputManager = new InputManager(this, controlsConfig);
+      this.fpsDisplay = new FPSDisplay(this);
 
-    // Demo2 uses b1 for tree cutting
-    this.inputManager.setMobileButtons(['b1']);
+      // Demo2 uses b1 for tree cutting
+      this.inputManager.setMobileButtons(['b1']);
 
-    MainEngine.setCurrentScene(this, this.config);
+      MainEngine.setCurrentScene(this, this.config);
 
-    this.tiledMap = await MainEngine.loadAndInitMap(this, 'goldw.map.json', 'src/demos/demo2');
-    await MainEngine.mapinit(this, 'warrior.anim.json', 'src/demos/demo2');
+      this.tiledMap = await MainEngine.loadAndInitMap(this, 'goldw.map.json', 'src/demos/demo2');
+      await MainEngine.mapinit(this, 'warrior.anim.json', 'src/demos/demo2');
 
-    this.axeSwing = this.sound.add('axe-swing');
-    MainEngine.setupCamera();
+      this.axeSwing = this.sound.add('axe-swing');
+      MainEngine.setupCamera();
 
-    const player = MainEngine.getPlayer();
-    if (player) player.setSpeed(170);
+      const player = MainEngine.getPlayer();
+      if (player) player.setSpeed(170);
 
-    MainEngine.setCameraTracking(3);
+      MainEngine.setCameraTracking(3);
 
-    this.createUI();
-    DemoUI.createTitle(this, 'Demo 2 - Golden Axe Warrior');
-    this.setupTreeCuttingMechanic();
+      this.createUI();
+      DemoUI.createTitle(this, 'Demo 2 - Golden Axe Warrior');
+      this.setupTreeCuttingMechanic();
+    } finally {
+      (window as any).hideLoading?.();
+    }
   }
 
   private createUI(): void {

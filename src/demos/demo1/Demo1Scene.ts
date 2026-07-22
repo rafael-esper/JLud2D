@@ -38,28 +38,32 @@ export class Demo1Scene extends Phaser.Scene {
   }
 
   async create() {
-    const controlsConfig = new ControlsConfig();
-    this.inputManager = new InputManager(this, controlsConfig);
-    this.fpsDisplay = new FPSDisplay(this);
+    try {
+      const controlsConfig = new ControlsConfig();
+      this.inputManager = new InputManager(this, controlsConfig);
+      this.fpsDisplay = new FPSDisplay(this);
 
-    // Demo1 only needs movement, no action buttons
-    this.inputManager.setMobileButtons([]);
+      // Demo1 only needs movement, no action buttons
+      this.inputManager.setMobileButtons([]);
 
-    MainEngine.setCurrentScene(this, this.config);
+      MainEngine.setCurrentScene(this, this.config);
 
-    // Load map and initialize entities
-    this.tiledMap = await MainEngine.loadAndInitMap(this, 'island.map.json', 'src/demos/demo1');
-    await MainEngine.mapinit(this, 'maxim.anim.json', 'src/demos/demo1');
+      // Load map and initialize entities
+      this.tiledMap = await MainEngine.loadAndInitMap(this, 'island.map.json', 'src/demos/demo1');
+      await MainEngine.mapinit(this, 'maxim.anim.json', 'src/demos/demo1');
 
-    const player = MainEngine.getPlayer();
-    if (player) player.setSpeed(150); // 1.5x speed
+      const player = MainEngine.getPlayer();
+      if (player) player.setSpeed(150); // 1.5x speed
 
-    // Create UI
-    DemoUI.createTitle(this, 'Demo 1 - Island World');
+      // Create UI
+      DemoUI.createTitle(this, 'Demo 1 - Island World');
 
-    // Setup camera and FPS display
-    MainEngine.setupCamera();
-    this.fpsDisplay.setVisible(this.config.showFPS);
+      // Setup camera and FPS display
+      MainEngine.setupCamera();
+      this.fpsDisplay.setVisible(this.config.showFPS);
+    } finally {
+      (window as any).hideLoading?.();
+    }
   }
 
   update(delta: number) {

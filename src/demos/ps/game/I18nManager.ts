@@ -8,7 +8,7 @@ import { PropertiesParser } from '../utils/PropertiesParser';
 
 export class I18nManager {
   private static instance: I18nManager | null = null;
-  private static readonly BASE_PATH = '/ps/lang/Script_';
+  private static readonly BASE_PATH = 'src/demos/ps/lang/Script_';
   private static readonly DEFAULT_LOCALE = 'en';
 
   // Cache for loaded language data

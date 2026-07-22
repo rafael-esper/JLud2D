@@ -55,27 +55,31 @@ export class Demo3Scene extends Phaser.Scene {
   }
 
   async create() {
-    // Initialize controls
-    const controlsConfig = new ControlsConfig();
-    this.inputManager = new InputManager(this, controlsConfig);
+    try {
+      // Initialize controls
+      const controlsConfig = new ControlsConfig();
+      this.inputManager = new InputManager(this, controlsConfig);
 
-    // Demo3 uses b1 for play, b2 for stop
-    this.inputManager.setMobileButtons(['b1', 'b2']);
+      // Demo3 uses b1 for play, b2 for stop
+      this.inputManager.setMobileButtons(['b1', 'b2']);
 
-    // Create UI
-    this.createUI();
+      // Create UI
+      this.createUI();
 
-    // Load VGM file information
-    await this.loadVGMFileList();
+      // Load VGM file information
+      await this.loadVGMFileList();
 
-    // Set up controls
-    this.setupControls();
+      // Set up controls
+      this.setupControls();
 
-    // Set up audio context resume on user interaction
-    this.input.on('pointerdown', () => ScriptEngine.resumeVGMAudio());
-    this.input.keyboard?.on('keydown', () => ScriptEngine.resumeVGMAudio());
+      // Set up audio context resume on user interaction
+      this.input.on('pointerdown', () => ScriptEngine.resumeVGMAudio());
+      this.input.keyboard?.on('keydown', () => ScriptEngine.resumeVGMAudio());
 
-    console.log('Demo 3 Scene - VGM Player initialized');
+      console.log('Demo 3 Scene - VGM Player initialized');
+    } finally {
+      (window as any).hideLoading?.();
+    }
   }
 
 

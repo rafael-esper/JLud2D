@@ -126,22 +126,27 @@ export class MenuScene extends Phaser.Scene {
     switch (this.selectedDemo) {
       case 0: // Demo 1
         console.log('Starting Demo1Scene');
+        (window as any).showLoading?.(`Loading ${this.menuItems[0]}...`);
         this.scene.start('Demo1Scene', { demoPath: 'src/demos/demo1', config: this.config });
         break;
       case 1: // Demo 2
         console.log('Starting Demo2Scene');
+        (window as any).showLoading?.(`Loading ${this.menuItems[1]}...`);
         this.scene.start('Demo2Scene', { demoPath: 'src/demos/demo2', config: this.config });
         break;
       case 2: // Demo 3
         console.log('Starting Demo3Scene');
+        (window as any).showLoading?.(`Loading ${this.menuItems[2]}...`);
         this.scene.start('Demo3Scene', { demoPath: 'src/demos/demo3', config: this.config });
         break;
       case 3: // Demo 4
         console.log('Starting AK TitleScene');
+        (window as any).showLoading?.(`Loading ${this.menuItems[3]}...`);
         this.scene.start('TitleScene', { demoPath: 'src/demos/ak', config: this.config });
         break;
       case 4: // Demo 5
         console.log('Starting PS TitleScene');
+        (window as any).showLoading?.(`Loading ${this.menuItems[4]}...`);
         this.scene.start('PSTitleScene', { demoPath: 'src/demos/ps', config: this.config });
         break;
       case 5: // Settings

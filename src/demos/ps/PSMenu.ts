@@ -140,7 +140,7 @@ export class PSMenu {
     } else if (typeof param1 === 'string') {
       // Handle string character case - startScene(scene, strChar)
       if (PSGame.gameData.getScreenSize() === ScreenSize.SCREEN_640_480) {
-        PSMenu.instance.npc = await CHR.loadChr(PSGame.getCurrentScene()!, param1, 'ps');
+        PSMenu.instance.npc = await CHR.loadChr(PSGame.getCurrentScene()!, param1, 'src/demos/ps');
         PSMenu.instance.showPlayers = true;
       } else {
         PSMenu.instance.npc = null;

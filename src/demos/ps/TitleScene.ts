@@ -32,20 +32,27 @@ export class TitleScene extends PSScene {
   }
 
   async create() {
-    console.log('TitleScene: Starting Phantasy Star title screen');
+    try {
+      console.log('TitleScene: Starting Phantasy Star title screen');
 
-    // Initialize game screen (equivalent to Java PSGame.initGameScreen)
-    PSGame.initGameScreen(ScreenSize.SCREEN_320_240);
-    PSGame.gameData.enableCheats = false;
+      // Initialize game screen (equivalent to Java PSGame.initGameScreen)
+      PSGame.initGameScreen(ScreenSize.SCREEN_320_240);
+      PSGame.gameData.enableCheats = false;
 
-    // Initialize internationalization system BEFORE any getString calls
-    await PSGame.initializeI18n();
+      // Initialize internationalization system BEFORE any getString calls
+      await PSGame.initializeI18n();
 
-    // Start title music (fetched on first play, streamed instantly after)
-    await PSGame.playMusic(PS1Music.TITLE);
+      // Start title music (fetched on first play, streamed instantly after)
+      await PSGame.playMusic(PS1Music.TITLE);
 
-    // Start the title scene (equivalent to Java PSMenu.startScene)
-    this.startScene(PSSceneType.TITLE, SpecialEntity.NONE);
+      // Start the title scene (equivalent to Java PSMenu.startScene)
+      this.startScene(PSSceneType.TITLE, SpecialEntity.NONE);
+    } finally {
+      // Hide once the title screen is actually visible/interactive — not
+      // after startMainMenuLoop(), which only resolves once the player picks
+      // an option and would leave the overlay up for the whole title screen.
+      (window as any).hideLoading?.();
+    }
 
     // Start the main menu loop (equivalent to Java startmap() while loop)
     await this.startMainMenuLoop();

@@ -146,7 +146,7 @@ export class Item {
 
   public async getChrWeaponAnimation(scene?: Phaser.Scene): Promise<CHR | null> {
     if (this.chrWeaponAnimation === null && this.strWeaponAnimation && scene) {
-      this.chrWeaponAnimation = await CHR.loadChr(scene, this.strWeaponAnimation, "ps");
+      this.chrWeaponAnimation = await CHR.loadChr(scene, this.strWeaponAnimation, "src/demos/ps");
     }
     return this.chrWeaponAnimation;
   }

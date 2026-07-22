@@ -3,8 +3,7 @@
  * Direct port of PSLibCHR.java - Defines CHR animation files and their paths
  */
 
-// Base folder constant for public assets (Vite serves from public/ as root)
-const BASE_FOLDER = "ps";
+const BASE_FOLDER = "src/demos/ps";
 
 export enum PS1CHR {
   // Misc

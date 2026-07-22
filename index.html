@@ -353,6 +353,24 @@
         // Global mobile controls instance
         window.mobileControls = new MobileControlsManager();
 
+        // Reusable loading overlay — shown by MenuScene before switching into a
+        // demo scene and hidden by that scene once its async setup (map/script
+        // fetches) finishes. On Vercel those fetches go over the network instead
+        // of the local filesystem, so the gap is worth covering explicitly.
+        window.showLoading = function(text) {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.innerHTML = '<h2>JLud2D - Phaser 4 Port</h2><p>' + (text || 'Loading...') + '</p>';
+                loading.classList.remove('hidden');
+            }
+        };
+        window.hideLoading = function() {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.classList.add('hidden');
+            }
+        };
+
         // Hide loading screen once game starts
         window.addEventListener('load', () => {
             setTimeout(() => {

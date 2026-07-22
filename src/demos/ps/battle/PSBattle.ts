@@ -284,7 +284,7 @@ export class PSBattle {
           } else {
             // Load default claw animation
             const clawChr = await import('../../../domain/CHR').then(mod =>
-              mod.CHR.loadChr(weaponScene, "battle/weapon_ps1/Claw.chr", "ps")
+              mod.CHR.loadChr(weaponScene, "battle/weapon_ps1/Claw.chr", "src/demos/ps")
             );
             battler.sprite = new MenuCHR(weaponScene, 0, 0, clawChr);
           }

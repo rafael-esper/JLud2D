@@ -37,23 +37,27 @@ export class TitleScene extends AkBaseScene {
   }
 
   async create() {
-    // Setup common AK controls
-    this.setupAkControls();
+    try {
+      // Setup common AK controls
+      this.setupAkControls();
 
-    MainEngine.setCurrentScene(this, this.config);
+      MainEngine.setCurrentScene(this, this.config);
 
-    // Create title background image
-    this.titleImage = this.add.image(0, 0, 'title');
-    this.titleImage.setOrigin(0, 0);
+      // Create title background image
+      this.titleImage = this.add.image(0, 0, 'title');
+      this.titleImage.setOrigin(0, 0);
 
-    // Create graphics object for drawing rectangles
-    this.graphics = this.add.graphics();
-    this.graphics.setDepth(1000); // High depth to render on top
+      // Create graphics object for drawing rectangles
+      this.graphics = this.add.graphics();
+      this.graphics.setDepth(1000); // High depth to render on top
 
-    // Play intro music (non-looping jingle)
-    ScriptEngine.playmusic(AkMusic.INTRO, false);
+      // Play intro music (non-looping jingle)
+      ScriptEngine.playmusic(AkMusic.INTRO, false);
 
-    console.log('TitleScene: Title screen initialized');
+      console.log('TitleScene: Title screen initialized');
+    } finally {
+      (window as any).hideLoading?.();
+    }
   }
 
   update(_delta: number): void {
