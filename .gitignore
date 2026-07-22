@@ -103,7 +103,10 @@ temp/
 screenshots/
 save_games/
 *.save
-config.json
+# Root-only: local runtime config override. Per-demo config.json files under
+# src/demos/**/config.json are source data the app fetches at runtime and
+# must stay tracked (see MainEngine.initMainEngine).
+/config.json
 
 # TypeScript compiled output
 *.tsbuildinfo

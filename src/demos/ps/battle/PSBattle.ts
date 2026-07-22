@@ -79,7 +79,11 @@ export class PSBattle {
    * Initialize static battle animations (lazy loading)
    */
   private static async initBattleAnimations(scene: Phaser.Scene): Promise<void> {
-    if (!PSBattle.enemyFire) {
+    // Rebind rather than reuse if the cached fx sprites belong to a scene
+    // instance that's since been shut down (e.g. cast during an intro/title
+    // battle before the real GameScene took over) — a stale scene reference
+    // leaves cameras.main undefined and crashes MenuCHR.draw().
+    if (!PSBattle.enemyFire || PSBattle.enemyFire.getScene() !== scene) {
       PSBattle.enemyFire = new MenuCHR(scene, 0, 0, await PSGame.getCHR(PS1CHR.ENEMY_FIRE));
       PSBattle.enemyThunder = new MenuCHR(scene, 0, 0, await PSGame.getCHR(PS1CHR.ENEMY_THUNDER));
       PSBattle.playerFire = new MenuCHR(scene, 0, 0, await PSGame.getCHR(PS1CHR.PLAYER_FIRE));

@@ -86,7 +86,13 @@ export class MenuCHR extends MenuType {
     // Subtract the CHR hotspot like Java CHR.render() does — weapon
     // animations carry a hotspot (e.g. hy=20) that anchors them on the
     // enemy contact point.
-    const camera = this.sprite.scene.cameras.main;
+    // cameras.main is briefly undefined while its scene is mid-shutdown/restart
+    // (Phaser's CameraManager.shutdown() nulls it until the next START event) —
+    // skip this frame rather than crash if a draw lands in that window.
+    const camera = this.sprite.scene?.cameras?.main;
+    if (!camera) {
+      return;
+    }
     const worldX = camera.scrollX + this.x - this.chr.getHx();
     const worldY = camera.scrollY + this.y - this.chr.getHy();
 
@@ -157,6 +163,11 @@ export class MenuCHR extends MenuType {
   public animate(anim: MenuState): void {
     this.framect = 0;
     this.state = anim;
+  }
+
+  /** The scene this effect's sprite is bound to — used to detect stale, cached instances. */
+  public getScene(): Phaser.Scene {
+    return this.scene;
   }
 
   public changePosition(x: number, y: number): void {

@@ -1,6 +1,14 @@
 // Main Engine: Manages entities, player controls, and core game systems
 import { Entity, EntityDirection } from '../domain/Entity';
 
+// Map/dungeon/space script-context classes (Camineet.ts, Space.ts, ...) are
+// selected at runtime by string path (see loadScriptContextForMap). A plain
+// `import(runtimeString)` can't be resolved by Vite's bundler, so after a
+// production build the browser resolves it relative to whatever chunk the
+// caller ended up in instead of the original src/ layout. import.meta.glob
+// is resolved at build time, so the mapping below survives bundling.
+const scriptContextModules = import.meta.glob('/src/demos/**/*.ts');
+
 export class MainEngine {
   // Entity system
   protected static entities: Entity[] = [];
@@ -1273,22 +1281,26 @@ export class MainEngine {
 
       // Build the exact same path as the map, but with .ts extension
       const absoluteScriptPath = `${basePath}/${scriptName}`;
-
-      // Convert absolute path to relative import path
-      // Remove 'src/' prefix and add '../' to make it relative from core/
-      const relativePath = absoluteScriptPath.replace(/^src\//, '../');
+      const globKey = `/${absoluteScriptPath}.ts`;
 
       console.log(`Loading script context from: ${absoluteScriptPath}`);
 
-      // Dynamically import the script module using relative path
-      const scriptModule = await import(/* @vite-ignore */ relativePath);
+      const loadModule = scriptContextModules[globKey];
+      if (!loadModule) {
+        console.warn(`No script module found for ${globKey}`);
+        MainEngine.setScriptContext(null);
+        return;
+      }
+
+      // Dynamically import the script module resolved via import.meta.glob
+      const scriptModule = await loadModule() as Record<string, unknown>;
 
       // Look for a class with the same name as the script
       if (scriptModule[scriptName]) {
         MainEngine.setScriptContext(scriptModule[scriptName]);
         console.log(`Script context loaded: ${scriptName}`);
       } else {
-        console.warn(`Script class ${scriptName} not found in module ${relativePath}`);
+        console.warn(`Script class ${scriptName} not found in module ${globKey}`);
       }
     } catch (error) {
       console.warn(`Could not load script context for map ${mapName}:`, error);
