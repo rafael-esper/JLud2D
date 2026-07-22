@@ -21,7 +21,7 @@
     "jlud2d"
   ],
   "author": "JLud2D Port Team",
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0",
