@@ -116,7 +116,7 @@ Default settings live in [`config.json`](config.json) at the project root and ar
 
 ## The legacy Java version
 
-The original Java 8 engine source is still kept in [`java/`](java/) for reference (prebuilt demo `.jar` files are no longer distributed in this repository). Build it yourself with Maven ([`pom.xml`](pom.xml)) if you want to run it natively; in-game shortcuts there are **F5** sound off/on, **F6** full screen, **F7**/**F8** increase/decrease frame delay.
+The Java 8 engine is retired: the full original source (`core/`, `domain/`, `audio/`) has been removed from the repository, and prebuilt demo `.jar` files are no longer distributed. Only the Phantasy Star game-logic classes remain, under [`public/ps/`](public/ps/), kept purely as line-by-line reference material while the TypeScript port is written — they are not buildable or runnable on their own.
 
 ## Project layout
 
