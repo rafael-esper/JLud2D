@@ -31,8 +31,10 @@ export abstract class PSScene extends Phaser.Scene {
     const controlsConfig = createPSControlsConfig();
     this.inputManager = new InputManager(this, controlsConfig);
 
-    // PS demo uses b1 for selection (start and menu are always included)
-    this.inputManager.setMobileButtons(['b1']);
+    // PS is a three-button game (b1/b2/b3); expose all three on the touch pad
+    // for the whole demo so the title/menus match the overworld (GameScene).
+    // start and menu (pause) are always included by setMobileButtons.
+    this.inputManager.setMobileButtons(['b1', 'b2', 'b3']);
 
     // Initialize the new ported menu stack
     this.menuStack = new MenuStack(this, this.inputManager);

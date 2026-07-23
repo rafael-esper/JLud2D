@@ -161,10 +161,11 @@
 
             setActiveButtons(buttonList) {
                 this.activeButtons = buttonList;
-                // Only update visibility if controls are currently visible
-                if (this.controlsVisible) {
-                    this.updateButtonVisibility();
-                }
+                // Always reconcile visibility. updateButtonVisibility already
+                // no-ops (hides everything) while the pad is hidden, so calling
+                // it unconditionally just guarantees a later scene's button set
+                // takes effect regardless of the order scenes/toggles happen in.
+                this.updateButtonVisibility();
             }
 
             updateButtonVisibility() {
@@ -270,17 +271,72 @@
                 if (!this.joyCtx || !this.joyCanvas) return;
                 const ctx = this.joyCtx;
                 const canvas = this.joyCanvas;
-                ctx.clearRect(0,0,canvas.width,canvas.height);
-                const cx = canvas.width/2, cy = canvas.height/2;
-                // base circle
-                ctx.globalAlpha = 0.18; ctx.fillStyle = '#ffffff';
-                ctx.beginPath(); ctx.arc(cx, cy, Math.min(cx,cy)*0.9, 0, Math.PI*2); ctx.fill();
-                // knob
-                const knobX = cx + (this.joystickState.dx || 0);
-                const knobY = cy + (this.joystickState.dy || 0);
-                ctx.globalAlpha = 0.95; ctx.fillStyle = '#00aaff';
-                ctx.beginPath(); ctx.arc(knobX, knobY, Math.min(cx,cy)*0.28, 0, Math.PI*2); ctx.fill();
-                ctx.globalAlpha = 1.0;
+
+                // Draw in LOGICAL (CSS) pixels. The backing store is scaled by
+                // devicePixelRatio and the context carries a matching transform
+                // (see the ResizeObserver in setupJoystick), so using the raw
+                // canvas.width here drew everything ~2x too big and off-centre on
+                // HiDPI phones — the "cropped semicircle" bug.
+                const w = canvas.clientWidth || canvas.width;
+                const h = canvas.clientHeight || canvas.height;
+                ctx.clearRect(0, 0, w, h);
+
+                const cx = w / 2, cy = h / 2;
+                const R = Math.min(cx, cy) * 0.92;   // outer base radius
+                const dx = this.joystickState.dx || 0;
+                const dy = this.joystickState.dy || 0;
+                const dead = 10;                     // matches the game deadzone
+                const active = {
+                    up:    dy < -dead,
+                    down:  dy >  dead,
+                    left:  dx < -dead,
+                    right: dx >  dead
+                };
+
+                // Base disc
+                ctx.beginPath();
+                ctx.arc(cx, cy, R, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.10)';
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+                ctx.stroke();
+
+                // Directional arrows (up / down / left / right). Each lights up
+                // blue when that direction is engaged; a diagonal drag lights two.
+                const arrowR = R * 0.74;   // arrow tip distance from centre
+                const size   = R * 0.20;   // arrow half-width / depth
+                const angles = { up: -Math.PI/2, right: 0, down: Math.PI/2, left: Math.PI };
+                const drawArrow = (dir, on) => {
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.rotate(angles[dir]);
+                    ctx.beginPath();
+                    ctx.moveTo(arrowR, 0);                  // tip (points outward)
+                    ctx.lineTo(arrowR - size, -size);
+                    ctx.lineTo(arrowR - size,  size);
+                    ctx.closePath();
+                    ctx.fillStyle = on ? '#00aaff' : 'rgba(255,255,255,0.40)';
+                    ctx.fill();
+                    ctx.restore();
+                };
+                drawArrow('up', active.up);
+                drawArrow('down', active.down);
+                drawArrow('left', active.left);
+                drawArrow('right', active.right);
+
+                // Knob (re-clamped defensively to stay inside the base)
+                const maxR = R * 0.72;
+                let kx = dx, ky = dy;
+                const mag = Math.sqrt(kx * kx + ky * ky);
+                if (mag > maxR) { kx = kx / mag * maxR; ky = ky / mag * maxR; }
+                ctx.beginPath();
+                ctx.arc(cx + kx, cy + ky, R * 0.26, 0, Math.PI * 2);
+                ctx.fillStyle = this.joystickState.active ? '#00aaff' : 'rgba(0,170,255,0.85)';
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+                ctx.stroke();
             }
 
             setupButtons() {

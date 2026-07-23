@@ -40,7 +40,7 @@ export class ConfirmDialog {
         wordWrap: { width: boxWidth - 12 }
       }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5001);
 
-      const hint = scene.add.text(width / 2, boxY + boxHeight - 12, 'Enter = Yes   Esc = No', {
+      const hint = scene.add.text(width / 2, boxY + boxHeight - 12, 'Enter/B1 = Yes   Esc = No', {
         fontSize: '8px',
         fontFamily: 'monospace',
         color: '#ffff00'
@@ -52,17 +52,38 @@ export class ConfirmDialog {
         hint.destroy();
       };
 
+      // The virtual-pad button that answers the dialog is still physically held
+      // when we resolve. If "Yes" tears down this scene, the next scene builds a
+      // fresh InputManager (prevStart/prevB1 = false) that would read the still
+      // held button as a brand-new press on frame one (e.g. instantly selecting
+      // the first menu entry). Clearing the shared touch state at answer time
+      // stops that button leaking across the scene boundary.
+      const clearHeldTouchButtons = () => {
+        const mc = (window as any).mobileControls;
+        if (mc && mc.buttonStates) {
+          for (const key of Object.keys(mc.buttonStates)) {
+            mc.buttonStates[key] = false;
+          }
+        }
+      };
+
       const poll = () => {
         inputManager.updateControls();
 
-        if (inputManager.justPressed('start')) {
+        // Start (Enter) confirms. On touch the Start button is small and easy
+        // to miss, so the always-visible primary action button (B1) also
+        // confirms — this is what makes "Pause then confirm" reachable on the
+        // virtual pad without hunting for the tiny Start key.
+        if (inputManager.justPressed('start') || inputManager.justPressed('b1')) {
           cleanup();
+          clearHeldTouchButtons();
           resolve(true);
           return;
         }
 
         if (inputManager.justPressed('menu')) {
           cleanup();
+          clearHeldTouchButtons();
           resolve(false);
           return;
         }
