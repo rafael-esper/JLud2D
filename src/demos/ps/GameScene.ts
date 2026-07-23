@@ -15,6 +15,7 @@ import { createPSControlsConfig } from './PSControls';
 import { MenuStack } from './menu/MenuStack';
 import { PSMenu } from './PSMenu';
 import { PSMenuMain } from './PSMenuMain';
+import { PSAssets } from './PSAssets';
 import { ConfirmDialog } from '../../utils/ConfirmDialog';
 
 export class GameScene extends Phaser.Scene {
@@ -42,22 +43,20 @@ export class GameScene extends Phaser.Scene {
   preload() {
     console.log('GameScene: Preloading game resources');
 
-    const mapBasePath = 'src/demos/ps/maps';
-
-    // Preload commonly used maps to allow transitions between them
-    console.log('GameScene: Preloading Camineet map');
-    this.load.tilemapTiledJSON('Camineet-map', `${mapBasePath}/Camineet.map.json`);
-
-    console.log('GameScene: Preloading Palma map');
-    this.load.tilemapTiledJSON('Palma-map', `${mapBasePath}/Palma.map.json`);
-
-    // Load map tileset images (these will be referenced in the map JSON)
-    this.load.image('PS1', `${mapBasePath}/PS1.png`);
-    this.load.image('default.meta', `${mapBasePath}/default.meta.png`);
+    // Warm every Phaser-loadable PS asset (all sounds, city maps and tilesets)
+    // with the exact keys the lazy loaders use, so remote-hosted sessions don't
+    // stall on first use. Idempotent with TitleScene's call — already-cached
+    // assets are skipped, so this is a no-op on the normal Title -> Game path
+    // and a full warm-up if GameScene is ever entered directly.
+    PSAssets.queuePhaserAssets(this);
   }
 
   async create() {
     console.log('GameScene: Starting Phantasy Star main game');
+
+    // Background-warm the VGM music cache (no-op if TitleScene already did it),
+    // so the first play of each track is instant even on a remote host.
+    PSAssets.warmMusic();
 
     // Initialize input manager (like Demo1, but with the PS key layout)
     const controlsConfig = createPSControlsConfig();

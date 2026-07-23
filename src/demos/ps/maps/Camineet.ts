@@ -9,16 +9,13 @@ import { Planet } from '../game/City';
 import { Dungeon } from '../game/Dungeon';
 import { PS1Sound } from '../game/PSLibSound';
 import { OriginalItem } from '../game/PSLibItem';
-import { PSSceneType, SpecialEntity, PSMenu, EntityType, EntityClothes } from '../PSMenu';
+import { PSSceneType, SpecialEntity, PSMenu, EntityType, EntityClothes, LargeEntity } from '../PSMenu';
 import { PSMenuShop } from '../PSMenuShop';
-import { PS1Enemy } from '../game/PSLibEnemy';
 
 export class Camineet {
 
   public static async alis(): Promise<void> {
-    await PSGame.fixedBattle(PSSceneType.FIELDS, [PS1Enemy.SWORM, PS1Enemy.SCORPION])
-
-    /*if (PSGame.getGameType() === GameType.PS_ORIGINAL) {
+    if (PSGame.getGameType() === GameType.PS_ORIGINAL) {
       await PSMenu.startScene(PSSceneType.YELLOW_HOUSE, SpecialEntity.NONE);
       await PSMenu.Stext(PSGame.getString("Camineet_House_Alis"));
       await PSMenu.endScene();
@@ -26,7 +23,7 @@ export class Camineet {
       await PSMenu.startSceneWithLargeEntity(PSSceneType.YELLOW_HOUSE, LargeEntity.ALIS);
       await PSMenu.Stext(PSGame.getString("Camineet_House_Alis_Odin"));
       await PSMenu.endScene();
-    }*/
+    }
   }
 
   public static async warehouse(): Promise<void> {

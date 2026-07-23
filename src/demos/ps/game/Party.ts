@@ -93,7 +93,7 @@ export class Party {
           Job.FIGHTER,
           PSGame.getString("Name_Odin"),
           PS1Image.PORTRAIT_ODIN,
-          "chars/Odin.chr"
+          "Odin.anim.json"
         ));
         break;
 

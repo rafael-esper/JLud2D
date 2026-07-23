@@ -9,6 +9,7 @@ import { PSGame } from './PSGame';
 import { ScreenSize, GameType } from './game/GameData';
 import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
+import { PSAssets } from './PSAssets';
 import { PSCancellable } from './menu/MenuStack';
 import { ScriptEngine } from '../../core/ScriptEngine';
 
@@ -28,6 +29,11 @@ export class TitleScene extends PSScene {
     this.load.image('ps-credit4', PS1Image.CINE_CREDIT4);
     this.load.image('ps-credit5', PS1Image.CINE_CREDIT5);
 
+    // Warm the whole PS asset set up-front (sounds, city maps, tilesets) while
+    // the demo-select loading overlay is still up, so nothing stalls mid-game
+    // when served from a remote host. Idempotent with GameScene's own call.
+    PSAssets.queuePhaserAssets(this);
+
     console.log('TitleScene: Preloading PS title resources');
   }
 
@@ -41,6 +47,10 @@ export class TitleScene extends PSScene {
 
       // Initialize internationalization system BEFORE any getString calls
       await PSGame.initializeI18n();
+
+      // Warm the VGM cache in the background (all tracks, ~80 KB total) so the
+      // first play of every track later is instant. Fire-and-forget.
+      PSAssets.warmMusic();
 
       // Start title music (fetched on first play, streamed instantly after)
       await PSGame.playMusic(PS1Music.TITLE);

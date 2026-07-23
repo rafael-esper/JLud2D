@@ -128,8 +128,15 @@ export class TiledMap {
       let mapData: MapData;
 
       if (scene.cache.json.exists(cacheKey)) {
-        // Already loaded via preload
+        // Already loaded via preload (e.g. PSAssets warms the JSON cache).
         mapData = scene.cache.json.get(cacheKey);
+
+        // loadFromData builds the map with scene.make.tilemap({ key }), which
+        // reads Phaser's TILEMAP cache — a JSON-cache-only preload doesn't touch
+        // it, so mirror the data across before it's needed.
+        if (!scene.cache.tilemap.exists(cacheKey)) {
+          scene.cache.tilemap.add(cacheKey, { format: Phaser.Tilemaps.Formats.TILED_JSON, data: mapData });
+        }
       } else {
         // Load manually as fallback - need to properly register with Phaser
         const response = await fetch(`${basePath}/${mapFilename}`);
