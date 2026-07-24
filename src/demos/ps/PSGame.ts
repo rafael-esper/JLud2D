@@ -1827,7 +1827,7 @@ export class PSGame {
    * (first use of a sound loads the file asynchronously). Callers that
    * need the sound to begin before continuing can await it.
    */
-  public static playSound(sound: PS1Sound): Promise<void> {
+  public static playSound(sound: PS1Sound, rate: number = 1): Promise<void> {
     if (!sound) {
       console.error("PSGame: Sound is null");
       return Promise.resolve();
@@ -1858,13 +1858,13 @@ export class PSGame {
           this.currentScene!.load.once('complete', () => {
             // Play sound once loaded (the master volume from the emulator UI is
             // applied on top by Phaser's sound manager)
-            this.currentScene!.sound.play(audioKey, { volume: sfxVolume });
+            this.currentScene!.sound.play(audioKey, { volume: sfxVolume, rate });
             resolve();
           });
           this.currentScene!.load.start();
         } else {
           // Sound already loaded in Phaser, play it directly
-          this.currentScene!.sound.play(audioKey, { volume: sfxVolume });
+          this.currentScene!.sound.play(audioKey, { volume: sfxVolume, rate });
           resolve();
         }
 
@@ -1877,6 +1877,26 @@ export class PSGame {
         resolve();
       }
     });
+  }
+
+  /**
+   * Stop a currently-playing sound effect. Used e.g. when the Soothe Flute
+   * teleports the party out of a dungeon — the flute jingle should not keep
+   * playing over the overworld once the party has left.
+   */
+  public static stopSound(sound: PS1Sound): void {
+    if (!sound || !this.currentScene) {
+      return;
+    }
+    try {
+      const audioKey = (sound as string).split('/').pop()?.replace('.wav', '') || 'unknown';
+      const instance = this.currentScene.sound.get(audioKey);
+      if (instance && instance.isPlaying) {
+        instance.stop();
+      }
+    } catch (error) {
+      console.error(`PSGame: Error stopping sound ${sound}:`, error);
+    }
   }
 
   /**

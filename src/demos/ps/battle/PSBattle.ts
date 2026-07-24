@@ -776,6 +776,9 @@ export class PSBattle {
       b.effect.setTargets(battlers);
     }
 
+    // Start any accompanying item sound (e.g. the flute jingle) so it plays
+    // under the "used <item>" message, matching the world item menu.
+    b.effect.preUseSound();
     await PSMenu.StextTimeout(PSGame.getString("Item_Use", "<item>", b.usedItem.getName(), "<player>", b.getName()));
     const outcome = await b.effect.callEffect();
 

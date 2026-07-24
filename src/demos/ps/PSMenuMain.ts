@@ -650,6 +650,10 @@ export class PSMenuMain {
 
             const effect = await PSLibItem.prepareItem(chosenItem, chosenMember);
             if (effect) {
+              // Start any accompanying sound (e.g. the Soothe Flute's jingle)
+              // so it plays under the message; the player's button press then
+              // decides when to advance into the effect.
+              effect.preUseSound();
               await PSMenu.Stext(PSGame.getString('Item_Use', '<item>', chosenItem.getName(), '<player>', chosenMember.getName()));
               outcome = await effect.callEffect();
               if (outcome === EffectOutcome.NONE || outcome === EffectOutcome.FAIL) {

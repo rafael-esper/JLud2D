@@ -156,6 +156,20 @@ export class PSEffect {
     return this.effect;
   }
 
+  /**
+   * Play any sound that should accompany the "X used <item>" message, so it
+   * is already sounding while the player reads the text and controls when to
+   * advance. Called by the item menu right before that message is shown.
+   * The Soothe Flute plays its jingle here; all other effects are silent.
+   */
+  public preUseSound(): void {
+    if (this.effect === Effect.MUSIC) {
+      // Sped up so the short jingle plays out roughly within the time the
+      // player spends on the "used Flute" message before pressing a button.
+      PSGame.playSound(PS1Sound.FLUTESONG, 1.5);
+    }
+  }
+
   public setEffect(effect: Effect): void {
     this.effect = effect;
   }
@@ -352,15 +366,16 @@ export class PSEffect {
 
       case Effect.MUSIC:
       case Effect.EXIT:
-        if (this.effect === Effect.MUSIC) { // Java falls through MUSIC → EXIT
-          PSGame.playSound(PS1Sound.FLUTESONG);
-          await PSMenu.instance.waitDelay(90);
-        }
+        // MUSIC (Soothe Flute) starts its jingle earlier, in preUseSound(), so
+        // it plays under the "used Flute" message and the player's button press
+        // is what advances into this teleport. (Java falls through MUSIC → EXIT.)
         // Bypass/Soothe Flute: leave the dungeon by running its "exit" script
         if (PSGame.getCurrentDungeon() === Dungeon.NONE) {
           return EffectOutcome.FAIL;
         }
         await PSMenu.instance.waitDelay(30);
+        // Cut off any lingering flute audio before we leave the dungeon.
+        PSGame.stopSound(PS1Sound.FLUTESONG);
         PSGame.playSound(PS1Sound.FLY);
         MainEngine.callScriptFunction("exit");
         return EffectOutcome.CLOSE_ALL;
