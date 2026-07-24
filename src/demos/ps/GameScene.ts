@@ -59,9 +59,10 @@ export class GameScene extends Phaser.Scene {
   async create() {
     console.log('GameScene: Starting Phantasy Star main game');
 
-    // Background-warm the VGM music cache (no-op if TitleScene already did it),
-    // so the first play of each track is instant even on a remote host.
-    PSAssets.warmMusic();
+    // Warm the VGM music cache (no-op if TitleScene already did it), so the
+    // first play of each track is instant even on a remote host. Awaited so it's
+    // guaranteed before gameplay; already-cached tracks resolve immediately.
+    await PSAssets.warmMusic();
 
     // Initialize input manager (like Demo1, but with the PS key layout)
     const controlsConfig = createPSControlsConfig();

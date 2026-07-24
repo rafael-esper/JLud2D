@@ -86,9 +86,10 @@ export class TitleScene extends PSScene {
         }
       }
 
-      // Warm the VGM cache in the background (all tracks, ~80 KB total) so the
-      // first play of every track later is instant. Fire-and-forget.
-      PSAssets.warmMusic();
+      // Warm the VGM cache (all tracks, ~80 KB total) so the first play of every
+      // track later is instant. Awaited (blocking) while the loading overlay is
+      // still up, so no track ever stalls on first play even on a remote host.
+      await PSAssets.warmMusic();
 
       // Start title music (fetched on first play, streamed instantly after)
       await PSGame.playMusic(PS1Music.TITLE);

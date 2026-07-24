@@ -37,7 +37,21 @@ import { MenuState } from './menu/MenuType';
 
 
 export class PSGame {
-  public static gameData: GameData = new GameData();
+  // Lazily constructed, NOT `= new GameData()`. PSGame -> GameData -> City ->
+  // PSGame is a circular import; an eager `new GameData()` runs during PSGame's
+  // module evaluation, when the bundled build may not have initialized the
+  // GameData class yet ("Cannot access GameData before initialization"). Dev's
+  // native ESM tolerates the order; the production bundle does not. Deferring
+  // construction to first access (always at runtime, after every module has
+  // loaded) breaks the cycle while keeping `PSGame.gameData` reads/writes
+  // identical for callers.
+  private static _gameData: GameData | null = null;
+  public static get gameData(): GameData {
+    return (PSGame._gameData ??= new GameData());
+  }
+  public static set gameData(value: GameData) {
+    PSGame._gameData = value;
+  }
   private static currentScene: Phaser.Scene | null = null;
   private static party: Party | null = null;
   private static gotox: number = 0;
