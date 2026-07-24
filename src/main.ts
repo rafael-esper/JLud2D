@@ -18,12 +18,14 @@ import { TitleScene as PSTitleScene } from './demos/ps/TitleScene';
 import { GameScene as PSGameScene } from './demos/ps/GameScene';
 import { ResponsiveScaler } from './utils/ResponsiveScaler';
 import { EmulatorUI } from './ui/EmulatorUI';
+import { PersistenceManager } from './utils/PersistenceManager';
 
 class Game {
   private game: Phaser.Game | null = null;
   private config: GameConfig | null = null;
   private responsiveScaler: ResponsiveScaler | null = null;
   private emulatorUI: EmulatorUI | null = null;
+  private pausedScenes: Phaser.Scene[] = [];
 
   constructor() {
     this.initialize();
@@ -116,19 +118,48 @@ class Game {
       }
     });
 
-    // Handle visibility change
+    // Handle visibility change. On mobile, backgrounding the tab is often the
+    // last event before the OS kills the process, so flush any registered state
+    // snapshot FIRST (synchronously), then pause audio + the game loop so the
+    // background tab stops ticking. On return, resume both.
     document.addEventListener('visibilitychange', () => {
-      if (this.game) {
-        if (document.hidden) {
-          this.game.sound.pauseAll();
-        } else {
-          this.game.sound.resumeAll();
-        }
+      if (!this.game) return;
+      if (document.hidden) {
+        PersistenceManager.snapshotAll();
+        this.game.sound.pauseAll();
+        this.pauseActiveScenes(true);
+      } else {
+        this.game.sound.resumeAll();
+        this.pauseActiveScenes(false);
       }
+    });
+
+    // pagehide is the more reliable "the page may be going away" signal on
+    // mobile than beforeunload — a belt-and-suspenders second flush.
+    window.addEventListener('pagehide', () => {
+      PersistenceManager.snapshotAll();
     });
 
     // Resize, orientation and fullscreen changes are handled by Phaser's
     // Scale Manager (Scale.FIT) — no extra listeners or timers needed
+  }
+
+  /**
+   * Pause/resume the game loop when the tab is backgrounded so it doesn't keep
+   * ticking while hidden. Paused scenes aren't "active", so we remember exactly
+   * which ones we paused and resume only those.
+   */
+  private pauseActiveScenes(pause: boolean) {
+    if (!this.game) return;
+    if (pause) {
+      this.pausedScenes = this.game.scene.getScenes(true);
+      this.pausedScenes.forEach(s => s.scene.pause());
+    } else {
+      this.pausedScenes.forEach(s => {
+        if (s.scene.isPaused()) s.scene.resume();
+      });
+      this.pausedScenes = [];
+    }
   }
 
   private toggleFullscreen() {

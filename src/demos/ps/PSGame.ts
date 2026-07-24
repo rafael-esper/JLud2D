@@ -24,7 +24,7 @@ import { Effect } from './game/PSEffect';
 import { PSLibEnemy, GenericEnemy } from './game/PSLibEnemy';
 import { VImage } from './menu/MenuImageBox';
 import { I18nManager } from './game/I18nManager';
-import { SaveManager, SaveSlotMeta } from './game/SaveManager';
+import { SaveManager, SaveSlotMeta, ArenaResume, AutoResumeSnapshot } from './game/SaveManager';
 
 // Battle system imports
 import { Enemy } from './battle/Enemy';
@@ -52,6 +52,17 @@ export class PSGame {
   // Debug cheat (Talk menu): skip all zone-triggered encounters. Not
   // persisted in saves; boss/story fights (startBattle) are unaffected.
   public static battlesOff: boolean = false;
+
+  // True while a PSBattle is running. Battle state isn't serialized, so the
+  // auto-resume snapshot must not fire mid-fight (see isSafeToAutosave).
+  private static battleInProgress: boolean = false;
+
+  // Last auto-resume snapshot JSON, to skip redundant writes from the periodic
+  // autosave timer when nothing has changed.
+  private static lastAutoResumeJson: string | null = null;
+
+  // Arena resume params parsed by loadAutoResume(), handed to the title screen.
+  private static pendingArenaResume: ArenaResume | null = null;
 
   // Weak-ice tiles on Dezoris (Java PSGame constants)
   public static readonly ICE_FLOCK = 165;
@@ -446,23 +457,11 @@ export class PSGame {
    * level and date. Overwriting an occupied slot asks for confirmation.
    */
   public static async saveGame(): Promise<void> {
-    const player = MainEngine.getPlayer();
-    if (player) {
-      this.gameData.gotox = Math.floor(player.getx() / 16);
-      this.gameData.gotoy = Math.floor(player.gety() / 16);
-
-      if (this.getCurrentDungeon() !== Dungeon.NONE) {
-        const dungeon = this.getCurrentDungeonInstance();
-        if (dungeon && !dungeon.getAlreadyInside()) {
-          // Java: don't save on the entry tile before the floor is revealed.
-          return;
-        }
-        this.gameData.dungeonFace = player.getFace();
-      }
+    // Capture live player position / facing and sync the party into gameData.
+    // Aborts (returns false) on an unrevealed dungeon entry tile — Java parity.
+    if (!this.syncStateForSave()) {
+      return;
     }
-
-    // Keep gameData's party reference in sync with the live party before saving.
-    this.gameData.setParty(this.getParty());
 
     const { PSCancellable } = await import('./menu/MenuStack');
 
@@ -491,6 +490,123 @@ export class PSGame {
     } else {
       await PSMenu.Stext(this.getString("Menu_Save_Failed"));
     }
+  }
+
+  /**
+   * Capture the live player tile position / dungeon facing into gameData and
+   * point gameData's party at the live party. Shared by the manual saveGame()
+   * and the automatic captureAutoResume(). Returns false to abort when on an
+   * unrevealed dungeon entry tile (Java: don't save before the floor is shown).
+   */
+  private static syncStateForSave(): boolean {
+    const player = MainEngine.getPlayer();
+    if (player) {
+      this.gameData.gotox = Math.floor(player.getx() / 16);
+      this.gameData.gotoy = Math.floor(player.gety() / 16);
+
+      if (this.getCurrentDungeon() !== Dungeon.NONE) {
+        const dungeon = this.getCurrentDungeonInstance();
+        if (dungeon && !dungeon.getAlreadyInside()) {
+          return false;
+        }
+        this.gameData.dungeonFace = player.getFace();
+      }
+    }
+
+    // Keep gameData's party reference in sync with the live party before saving.
+    this.gameData.setParty(this.getParty());
+    return true;
+  }
+
+  /**
+   * True when it is safe to write an automatic snapshot: a real game is running
+   * (party + gameType) and we're in a stable, resumable field state — not mid
+   * map-switch, not in a battle, and (on the overworld) not mid-script/cutscene.
+   *
+   * Dungeons deliberately run with scriptActive/playerControlsSuspended set, so
+   * those gates are skipped inside a dungeon; the unrevealed-entry-tile guard in
+   * syncStateForSave() handles the one unsafe dungeon moment instead.
+   */
+  public static isSafeToAutosave(): boolean {
+    if (!this.party || this.gameData.getGameType() === null) return false;
+    if (this.battleInProgress) return false;
+    if (MainEngine.isMapTransitionActive()) return false;
+
+    // No allocated player means a cinematic / pre-spawn state (e.g. the Space
+    // intro map) — nothing to resume to yet.
+    if (!MainEngine.getPlayer()) return false;
+
+    // Overworld / city: only snapshot when idle (the save menu would be
+    // openable), never mid-script. Dungeons run scriptActive by design.
+    if (this.getCurrentDungeon() === Dungeon.NONE && MainEngine.isScriptActive()) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /** Serialize an auto-resume envelope, skipping the write if it's unchanged. */
+  private static writeAutoResumeEnvelope(snapshot: AutoResumeSnapshot): void {
+    const json = JSON.stringify(snapshot);
+    if (json === this.lastAutoResumeJson) return; // nothing changed since last write
+    this.lastAutoResumeJson = json;
+    SaveManager.writeAutoResumeJson(json);
+  }
+
+  /**
+   * Automatic "resume where you left off" snapshot for a normal field session.
+   * Written from lifecycle events (page hidden / pagehide) and at safe
+   * checkpoints (map entry, a periodic timer). A no-op when isSafeToAutosave()
+   * is false, so it never overwrites a good snapshot with a mid-battle one.
+   */
+  public static captureAutoResume(): void {
+    if (!this.isSafeToAutosave()) return;
+    if (!this.syncStateForSave()) return;
+    this.writeAutoResumeEnvelope({ mode: 'field', gameData: this.gameData.serialize() });
+  }
+
+  /**
+   * Auto-resume snapshot for an in-progress PS Arena gauntlet. Called at each
+   * safe checkpoint (the start of a battle). The Arena has no map/player, so
+   * this just syncs the live party into gameData before serializing.
+   */
+  public static captureArenaResume(arena: ArenaResume): void {
+    this.gameData.setParty(this.getParty());
+    this.writeAutoResumeEnvelope({ mode: 'arena', gameData: this.gameData.serialize(), arena });
+  }
+
+  /**
+   * Adopt the auto-resume snapshot without any menu (mirrors loadGame()'s adopt
+   * block). Does NOT enter a map / arena — the caller routes on the returned
+   * mode (GameScene enterLoaded for 'field', PhantasyArenaGame for 'arena').
+   * @returns the snapshot mode, or null if no snapshot was present.
+   */
+  public static async loadAutoResume(): Promise<AutoResumeSnapshot['mode'] | null> {
+    const snap = SaveManager.readAutoResumeSnapshot();
+    if (!snap) return null;
+
+    const loaded = GameData.fromSerialized(snap.gameData);
+    this.gameData = loaded;
+    this.party = loaded.getParty();
+    if (loaded.locale) {
+      await this.setLocale(loaded.locale);
+    }
+    this.pendingArenaResume = snap.mode === 'arena' ? (snap.arena ?? null) : null;
+    return snap.mode;
+  }
+
+  /** Take (and clear) the Arena resume params parsed by loadAutoResume(). */
+  public static consumeArenaResume(): ArenaResume | null {
+    const arena = this.pendingArenaResume;
+    this.pendingArenaResume = null;
+    return arena;
+  }
+
+  /** Erase the auto-resume snapshot on intentional exit (new game / quit). */
+  public static clearAutoResume(): void {
+    this.lastAutoResumeJson = null;
+    this.pendingArenaResume = null;
+    SaveManager.clearAutoResume();
   }
 
   /**
@@ -2085,7 +2201,12 @@ export class PSGame {
     const { PSBattle } = await import('./battle/PSBattle');
 
     const battle = new PSBattle();
-    return await battle.battleSceneWithEnemies(scene, enemyInstances);
+    this.battleInProgress = true;
+    try {
+      return await battle.battleSceneWithEnemies(scene, enemyInstances);
+    } finally {
+      this.battleInProgress = false;
+    }
   }
 
   /**
@@ -2143,7 +2264,12 @@ export class PSGame {
     const { PSBattle } = await import('./battle/PSBattle');
 
     const battle = new PSBattle();
-    return await battle.battleScene(scene, selectedEnemy, quantity);
+    this.battleInProgress = true;
+    try {
+      return await battle.battleScene(scene, selectedEnemy, quantity);
+    } finally {
+      this.battleInProgress = false;
+    }
   }
 
   /**
@@ -2155,7 +2281,12 @@ export class PSGame {
     const { PSBattle } = await import('./battle/PSBattle');
 
     const battle = new PSBattle();
-    return await battle.battleScene(scene, enemy, quantity);
+    this.battleInProgress = true;
+    try {
+      return await battle.battleScene(scene, enemy, quantity);
+    } finally {
+      this.battleInProgress = false;
+    }
   }
 
   /**
@@ -2184,6 +2315,9 @@ export class PSGame {
    * In the Phaser port the title is its own scene, so switch scenes.
    */
   public static async exitToTitle(): Promise<void> {
+    // Intentional end of the session (game over / quit): a reload should show
+    // the title/menu, not silently resume the finished game.
+    this.clearAutoResume();
     this.stopMusic();
     const scene = this.currentScene;
     await ScriptEngine.fadeout(25, true);

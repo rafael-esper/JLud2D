@@ -4,6 +4,7 @@
  */
 
 import { GameConfig } from '../config/GameConfig';
+import { SaveManager } from '../demos/ps/game/SaveManager';
 
 export class BootScene extends Phaser.Scene {
   private config!: GameConfig;
@@ -98,6 +99,15 @@ export class BootScene extends Phaser.Scene {
       } catch (error) {
         console.warn('BootScene: invalid restart target, opening menu', error);
       }
+    }
+
+    // Auto-resume: if a Phantasy Star session was snapshotted before a mobile
+    // process kill / reload, skip the demo menu and drop straight back into it.
+    // (Generic-friendly: future demos add their own check alongside this one.)
+    if (SaveManager.hasAutoResume()) {
+      console.log('BootScene: auto-resume snapshot found, entering PS');
+      this.scene.start('PSTitleScene', { config: this.config, autoResume: true });
+      return;
     }
 
     console.log('BootScene: Assets loaded, starting MenuScene');

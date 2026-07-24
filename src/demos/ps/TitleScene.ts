@@ -12,10 +12,18 @@ import { PS1Image } from './game/PSLibImage';
 import { PSAssets } from './PSAssets';
 import { PSCancellable } from './menu/MenuStack';
 import { ScriptEngine } from '../../core/ScriptEngine';
+import { GameConfig } from '../../config/GameConfig';
 
 export class TitleScene extends PSScene {
+  private autoResume: boolean = false;
+
   constructor() {
     super('PSTitleScene');
+  }
+
+  async init(data: { config: GameConfig; autoResume?: boolean }) {
+    await super.init(data);
+    this.autoResume = data.autoResume || false;
   }
 
   preload() {
@@ -47,6 +55,36 @@ export class TitleScene extends PSScene {
 
       // Initialize internationalization system BEFORE any getString calls
       await PSGame.initializeI18n();
+
+      // Auto-resume: a prior session was snapshotted before a mobile process
+      // kill / reload. Adopt it and re-enter by mode:
+      //  - 'field': hand straight to the GameScene (enterLoaded), same path as a
+      //    title-screen Load minus the slot picker — a fully seamless return.
+      //  - 'arena': re-run the PS Arena gauntlet from the saved battle, then fall
+      //    through to the normal title screen when it ends.
+      if (this.autoResume) {
+        await PSGame.initPSGame(GameType.PS_ORIGINAL);
+        const mode = await PSGame.loadAutoResume();
+
+        if (mode === 'field') {
+          PSGame.stopMusic();
+          this.scene.start('PSGameScene', { config: this.config, enterLoaded: true });
+          return;
+        }
+
+        if (mode === 'arena') {
+          // Render the title as a backdrop, drop the loading overlay (the arena
+          // is interactive), then resume the gauntlet. When it returns, execution
+          // falls through to the normal title setup + menu loop below.
+          this.startScene(PSSceneType.TITLE, SpecialEntity.NONE);
+          (window as any).hideLoading?.();
+          const { PhantasyArena } = await import('./PhantasyArena');
+          await PhantasyArena.PhantasyArenaGame(PSGame.consumeArenaResume() ?? undefined);
+        } else if (mode === null) {
+          // Snapshot missing/corrupt — fall through to the normal title menu.
+          console.warn('TitleScene: auto-resume snapshot could not be loaded');
+        }
+      }
 
       // Warm the VGM cache in the background (all tracks, ~80 KB total) so the
       // first play of every track later is instant. Fire-and-forget.
@@ -178,6 +216,11 @@ export class TitleScene extends PSScene {
       PSGame.setFromCity(null);
       PSGame.setToCity(null);
 
+      // Starting fresh: drop any prior auto-resume snapshot so a reload during
+      // the intro doesn't resume the old game. It's re-established once the new
+      // party reaches a safe field state (GameScene checkpoint).
+      PSGame.clearAutoResume();
+
       // Start GameScene routed into the Space map intro
       this.scene.start('PSGameScene', { config: this.config, enterIntro: true });
 
@@ -190,6 +233,10 @@ export class TitleScene extends PSScene {
     } else if (opt === 5) {
       // PS Arena
       await PSGame.initPSGame(GameType.PS_ARENA);
+      // Drop any prior overworld snapshot before the gauntlet starts writing its
+      // own per-battle arena checkpoints (so a mid-Arena kill resumes the Arena,
+      // not a stale field game).
+      PSGame.clearAutoResume();
       console.log("TitleScene: Starting PS Arena");
       const { PhantasyArena } = await import('./PhantasyArena');
       await PhantasyArena.PhantasyArenaGame();

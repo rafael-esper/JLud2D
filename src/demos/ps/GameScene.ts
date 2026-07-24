@@ -17,6 +17,7 @@ import { PSMenu } from './PSMenu';
 import { PSMenuMain } from './PSMenuMain';
 import { PSAssets } from './PSAssets';
 import { ConfirmDialog } from '../../utils/ConfirmDialog';
+import { PersistenceManager } from '../../utils/PersistenceManager';
 
 export class GameScene extends Phaser.Scene {
   private config!: GameConfig;
@@ -28,6 +29,10 @@ export class GameScene extends Phaser.Scene {
   private enterIntro: boolean = false;
   private confirmingExit: boolean = false;
   public mapBasePath: string = 'src/demos/ps/maps';
+
+  // Stable reference so PersistenceManager register/unregister pair up. Flushes
+  // the auto-resume snapshot when the tab is backgrounded (see main.ts).
+  private readonly snapshotCallback = () => PSGame.captureAutoResume();
 
   constructor() {
     super({ key: 'PSGameScene' });
@@ -83,6 +88,16 @@ export class GameScene extends Phaser.Scene {
     (window as any).PSGame = PSGame;
     (window as any).MainEngine = MainEngine;
 
+    // Auto-resume wiring: flush a snapshot when the tab is backgrounded, and
+    // keep a fresh field checkpoint via a periodic timer so a SILENT mobile kill
+    // (no lifecycle event) still has recent state to restore. Both are no-ops
+    // when isSafeToAutosave() is false (battle / transition / cinematic).
+    PersistenceManager.register(this.snapshotCallback);
+    this.time.addEvent({ delay: 5000, loop: true, callback: () => PSGame.captureAutoResume() });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      PersistenceManager.unregister(this.snapshotCallback);
+    });
+
     // Loading a save from the title screen: the save data is already adopted;
     // now that the engine/scene context exists, enter the saved location. This
     // skips the hardcoded Camineet load below — mapswitch loads the correct map,
@@ -91,6 +106,7 @@ export class GameScene extends Phaser.Scene {
       await ScriptEngine.fadeout(25, true);
       await PSGame.enterLoadedLocation();
       console.log("GameScene: Loaded-game entry complete");
+      PSGame.captureAutoResume(); // refresh the checkpoint at the restored spot
       return;
     }
 
@@ -185,6 +201,10 @@ export class GameScene extends Phaser.Scene {
     // Optional: Enable horizontal and vertical wrapping
     // current_map.horizontalWrapable = current_map.verticalWrapable = true;
 
+    // Safe field checkpoint: a known-good snapshot the moment a new map is
+    // walkable, so a silent kill before the next timer tick still resumes here.
+    PSGame.captureAutoResume();
+
     console.log("GameScene: Map started successfully");
   }
 
@@ -266,6 +286,8 @@ export class GameScene extends Phaser.Scene {
     this.confirmingExit = false;
     if (confirmed) {
       console.log('GameScene: Exit confirmed, returning to main menu');
+      // Intentional exit: a reload should show the demo menu, not resume.
+      PSGame.clearAutoResume();
       PSGame.stopMusic(); // Stop the city music
       // End the dungeon main loop before tearing the engine down
       const { PSDungeon } = await import('./PSDungeon');

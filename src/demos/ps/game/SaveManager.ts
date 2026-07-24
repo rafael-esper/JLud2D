@@ -32,11 +32,44 @@ interface SaveSlotEntry {
   data: any; // GameData.serialize() output
 }
 
+/** PS Arena run state needed to resume a gauntlet mid-way (small, all numbers). */
+export interface ArenaResume {
+  /** Index of the battle to (re)enter on resume. */
+  battleIndex: number;
+  /** Accumulated reward progression (weapon/armor/shield/exp indices, revives). */
+  state: {
+    weaponIndex: number;
+    shieldIndex: number;
+    armorIndex: number;
+    numRevives: number;
+    expLevel: number;
+  };
+}
+
+/**
+ * Auto-resume envelope. `mode` tells the boot path how to re-enter: a normal
+ * field session (GameScene) or an in-progress PS Arena gauntlet (TitleScene).
+ * `gameData` is always a GameData.serialize() snapshot (the party lives here);
+ * `arena` is present only for mode 'arena'.
+ */
+export interface AutoResumeSnapshot {
+  mode: 'field' | 'arena';
+  gameData: any;
+  arena?: ArenaResume;
+}
+
 export class SaveManager {
   /** Number of save slots offered in the menus. */
   public static readonly MAX_SLOTS = 15;
 
   private static readonly KEY_PREFIX = 'PS_SAVE_SLOT_';
+
+  /**
+   * Dedicated key for the automatic "resume where you left off" snapshot,
+   * written on backgrounding / at safe checkpoints and consumed on boot. Kept
+   * separate from the numbered manual slots so the two never collide.
+   */
+  public static readonly AUTO_KEY = 'PS_AUTORESUME';
 
   private static keyFor(slot: number): string {
     return `${SaveManager.KEY_PREFIX}${slot}`;
@@ -103,6 +136,60 @@ export class SaveManager {
   /** Erase a slot. */
   public static deleteSlot(slot: number): void {
     localStorage.removeItem(SaveManager.keyFor(slot));
+  }
+
+  // --- Auto-resume snapshot (mobile process-kill recovery) ---
+  //
+  // Uses SYNCHRONOUS localStorage on purpose: the snapshot is written from
+  // visibilitychange/pagehide handlers and must land before the OS can kill the
+  // tab. localStorage.setItem completes before the handler returns; an async
+  // IndexedDB write could be dropped mid-flush at exactly that moment.
+
+  /** Write a pre-serialized snapshot JSON to the auto-resume key. */
+  public static writeAutoResumeJson(json: string): void {
+    try {
+      localStorage.setItem(SaveManager.AUTO_KEY, json);
+    } catch (error) {
+      console.error('SaveManager: failed to write auto-resume snapshot', error);
+    }
+  }
+
+  /** True if an auto-resume snapshot is present. */
+  public static hasAutoResume(): boolean {
+    try {
+      return localStorage.getItem(SaveManager.AUTO_KEY) !== null;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Read the auto-resume envelope (gameData still in serialized form), or null
+   * if absent/corrupt. Tolerates the legacy shape (a bare GameData.serialize()
+   * output written before the envelope existed) by treating it as mode 'field'.
+   */
+  public static readAutoResumeSnapshot(): AutoResumeSnapshot | null {
+    try {
+      const raw = localStorage.getItem(SaveManager.AUTO_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.mode) {
+        return parsed as AutoResumeSnapshot;
+      }
+      return { mode: 'field', gameData: parsed };
+    } catch (error) {
+      console.error('SaveManager: failed to read auto-resume snapshot', error);
+      return null;
+    }
+  }
+
+  /** Erase the auto-resume snapshot (on intentional exit / new game). */
+  public static clearAutoResume(): void {
+    try {
+      localStorage.removeItem(SaveManager.AUTO_KEY);
+    } catch (error) {
+      console.error('SaveManager: failed to clear auto-resume snapshot', error);
+    }
   }
 
   /**

@@ -16,6 +16,7 @@ import { PS1Music } from './game/PSLibMusic';
 import { PartyMember, Gender } from './game/PartyMember';
 import { Specie } from './game/Specie';
 import { Job } from './game/Job';
+import { ArenaResume } from './game/SaveManager';
 
 // Party member indices, in join order (Java ALIS..HAPSBY constants)
 const ALIS = 0;
@@ -187,22 +188,28 @@ export class PhantasyArena {
     [OriginalItem.Shield_Laconian_Shield, ALIS]
   ];
 
-  public static async PhantasyArenaGame(): Promise<void> {
+  /**
+   * Run the arena gauntlet. Pass `resume` (from an auto-resume snapshot) to
+   * re-enter an interrupted run: the reward progression and party come from the
+   * snapshot, so the loop restarts at the saved battle instead of battle 0.
+   */
+  public static async PhantasyArenaGame(resume?: ArenaResume): Promise<void> {
     const battle = new PSBattle(BattleMode.AUTO_ACTION);
 
-    const s: ArenaState = {
-      weaponIndex: 0,
-      shieldIndex: 0,
-      armorIndex: 0,
-      numRevives: 0,
-      expLevel: 0
-    };
+    // Restore accumulated reward indices on resume, else start fresh.
+    const s: ArenaState = resume
+      ? { ...resume.state }
+      : { weaponIndex: 0, shieldIndex: 0, armorIndex: 0, numRevives: 0, expLevel: 0 };
 
-    // Java: TODO Remove this and add some support for items
-    PSGame.getParty().getMember(ALIS)?.addItem(PSGame.getItem(OriginalItem.Inventory_Escape_Cloth));
-    PSGame.getParty().getMember(ALIS)?.addItem(PSGame.getItem(OriginalItem.Inventory_Dimate));
+    // Starter items are granted once, only on a fresh run — on resume the
+    // (serialized) party already has them.
+    if (!resume) {
+      // Java: TODO Remove this and add some support for items
+      PSGame.getParty().getMember(ALIS)?.addItem(PSGame.getItem(OriginalItem.Inventory_Escape_Cloth));
+      PSGame.getParty().getMember(ALIS)?.addItem(PSGame.getItem(OriginalItem.Inventory_Dimate));
+    }
 
-    for (let i = 0; i <= PhantasyArena.END; i++) {
+    for (let i = resume ? resume.battleIndex : 0; i <= PhantasyArena.END; i++) {
       if (i === PhantasyArena.END) {
         await PhantasyArena.showScore(s);
         continue;
@@ -212,6 +219,10 @@ export class PhantasyArena {
       if (!scheduled) {
         continue; // Java 'default: continue'
       }
+
+      // Safe auto-resume checkpoint: party + reward progression as they stand
+      // entering battle i. A mobile kill mid-battle resumes at this battle.
+      PSGame.captureArenaResume({ battleIndex: i, state: { ...s } });
 
       let outcome: BattleOutcome;
       if (scheduled.group) {
@@ -255,6 +266,10 @@ export class PhantasyArena {
 
       await PhantasyArena.rewardMenu(s);
     }
+
+    // Run over (completed, defeated, or the final skip-reward battle): drop the
+    // arena snapshot so a reload returns to the title, not a finished gauntlet.
+    PSGame.clearAutoResume();
   }
 
   /**
