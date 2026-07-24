@@ -118,7 +118,7 @@ export class TitleScene extends PSScene {
         PSGame.getString("Title_Newgame"),
         PSGame.getString("Title_Loadgame"),
         PSGame.getString("Title_Credits"),
-        PSGame.getString("Title_Options_Language")
+        PSGame.getString("Title_Options")
       ], true);
 
       this.menuStack.push(mainMenu);
@@ -156,19 +156,66 @@ export class TitleScene extends PSScene {
       }
 
       if (mainOpt === 4) {
-        // Language
-        const languageChanged = await PSGame.languageMenu(this.menuStack);
-
-        // If language was changed, refresh the title scene to show updated text
-        if (languageChanged) {
-          console.log("TitleScene: Language changed, refreshing scene");
-          this.startScene(PSSceneType.TITLE, SpecialEntity.NONE);
-        }
+        // Options submenu (Language + Music chip)
+        await this.optionsMenu();
         // Continue the loop to show updated menu text
       }
     }
 
     this.endScene();
+  }
+
+  /**
+   * Title-screen Options submenu. Currently exposes language selection and the
+   * music sound-chip toggle (PSG SN76489 vs FM YM2413). Loops so several
+   * settings can be changed before backing out.
+   */
+  private async optionsMenu(): Promise<void> {
+    while (true) {
+      const optionsMenu = this.menuStack.createPromptBox(80, 130, [
+        PSGame.getString("Title_Options_Language"),
+        `${PSGame.getString("Title_Options_Music")}: ${PSGame.musicChip === 'fm' ? PSGame.getString("Menu_Options_Chip_FM") : PSGame.getString("Menu_Options_Chip_PSG")}`
+      ], true);
+      this.menuStack.push(optionsMenu);
+      const opt = await this.menuStack.waitOpt(PSCancellable.TRUE);
+      this.menuStack.pop();
+
+      if (opt === -1) {
+        return; // Cancelled — back to main menu
+      }
+
+      if (opt === 0) {
+        // Language
+        const languageChanged = await PSGame.languageMenu(this.menuStack);
+        if (languageChanged) {
+          console.log("TitleScene: Language changed, refreshing scene");
+          this.startScene(PSSceneType.TITLE, SpecialEntity.NONE);
+        }
+      } else if (opt === 1) {
+        // Music sound chip
+        await this.musicChipMenu();
+      }
+    }
+  }
+
+  /**
+   * Prompt for the music sound chip and apply the choice. Restarting the
+   * current track (if any) is handled by PSGame.setMusicChip().
+   */
+  private async musicChipMenu(): Promise<void> {
+    const chipMenu = this.menuStack.createPromptBox(80, 120, [
+      PSGame.getString("Menu_Options_Chip_PSG"),
+      PSGame.getString("Menu_Options_Chip_FM")
+    ], true);
+    this.menuStack.push(chipMenu);
+    const choice = await this.menuStack.waitOpt(PSCancellable.TRUE);
+    this.menuStack.pop();
+
+    if (choice === 0) {
+      await PSGame.setMusicChip('psg');
+    } else if (choice === 1) {
+      await PSGame.setMusicChip('fm');
+    }
   }
 
   /**

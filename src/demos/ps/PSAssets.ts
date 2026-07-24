@@ -158,7 +158,11 @@ export class PSAssets {
    * track under its own path.
    */
   static async warmMusic(): Promise<void> {
-    const paths = Object.values(PS1Music) as string[];
+    // Warm both the PSG (.vgz) tracks and their FM (YM2413, .vgm) counterparts
+    // so switching the music chip at runtime never stalls on the first play.
+    const psgPaths = Object.values(PS1Music) as string[];
+    const fmPaths = psgPaths.map(p => p.replace(/\/music\/([^/]+)\.vgz$/i, '/music/fm/$1.vgm'));
+    const paths = [...psgPaths, ...fmPaths];
     await Promise.all(
       paths.map(path =>
         VGMPlayerAPI.loadVGM(path, path).catch(err =>

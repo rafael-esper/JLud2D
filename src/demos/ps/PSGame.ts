@@ -83,6 +83,13 @@ export class PSGame {
   public static readonly WEAK_ICE_ZONE = 1;
   private static currentMusic: PS1Music | null = null; // Track currently playing music
   private static pausedMusic: PS1Music | null = null; // Track shelved by pauseMusic()
+
+  // Sound-chip preference for music: 'psg' plays the stock SN76489 .vgz tracks,
+  // 'fm' plays the YM2413 (Mark III FM unit) .vgm arrangements from music/fm/.
+  // A global preference (not per-save) persisted in localStorage so the choice
+  // made on the title screen survives New Game / Load (both replace gameData).
+  private static readonly MUSIC_CHIP_KEY = 'ps_musicChip';
+  private static _musicChip: 'psg' | 'fm' | null = null;
   private static i18nManager: I18nManager = I18nManager.getInstance();
   public static currentDungeon: any = null; // Current dungeon instance
   private static readonly PS_DEMO_BASE_PATH = 'src/demos/ps'; // Base path for PS demo
@@ -124,14 +131,71 @@ export class PSGame {
 
     ScriptEngine.setMusicVolume(this.gameData.musicVolume);
 
+    // Resolve the logical track to the actual file for the selected sound chip
+    // (PSG .vgz vs FM .vgm). currentMusic/pausedMusic stay keyed by the logical
+    // PS1Music value so dedup and pause/resume are unaffected by the chip.
+    const path = this.resolveMusicPath(music);
+
     // If this is the track shelved by pauseMusic() (interrupted by a battle),
     // continue it from where it stopped instead of restarting it
-    if (this.pausedMusic === music && ScriptEngine.resumemusic(music as string)) {
+    if (this.pausedMusic === music && ScriptEngine.resumemusic(path)) {
       this.pausedMusic = null;
     } else {
-      ScriptEngine.playmusic(music as string);
+      ScriptEngine.playmusic(path);
     }
     this.currentMusic = music;
+  }
+
+  /**
+   * Current music sound-chip preference ('psg' or 'fm'). Lazily read from
+   * localStorage on first access and cached; defaults to 'psg'.
+   */
+  public static get musicChip(): 'psg' | 'fm' {
+    if (this._musicChip === null) {
+      let stored: string | null = null;
+      try {
+        stored = localStorage.getItem(this.MUSIC_CHIP_KEY);
+      } catch {
+        /* localStorage unavailable (e.g. headless/simulation) */
+      }
+      this._musicChip = stored === 'fm' ? 'fm' : 'psg';
+    }
+    return this._musicChip;
+  }
+
+  /**
+   * Change the music sound chip and restart the current track so the switch is
+   * audible immediately. Persists the choice globally.
+   */
+  public static async setMusicChip(chip: 'psg' | 'fm'): Promise<void> {
+    if (this.musicChip === chip) {
+      return;
+    }
+    this._musicChip = chip;
+    try {
+      localStorage.setItem(this.MUSIC_CHIP_KEY, chip);
+    } catch {
+      /* localStorage unavailable */
+    }
+    // Restart whatever is playing under the new chip.
+    const cur = this.currentMusic;
+    if (cur !== null) {
+      this.stopMusic(); // clears currentMusic so playMusic() doesn't dedup
+      await this.playMusic(cur);
+    }
+  }
+
+  /**
+   * Map a logical PS1Music track to the file path for the active sound chip.
+   * PSG tracks live at .../music/Name.vgz; the FM (YM2413) arrangements live at
+   * .../music/fm/Name.vgm with the same basename.
+   */
+  private static resolveMusicPath(music: PS1Music): string {
+    const path = music as string;
+    if (this.musicChip === 'fm') {
+      return path.replace(/\/music\/([^/]+)\.vgz$/i, '/music/fm/$1.vgm');
+    }
+    return path;
   }
 
   /**

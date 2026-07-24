@@ -308,6 +308,7 @@ export class PSMenuMain {
     PSMenu.instance.push(PSMenu.instance.createPromptBox(100, 30, [
       `${PSGame.getString('Menu_Options_Sound')}: ${PSGame.gameData.soundVolume}`,
       `${PSGame.getString('Menu_Options_Music')}: ${PSGame.gameData.musicVolume}`,
+      `${PSGame.getString('Menu_Options_Chip')}: ${PSGame.musicChip === 'fm' ? PSGame.getString('Menu_Options_Chip_FM') : PSGame.getString('Menu_Options_Chip_PSG')}`,
       `${PSGame.getString('Menu_Options_Messages')}: ${PSGame.gameData.battleInformation ? PSGame.getString('Menu_Choice_Yes') : PSGame.getString('Menu_Choice_No')}`,
       `${PSGame.getString('Menu_Options_Delay')}: ${PSGame.gameData.dungeonDelay}`,
       `${PSGame.getString('Menu_Options_Rewards')}: ${PSGame.getString('Menu_Options_Rewards_' + PSGame.gameData.rewardMultiplier)}`,
@@ -342,7 +343,22 @@ export class PSMenuMain {
         break;
       }
 
-      case 2: { // Battle Messages
+      case 2: { // Music Chip (PSG / FM)
+        const chip = await PSMenu.Prompt(
+          PSGame.getString('Menu_Options_Chip_Desc'),
+          [
+            PSGame.getString('Menu_Options_Chip_PSG'),
+            PSGame.getString('Menu_Options_Chip_FM')
+          ]
+        );
+        PSMenu.instance.pop(); // text box left by Prompt
+        if (chip > 0) {
+          await PSGame.setMusicChip(chip === 2 ? 'fm' : 'psg');
+        }
+        break;
+      }
+
+      case 3: { // Battle Messages
         const optInfo = await PSMenu.Prompt(
           PSGame.getString('Menu_Options_Messages_Desc'),
           PSGame.getYesNo()
@@ -354,7 +370,7 @@ export class PSMenuMain {
         break;
       }
 
-      case 3: { // Dungeon Delay
+      case 4: { // Dungeon Delay
         const delay = await PSMenu.Prompt(
           PSGame.getString('Menu_Options_Delay_Desc'),
           [
@@ -371,7 +387,7 @@ export class PSMenuMain {
         break;
       }
 
-      case 4: { // Reward Multiplier
+      case 5: { // Reward Multiplier
         const mult = await PSMenu.Prompt(
           PSGame.getString('Menu_Options_Rewards_Desc'),
           [
@@ -389,7 +405,7 @@ export class PSMenuMain {
         break;
       }
 
-      case 5: { // Encounter Rate
+      case 6: { // Encounter Rate
         const reduction = await PSMenu.Prompt(
           PSGame.getString('Menu_Options_Encounters_Desc'),
           [
@@ -405,11 +421,11 @@ export class PSMenuMain {
         break;
       }
 
-      case 6: // Language
+      case 7: // Language
         await PSGame.languageMenu(PSMenu.instance);
         break;
 
-      case 7: { // Title Screen
+      case 8: { // Title Screen
         const confirmExit = await PSMenu.Prompt(
           PSGame.getString('Menu_Exit_Prompt'),
           PSGame.getYesNo()
