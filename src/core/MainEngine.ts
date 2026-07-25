@@ -1112,28 +1112,32 @@ export class MainEngine {
 
 
   public static CheckZone(): void {
-    if (!MainEngine.current_map) return;
+    if (!MainEngine.current_map) { console.log('ZONEDBG: skip — no current_map'); return; }
 
     // Don't trigger zone events when entities are paused (during animations/transitions)
-    if (MainEngine.entitiespaused) return;
+    if (MainEngine.entitiespaused) { console.log('ZONEDBG: skip — entitiespaused'); return; }
 
     // Don't trigger zone events when scripts are active (during cutscenes/spaceport transitions)
-    if (MainEngine.invc !== 0) return;
+    if (MainEngine.invc !== 0) { console.log(`ZONEDBG: skip — scriptActive (invc=${MainEngine.invc})`); return; }
 
     // Don't trigger zone events while a map switch is in flight — a zone firing
     // here starts a second concurrent mapswitch whose gotoxy clobbers the first
     // (e.g. the spaceport walk animations end exactly on the camineet/parolit
     // entrance zones of Palma)
-    if (MainEngine.mapTransitionActive) return;
+    if (MainEngine.mapTransitionActive) { console.log('ZONEDBG: skip — mapTransitionActive'); return; }
 
     const cur_timer = MainEngine.timer;
     const cz = MainEngine.current_map.getzone(MainEngine.px, MainEngine.py);
+
+    console.log(`ZONEDBG: step (${MainEngine.px},${MainEngine.py}) cz=${cz} scriptContext=${MainEngine.currentScriptContext?.name ?? MainEngine.currentScriptContext} scene=${(MainEngine.current_scene as any)?.constructor?.name}`);
 
     if (cz > 0) {
       const percent = MainEngine.current_map.getPercentZone(cz);
       const script = MainEngine.current_map.getScriptZone(cz);
 
       const rnd = Math.floor(255 * Math.random());
+
+      console.log(`ZONEDBG: zone ${cz} -> script='${script}' percent=${percent} rnd=${rnd} willFire=${rnd < percent}`);
 
       if (rnd < percent) {
         MainEngine.event_zone = cz;
