@@ -1087,6 +1087,10 @@ export class PSBattle {
   }
 
   private async battleWonRoutine(battlers: Battler[]): Promise<void> {
+    // Enemy death sound — played once here (battle won = last monster killed),
+    // rather than per-kill in killed().
+    PSGame.playSound(PS1Sound.ENEMY_DEAD);
+
     // Sort battlers using natural comparator (like Java Collections.sort)
     battlers.sort(Battler.getNaturalComparator());
 
@@ -1500,9 +1504,8 @@ export class PSBattle {
       }
 
       // Note: Label color is already changed to red when HP reached 0 in hit() method
-
-      // Play enemy death sound (Java behavior)
-      PSGame.playSound(PS1Sound.ENEMY_DEAD);
+      // The enemy death sound is played once on the win path (battleWonRoutine),
+      // not per-kill, so it only sounds when the last monster of the battle dies.
 
     }
   }

@@ -50,7 +50,6 @@ export class PSMenuMain {
       PSGame.getString('Menu_Magic'),
       PSGame.getString('Menu_Items'),
       PSGame.getString('Menu_Quest'),
-      PSGame.getString('Menu_Talk'),
       PSGame.getString('Menu_Options'),
       PSGame.getString('Menu_Load'),
       PSGame.getString('Menu_Save')
@@ -91,17 +90,13 @@ export class PSMenuMain {
         await PSMenuMain.questMenu();
       }
 
-      if (opt === 5) { // Talk - debug/cheat submenu
-        await PSMenuMain.talkMenu(statusLabelBox, mstBox);
-      }
-
-      if (opt === 6) { // Options
+      if (opt === 5) { // Options
         if (await PSMenuMain.optionsMenu()) {
           break; // Exit to title screen
         }
       }
 
-      if (opt === 7) { // Load
+      if (opt === 6) { // Load
         // Only close the menu if a game was actually loaded; otherwise
         // (empty slots, or the player cancelled) stay in the menu.
         if (await PSGame.loadGame()) {
@@ -110,7 +105,7 @@ export class PSMenuMain {
         }
       }
 
-      if (opt === 8) { // Save
+      if (opt === 7) { // Save
         await PSGame.saveGame();
       }
     }
@@ -132,101 +127,6 @@ export class PSMenuMain {
 
     PSMenu.menuOn();
     PSMenu.instance.checkPosMenu();
-  }
-
-  /**
-   * Talk menu — debug/cheat helpers (the Talk option has no gameplay use in
-   * the original, so it hosts the cheats; most actions mirror cheatMenu()):
-   * inventory items, quest items, +10 levels, +10000 mesetas, the three
-   * transport vehicles, and a random battles on/off toggle for debugging.
-   */
-  private static async talkMenu(statusLabelBox: MenuLabelBox, mstBox: MenuLabelBox): Promise<void> {
-    while (true) {
-      // Recreated each pass so the Battles label reflects the current toggle
-      PSMenu.instance.push(PSMenu.instance.createPromptBox(70, 30, [
-        PSGame.getString('Menu_Items'),
-        PSGame.getString('Menu_Quest'),
-        'Level up',
-        'Mesetas',
-        'Transport',
-        `Battles: ${PSGame.battlesOff ? 'Off' : 'On'}`
-      ], true));
-      const opt = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
-      PSMenu.instance.pop();
-
-      if (opt === -1) {
-        return;
-      }
-
-      switch (opt) {
-
-        case 0: { // Items (into the leader's inventory)
-          const member = PSGame.getParty().getMember(0)!;
-          member.items.push(PSGame.getItem(OriginalItem.Inventory_Flash)); // Search Light
-          member.items.push(PSGame.getItem(OriginalItem.Inventory_Monomate));
-          member.items.push(PSGame.getItem(OriginalItem.Inventory_Dimate));
-          member.items.push(PSGame.getItem(OriginalItem.Inventory_Trimate));
-          member.items.push(PSGame.getItem(OriginalItem.Inventory_TranCarpet));
-          member.items.push(PSGame.getItem(OriginalItem.Inventory_Light_Pendant));
-          member.items.push(PSGame.getItem(OriginalItem.Inventory_Telepathy_Ball));
-          member.items.push(PSGame.getItem(OriginalItem.Inventory_Magic_Hat));
-          member.items.push(PSGame.getItem(OriginalItem.Inventory_Escape_Cloth));
-          await PSMenu.Stext(`${member.getName()} received a set of useful items!`);
-          break;
-        }
-
-        case 1: { // Quest items
-          const party = PSGame.getParty();
-          party.addQuestItem(PSGame.getItem(OriginalItem.Quest_Dungeon_Key));
-          party.addQuestItem(PSGame.getItem(OriginalItem.Quest_Passport));
-          party.addQuestItem(PSGame.getItem(OriginalItem.Quest_Road_Pass));
-          await PSMenu.Stext('Received the Dungeon Key, Passport and Roadpass!');
-          break;
-        }
-
-        case 2: { // Level up: +10 levels for the whole party
-          for (let i = 0; i < PSGame.getParty().partySize(); i++) {
-            const member = PSGame.getParty().getMember(i)!;
-            for (let j = 0; j < 10; j++) {
-              member.advanceLevel();
-            }
-            member.heal();
-          }
-          statusLabelBox.updateTextArray(PSMenuMain.getBasicStats());
-          await PSMenu.Stext('The party advanced 10 levels!');
-          break;
-        }
-
-        case 3: { // Mesetas
-          PSGame.getParty().mst += 10000;
-          mstBox.updateText(0, `MST ${PSGame.getParty().mst}`);
-          await PSMenu.Stext('Received 10000 mesetas!');
-          break;
-        }
-
-        case 4: { // Transport vehicles
-          const party = PSGame.getParty();
-          for (const vehicle of [OriginalItem.Vehicle_LandMaster, OriginalItem.Vehicle_FlowMover, OriginalItem.Vehicle_IceDecker]) {
-            if (!party.hasQuestItem(PSGame.getItem(vehicle))) {
-              party.addQuestItem(PSGame.getItem(vehicle));
-            }
-          }
-          await PSMenu.Stext('Received the Landrover, Hovercraft and Ice Digger!');
-          break;
-        }
-
-        case 5: { // Battles on/off (good for debugging)
-          PSGame.battlesOff = !PSGame.battlesOff;
-          await PSMenu.Stext(PSGame.battlesOff
-            ? 'Random battles are now disabled.'
-            : 'Random battles are now enabled.');
-          break;
-        }
-
-        default:
-          break;
-      }
-    }
   }
 
   /**

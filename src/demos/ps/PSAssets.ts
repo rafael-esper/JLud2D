@@ -101,7 +101,7 @@ export class PSAssets {
   static queuePhaserAssets(scene: Phaser.Scene): void {
     // Sound effects — key matches PSGame.playSound's audioKey derivation.
     for (const path of Object.values(PS1Sound) as string[]) {
-      const key = path.split('/').pop()?.replace('.wav', '') || path;
+      const key = path.split('/').pop()?.replace(/\.(wav|mp3)$/, '') || path;
       if (!scene.cache.audio.exists(key)) {
         scene.load.audio(key, path);
       }

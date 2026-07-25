@@ -16,6 +16,7 @@ import { PartyMember, Gender } from '../game/PartyMember';
 import { Specie } from '../game/Specie';
 import { Job } from '../game/Job';
 import { MainEngine } from '../../../core/MainEngine';
+import { ScriptEngine } from '../../../core/ScriptEngine';
 
 export class Naharu {
 
@@ -138,14 +139,21 @@ export class Naharu {
         PSGame.getParty().setOrder([0, 3, 2, 1]);
 
         PSGame.findAndPlayMusic();
-        // Drop the cinematic backdrop — Java's `back` goes inert once menus
-        // close, but the Phaser image would stay covering the dungeon view
-        // (neither the DUNGEON scene case nor FADE_DUNGEON endScene clears it)
-        PSMenu.instance.setBackground('');
-        await PSMenu.startScene(PSSceneType.DUNGEON, SpecialEntity.NONE);
-      }
+        await PSMenu.endScene();
 
-      await PSMenu.endScene();
+        // endScene (CORRIDOR = NO_FADE) neither clears the backdrop nor fades,
+        // so the screen is still black. Pin the camera black, drop the backdrop
+        // and redraw the first-person view while black, then a single fade-in —
+        // otherwise the stale/empty dungeon view flashes before it's redrawn.
+        await ScriptEngine.fadeout(1, false);
+        MainEngine.setScriptActive(true);
+        PSMenu.instance.setBackground('');
+        const dungeon = PSGame.getCurrentDungeonInstance();
+        if (dungeon) dungeon.warpBack(0);
+        await ScriptEngine.fadein(25, false);
+      } else {
+        await PSMenu.endScene();
+      }
     } else {
       await PSMenu.startScene(PSSceneType.DUNGEON, SpecialEntity.NONE);
       await PSMenu.instance.waitAnyButton();

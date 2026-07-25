@@ -63,10 +63,6 @@ export class PSGame {
   // the landing approach instead of another launch (same pad coordinates)
   private static spaceshipLanding: boolean = false;
 
-  // Debug cheat (Talk menu): skip all zone-triggered encounters. Not
-  // persisted in saves; boss/story fights (startBattle) are unaffected.
-  public static battlesOff: boolean = false;
-
   // True while a PSBattle is running. Battle state isn't serialized, so the
   // auto-resume snapshot must not fire mid-fight (see isSafeToAutosave).
   private static battleInProgress: boolean = false;
@@ -1849,7 +1845,7 @@ export class PSGame {
         const soundPath = sound as string;
 
         // Create audio key from filename
-        const audioKey = soundPath.split('/').pop()?.replace('.wav', '') || 'unknown';
+        const audioKey = soundPath.split('/').pop()?.replace(/\.(wav|mp3)$/, '') || 'unknown';
 
         // Check if sound needs to be loaded in Phaser's cache
         if (!this.currentScene!.cache.audio.exists(audioKey)) {
@@ -1889,7 +1885,7 @@ export class PSGame {
       return;
     }
     try {
-      const audioKey = (sound as string).split('/').pop()?.replace('.wav', '') || 'unknown';
+      const audioKey = (sound as string).split('/').pop()?.replace(/\.(wav|mp3)$/, '') || 'unknown';
       const instance = this.currentScene.sound.get(audioKey);
       if (instance && instance.isPlaying) {
         instance.stop();
@@ -2266,11 +2262,6 @@ export class PSGame {
   public static async fixedBattle(scene: PSSceneType, enemies: any[]): Promise<BattleOutcome> {
     console.log(`PSGame.fixedBattle: Starting fixed battle in ${scene} with ${enemies.length} enemies`);
 
-    // Debug cheat: encounters disabled via the Talk menu
-    if (this.battlesOff) {
-      return BattleOutcome.WIN;
-    }
-
     // Diminish battle frequency when on transport (Java parity)
     if (this.isOnTransport() && ScriptEngine.random(1, 2) === 1) {
       return BattleOutcome.WIN;
@@ -2315,11 +2306,6 @@ export class PSGame {
 
     if (enemyPool.length === 0) {
       throw new Error("Enemy pool cannot be empty for random battle");
-    }
-
-    // Debug cheat: encounters disabled via the Talk menu
-    if (this.battlesOff) {
-      return BattleOutcome.WIN;
     }
 
     // Diminish battle frequency when on transport (Java parity)

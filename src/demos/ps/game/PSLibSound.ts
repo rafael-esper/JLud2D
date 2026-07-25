@@ -6,7 +6,7 @@
 const BASE_FOLDER = "src/demos/ps";
 
 export enum PS1Sound {
-  MENU = `${BASE_FOLDER}/sound/menu.wav`,
+  MENU_SELECT = `${BASE_FOLDER}/sound/menu-select.mp3`,
 
   ITEM = `${BASE_FOLDER}/sound/b3_item.wav`,
   SPELL = `${BASE_FOLDER}/sound/ab_spell.wav`,

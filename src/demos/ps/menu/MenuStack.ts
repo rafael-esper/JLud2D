@@ -443,12 +443,12 @@ export class MenuStack {
         }
 
         if (this.inputManager.justPressed('up')) {
-          PSGame.playSound(PS1Sound.MENU);
+          PSGame.playSound(PS1Sound.MENU_SELECT);
           box!.previousOption();
         }
 
         if (this.inputManager.justPressed('down')) {
-          PSGame.playSound(PS1Sound.MENU);
+          PSGame.playSound(PS1Sound.MENU_SELECT);
           box!.nextOption();
         }
 
