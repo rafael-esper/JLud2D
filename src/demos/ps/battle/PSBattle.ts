@@ -48,6 +48,19 @@ export enum BattleMode {
   AUTO_ACTION = 'AUTO_ACTION'
 }
 
+/** Commands offered in the per-character battle menu. */
+type MenuCommand = 'ATTACK' | 'MAGIC' | 'ITEM' | 'TALK' | 'DEFEND' | 'RUN';
+
+/** i18n key for each per-character menu command's label. */
+const MENU_COMMAND_KEY: Record<MenuCommand, string> = {
+  ATTACK: 'Menu_Battle_Attack',
+  MAGIC: 'Menu_Battle_Magic',
+  ITEM: 'Menu_Battle_Item',
+  TALK: 'Menu_Battle_Talk',
+  DEFEND: 'Menu_Battle_Defend',
+  RUN: 'Menu_Battle_Run',
+};
+
 export class PSBattle {
   private sceneType: SceneType = SceneType.OPEN;
   private battleMode: BattleMode = BattleMode.NORMAL;
@@ -328,9 +341,6 @@ export class PSBattle {
    * Main battle loop
    */
   private async battleLoop(battlers: Battler[]): Promise<BattleOutcome> {
-    let opt = 1; // Java: first round goes straight to the character action menu;
-                 // the Action/Talk/Run prompt only appears after cancelling (opt=0)
-
     while (true) {
       // Show player boxes
       for (const b of battlers) {
@@ -346,47 +356,14 @@ export class PSBattle {
       // Draw menus including enemy sprites (port of Java PSMenu.instance.drawMenus())
       PSMenu.instance.drawMenus();
 
-      // MENU LOGIC
-      if (opt === 0 && this.battleMode !== BattleMode.AUTO_ACTION) {
-        PSMenu.instance.push(PSMenu.instance.createPromptBox(10, 10, [
-          PSGame.getString("Menu_Battle_Action"),
-          PSGame.getString("Menu_Battle_Talk"),
-          PSGame.getString("Menu_Battle_Run")
-        ], true));
-        opt = await PSMenu.instance.waitOpt(PSCancellable.FALSE) + 1;
-        PSMenu.instance.pop();
-      }
-
-      if (opt === 1 || this.battleMode === BattleMode.AUTO_ACTION) {
-        battlers.sort(Battler.getNaturalComparator());
-        const outcome = await this.mainActionMenu(battlers);
-        if (outcome === BattleOutcome.BACK_MAIN_MENU) {
-          opt = 0;
-          continue;
-        } else if (outcome === BattleOutcome.TALK) {
-          return outcome;
-        }
-      } else if (opt === 2) { // TALK
-        opt = 0; // Back to main menu
-        const talkEffect = new PSEffect(Effect.TALK);
-        battlers.sort(Battler.getNaturalComparator());
-        talkEffect.setTargets(battlers);
-        if (await talkEffect.callEffect() === EffectOutcome.SUCCESS) {
-          this.cleanPlayerStatus(battlers);
-          // Through PSGame so currentMusic is cleared — otherwise the next
-          // playMusic() with the same battle track would be skipped
-          PSGame.stopMusic();
-          return BattleOutcome.TALK;
-        }
-      } else if (opt === 3) { // RUN
-        opt = 0; // Back to main menu
-        const runEffect = new PSEffect(Effect.RUN);
-        runEffect.setTargets(battlers);
-        if (await runEffect.callEffect() === EffectOutcome.SUCCESS) {
-          this.cleanPlayerStatus(battlers);
-          PSGame.stopMusic();
-          return BattleOutcome.ESCAPE;
-        }
+      // MENU LOGIC — the per-character action menu now hosts Talk and Run
+      // directly (no separate Action/Talk/Run prompt). Talk and Run are global:
+      // choosing either on any character performs the shared effect and, on
+      // success, ends the battle (TALK / ESCAPE).
+      battlers.sort(Battler.getNaturalComparator());
+      const outcome = await this.mainActionMenu(battlers);
+      if (outcome === BattleOutcome.TALK || outcome === BattleOutcome.ESCAPE) {
+        return outcome;
       }
 
       // CONTROL LOGIC
@@ -978,36 +955,47 @@ export class PSBattle {
     let currentMember = 0;
     let gotoNextChar = false;
 
+    // Command order shown in the per-character menu. Talk and Run are general
+    // (any character selecting them runs the same shared effect). Arena battles
+    // (AUTO_ACTION) omit them — you can't talk or run from a gauntlet.
+    const commands: MenuCommand[] = this.battleMode === BattleMode.AUTO_ACTION
+      ? ['ATTACK', 'MAGIC', 'ITEM', 'DEFEND']
+      : ['ATTACK', 'MAGIC', 'ITEM', 'TALK', 'DEFEND', 'RUN'];
+
+    // Y of the name box, sitting just under the menu. The menu grows taller when
+    // Talk/Run are present (6 rows vs 4), so track its bottom edge instead of the
+    // old fixed 77 (which matched a 4-row box). Mirrors MenuPromptBox.wy: the box
+    // starts at y=5 with height 12 + rows*(fontYSize + BETWEEN_ROWS_SPACE).
+    const nameBoxY = 5 + 12 + commands.length * (MenuStack.fontYSize + MenuStack.BETWEEN_ROWS_SPACE);
+
     while (currentMember < members.length) {
       const p = members[currentMember];
 
-      PSMenu.instance.push(PSMenu.instance.createPromptBox(5, 5, [
-        PSGame.getString("Menu_Battle_Attack"),
-        PSGame.getString("Menu_Battle_Magic"),
-        PSGame.getString("Menu_Battle_Item"),
-        PSGame.getString("Menu_Battle_Defend")
-      ], false));
+      PSMenu.instance.push(PSMenu.instance.createPromptBox(5, 5,
+        commands.map(c => PSGame.getString(MENU_COMMAND_KEY[c])), false));
       // Current character's name so the player knows whose turn it is
-      PSMenu.instance.push(PSMenu.instance.createLabelBox(6, 77, [" " + this.format(p.getName(), 6, true)], true));
+      PSMenu.instance.push(PSMenu.instance.createLabelBox(6, nameBoxY, [" " + this.format(p.getName(), 6, true)], true));
 
-      const actionOpt = await PSMenu.instance.waitOpt(PSCancellable.TRUE) + 1;
+      const sel = await PSMenu.instance.waitOpt(PSCancellable.TRUE);
 
-      if (actionOpt === 0) { // Cancelled: step back to the previous character
+      if (sel === -1) { // Cancelled: step back to the previous character
         PSMenu.instance.pop();
         PSMenu.instance.pop();
 
         if (currentMember === 0) {
-          return BattleOutcome.BACK_MAIN_MENU;
+          continue; // nothing to back out to — just redraw the first character's menu
         } else {
           currentMember--;
           continue;
         }
       }
 
-      if (actionOpt === 1) {
+      const command = commands[sel];
+
+      if (command === 'ATTACK') {
         p.action = Action.ATTACK;
         gotoNextChar = true;
-      } else if (actionOpt === 2) {
+      } else if (command === 'MAGIC') {
         p.action = Action.MAGIC;
 
         if (p.getSpells(EffectPlace.BATTLE).length === 0) {
@@ -1041,7 +1029,7 @@ export class PSBattle {
           }
           PSMenu.instance.pop(); // spell list
         }
-      } else if (actionOpt === 3) {
+      } else if (command === 'ITEM') {
         p.action = Action.ITEM;
 
         if (p.items.length === 0) {
@@ -1058,9 +1046,36 @@ export class PSBattle {
           }
           PSMenu.instance.pop(); // item list
         }
-      } else if (actionOpt === 4) {
+      } else if (command === 'TALK') { // global effect, not per-character
+        PSMenu.instance.pop(); // name box
+        PSMenu.instance.pop(); // action menu
+        const talkEffect = new PSEffect(Effect.TALK);
+        battlers.sort(Battler.getNaturalComparator());
+        talkEffect.setTargets(battlers);
+        if (await talkEffect.callEffect() === EffectOutcome.SUCCESS) {
+          this.cleanPlayerStatus(battlers);
+          // Through PSGame so currentMusic is cleared — otherwise the next
+          // playMusic() with the same battle track would be skipped
+          PSGame.stopMusic();
+          return BattleOutcome.TALK;
+        }
+        // Talk failed: the party forfeits the selection phase and the round runs.
+        return BattleOutcome.ROUND_START;
+      } else if (command === 'DEFEND') {
         p.action = Action.DEFEND;
         gotoNextChar = true;
+      } else if (command === 'RUN') { // global effect, not per-character
+        PSMenu.instance.pop(); // name box
+        PSMenu.instance.pop(); // action menu
+        const runEffect = new PSEffect(Effect.RUN);
+        runEffect.setTargets(battlers);
+        if (await runEffect.callEffect() === EffectOutcome.SUCCESS) {
+          this.cleanPlayerStatus(battlers);
+          PSGame.stopMusic();
+          return BattleOutcome.ESCAPE;
+        }
+        // Run failed: the party forfeits the selection phase and the round runs.
+        return BattleOutcome.ROUND_START;
       }
 
       PSMenu.instance.pop();
