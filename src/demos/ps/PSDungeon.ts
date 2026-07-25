@@ -242,6 +242,10 @@ export class PSDungeon {
     if (this.getAlreadyInside()) {
       player?.setFace(PSGame.getDungeonFace());
       this.isDark = false;
+      // Loaded re-entry: the save was made outside combat, so don't let the
+      // main loop's first iteration (zoneCheck starts true) roll an encounter
+      // on the tile the party is restored onto — only a real step should.
+      this.zoneCheck = false;
     } else {
       // Java: PSGame.findItemWithParty(Inventory_Light_Pendant, false) - the
       // pendant is a member inventory item, not a quest item

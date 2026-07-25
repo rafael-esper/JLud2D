@@ -545,7 +545,9 @@ export class PSBattle {
         for (const naturalIndex of Battler.getNaturalOrder(this.currentBattlers)) {
           const shooted = this.currentBattlers[naturalIndex];
           if (shooted instanceof EnemyBattler && shooted.getHp() > 0) {
-            await this.playerAttackAnimation(attacker, shooted, attacker.sprite, 0, weapon.weaponSound);
+            // Pistols deal fixed damage (itemstat/2) regardless of attack power,
+            // so a critical hit is meaningless — suppress the "Critical!" label.
+            await this.playerAttackAnimation(attacker, shooted, attacker.sprite, 0, weapon.weaponSound, false);
             await this.hit(shooted, Math.trunc(weapon.itemstat / 2));
           }
         }
@@ -1255,9 +1257,10 @@ export class PSBattle {
    * @param sound Attack sound effect
    * @returns True if critical hit occurred
    */
-  private async playerAttackAnimation(attacker: Battler, defender: Battler, animation: MenuCHR, xAdj: number, sound: PS1Sound | null): Promise<boolean> {
+  private async playerAttackAnimation(attacker: Battler, defender: Battler, animation: MenuCHR, xAdj: number, sound: PS1Sound | null, allowCritical: boolean = true): Promise<boolean> {
     // Java: single d1000 roll based on strength difference
-    const isCritical = Math.floor(Math.random() * 1001) < (attacker.getStr() - defender.getStr());
+    // (pistols pass allowCritical=false — their damage ignores attack power)
+    const isCritical = allowCritical && Math.floor(Math.random() * 1001) < (attacker.getStr() - defender.getStr());
 
     if (defender instanceof EnemyBattler) {
       // Java: centered "Critical!" label at the enemy's contact point, with sound and delays
