@@ -364,7 +364,13 @@ export class PSDungeon {
         // Java: the Open spell queued Script.b1 = true to force the door open
         this.pendingOpen = false;
         await this.handleOpenAction(player);
-      } else if (this.inputManager!.justPressed('b1')) {
+      } else if (this.inputManager!.b1) {
+        // Level check + unpress instead of justPressed(): GameScene.update()
+        // and this loop both call updateControls() every frame, so the b1
+        // justPressed edge is unreliable here (misses presses, or fires twice)
+        // — same reason the b3/menu hooks above are level checks. unpress keeps
+        // b1 suppressed until physically released, so it opens exactly once.
+        this.inputManager!.unpress(5); // b1
         await this.handleOpenAction(player);
       }
 
@@ -1063,6 +1069,9 @@ export class PSDungeon {
           await this.delayScreen();
           this.isAnimating = false;
         }
+        // Timed label: the Dungeon Key was used to open the locked door
+        await PSMenu.StextTimeout(PSGame.getString(
+          "Dungeon_Used_Key", "<item>", PSGame.getString("Item_Quest_Dungeon_Key")));
         break;
 
       case MAGIC_DOOR:
@@ -1070,6 +1079,9 @@ export class PSDungeon {
           await PSMenu.Stext(PSGame.getString("Dungeon_Magic_Door"));
           break;
         }
+        // Opened by the Open spell (openEffect) uses no key — only show the
+        // "used key" label when the Miracle Key was actually the opener.
+        const usedMiracleKey = !this.openEffect;
         this.openEffect = false;
         currentMap.settile(Math.floor(xpos / 16), Math.floor(ypos / 16), 0, OPEN_MAGIC_DOOR);
         if (this.showDungeon) {
@@ -1079,6 +1091,11 @@ export class PSDungeon {
           this.drawImageToScreen();
           await this.delayScreen();
           this.isAnimating = false;
+        }
+        if (usedMiracleKey) {
+          // Timed label: the Miracle Key was used to open the magic door
+          await PSMenu.StextTimeout(PSGame.getString(
+            "Dungeon_Used_Key", "<item>", PSGame.getString("Item_Quest_Miracle_Key")));
         }
         break;
 

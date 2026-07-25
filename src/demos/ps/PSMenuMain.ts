@@ -675,7 +675,9 @@ export class PSMenuMain {
     for (const [genericEnemy, enemy] of PSGame.getEnemyLib()) {
       if (enemy.type === type) {
         if (PSGame.gameData.visitedEnemies.has(genericEnemy as PS1Enemy)) {
-          l.push(enemy.getName());
+          // getName() returns the raw i18n key (e.g. "Enemy_Giant_Spider");
+          // getTranslatedName resolves it to the localized display name.
+          l.push(enemy.getTranslatedName(PSGame));
         } else {
           l.push('???');
         }
