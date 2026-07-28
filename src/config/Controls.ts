@@ -237,6 +237,10 @@ export class InputManager {
   // immediately select the first option)
   private suppressedKeys: Set<string> = new Set();
 
+  // While a modal owns input (see lockInput), updateControls() is a no-op for
+  // every other caller
+  private inputLockToken: object | null = null;
+
   // Previous frame states for debug keys
   private prevKey1: boolean = false;
   private prevKey2: boolean = false;
@@ -311,8 +315,13 @@ export class InputManager {
   /**
    * Update input states (call every frame)
    * Java equivalent: UpdateControls()
+   *
+   * `token` identifies the holder of a modal input lock - while one is held,
+   * calls without the matching token do nothing (see lockInput).
    */
-  public updateControls(): void {
+  public updateControls(token?: object): void {
+    if (this.inputLockToken && token !== this.inputLockToken) return;
+
     // Store previous states
     this.prevUp = this.up;
     this.prevDown = this.down;
@@ -577,6 +586,60 @@ export class InputManager {
     this.up = this.down = this.left = this.right = false;
     this.b1 = this.b2 = this.b3 = this.b4 = this.b5 = this.b6 = false;
     this.start = this.menu = false;
+  }
+
+  /**
+   * Take exclusive ownership of input polling, for a modal overlay that
+   * interrupts a loop which is already polling (e.g. the exit confirmation
+   * opened on top of a battle - PS menu/battle loops each run their own
+   * delayedCall loop calling updateControls()). While the lock is held, only
+   * the holder's updateControls(token) advances the state, so the modal keeps
+   * the justPressed edges it needs and the interrupted loop stops reacting to
+   * input. Acquiring levels prev* with the current state so neither side sees
+   * a stale edge across the hand-off.
+   */
+  public lockInput(token: object): void {
+    this.inputLockToken = token;
+    this.levelEdges();
+  }
+
+  /** Release a lock taken with lockInput (no-op for a non-matching token). */
+  public unlockInput(token: object): void {
+    if (this.inputLockToken !== token) return;
+    this.inputLockToken = null;
+    this.levelEdges();
+  }
+
+  /** Make every justPressed/justReleased read false until the next real change. */
+  private levelEdges(): void {
+    this.prevUp = this.up;
+    this.prevDown = this.down;
+    this.prevLeft = this.left;
+    this.prevRight = this.right;
+    this.prevB1 = this.b1;
+    this.prevB2 = this.b2;
+    this.prevB3 = this.b3;
+    this.prevB4 = this.b4;
+    this.prevB5 = this.b5;
+    this.prevB6 = this.b6;
+    this.prevStart = this.start;
+    this.prevMenu = this.menu;
+  }
+
+  /**
+   * Raw pause/menu button level (keyboard + gamepad + touch), read straight
+   * from the devices without touching the polled state. Lets a watcher detect
+   * Esc while another loop owns updateControls() - during a battle the menu
+   * loops poll (so the scene's justPressed edge never fires) and in animation /
+   * timed waits nothing polls at all.
+   */
+  public isMenuDownRaw(): boolean {
+    const systemKeys = this.config.getSystemKeys();
+    if (this.isAnyKeyDown(systemKeys.menu)) return true;
+    if (this.gamepad?.buttons[8]?.pressed) return true;
+    const mobileControls = (window as any).mobileControls;
+    if (mobileControls?.getButtonState('pause')) return true;
+    return false;
   }
 
   /**

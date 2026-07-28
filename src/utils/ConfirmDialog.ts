@@ -46,7 +46,15 @@ export class ConfirmDialog {
         color: '#ffff00'
       }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5001);
 
+      // Own input while the dialog is up. Callers that pause their own update()
+      // don't need this, but the PS battle/menu loops keep polling on their own
+      // delayedCall loops - without the lock they would both steal this
+      // dialog's justPressed edges and keep reacting to input behind it.
+      const inputLock = {};
+      inputManager.lockInput(inputLock);
+
       const cleanup = () => {
+        inputManager.unlockInput(inputLock);
         bg.destroy();
         text.destroy();
         hint.destroy();
@@ -68,7 +76,7 @@ export class ConfirmDialog {
       };
 
       const poll = () => {
-        inputManager.updateControls();
+        inputManager.updateControls(inputLock);
 
         // Start (Enter) confirms. On touch the Start button is small and easy
         // to miss, so the always-visible primary action button (B1) also

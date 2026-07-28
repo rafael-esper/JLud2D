@@ -601,6 +601,20 @@ export class PSGame {
    * those gates are skipped inside a dungeon; the unrevealed-entry-tile guard in
    * syncStateForSave() handles the one unsafe dungeon moment instead.
    */
+  /** True while a PSBattle is running (see battleInProgress). */
+  public static isBattleInProgress(): boolean {
+    return this.battleInProgress;
+  }
+
+  /**
+   * Abandon a running battle - exiting to the main menu mid-fight tears the
+   * scene down, so the battle's async loop dies with the scene timers and its
+   * own `finally` never clears the flag.
+   */
+  public static abortBattle(): void {
+    this.battleInProgress = false;
+  }
+
   public static isSafeToAutosave(): boolean {
     if (!this.party || this.gameData.getGameType() === null) return false;
     if (this.battleInProgress) return false;

@@ -332,6 +332,11 @@ export class PSDungeon {
           await scene.confirmExitToTitle();
         }
         if (!PSDungeon.getIsInsideDungeon()) break; // exit confirmed - engine is torn down
+        // Cancelling answers the dialog with Esc itself, so the key is still
+        // down when we resume here - without re-suppressing it the level check
+        // above reopens the dialog on the very next iteration, and every
+        // further Esc just toggles it (no way out but confirming).
+        this.inputManager!.unpress(12); // menu (Esc)
       }
 
       if (this.zoneCheck) {

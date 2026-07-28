@@ -19,6 +19,8 @@ export abstract class PSScene extends Phaser.Scene {
   protected inputManager!: InputManager;
   protected menuStack!: MenuStack;
   private confirmingExit: boolean = false;
+  // Private edge state for the raw ESC watcher used during battles
+  private prevRawMenu: boolean = false;
 
   constructor(key: string) {
     super({ key });
@@ -26,6 +28,12 @@ export abstract class PSScene extends Phaser.Scene {
 
   async init(data: { config: GameConfig }) {
     this.config = data.config;
+
+    // Phaser reuses the scene instance across start/stop, so per-run input
+    // state must be reset here (a scene torn down while the exit dialog was up
+    // would otherwise come back with input permanently gated off)
+    this.confirmingExit = false;
+    this.prevRawMenu = false;
 
     // Initialize input manager
     const controlsConfig = createPSControlsConfig();
@@ -72,6 +80,10 @@ export abstract class PSScene extends Phaser.Scene {
   update() {
     // Draw all menus every frame
     this.menuStack.drawMenus();
+
+    // ESC during an arena battle (see checkBattleEscape) - must run before the
+    // menu gate below, which is always closed while a battle is on screen
+    this.checkBattleEscape();
 
     // Only handle input if no menu is currently active
     if (!this.menuStack.hasMenu() && !this.confirmingExit) {
@@ -146,6 +158,24 @@ export abstract class PSScene extends Phaser.Scene {
 
 
   /**
+   * ESC while a battle is running. The battle owns input through its own
+   * MenuStack poll loops (and during animations / timed waits nothing polls at
+   * all), so the justPressed edge in update() never fires - hence a raw read of
+   * the button level with our own edge state. Outside battles the normal
+   * handler covers it; keeping this one battle-only avoids two handlers racing
+   * for the same press.
+   */
+  private checkBattleEscape(): void {
+    const rawMenu = this.inputManager?.isMenuDownRaw() ?? false;
+    const pressed = rawMenu && !this.prevRawMenu;
+    this.prevRawMenu = rawMenu;
+
+    if (!pressed || this.confirmingExit || !PSGame.isBattleInProgress()) return;
+
+    this.confirmExitToTitle();
+  }
+
+  /**
    * Show the generic "Exit to main menu?" confirmation before leaving.
    */
   private confirmExitToTitle(): void {
@@ -154,6 +184,9 @@ export abstract class PSScene extends Phaser.Scene {
       this.confirmingExit = false;
       if (confirmed) {
         console.log('PSScene: Exit confirmed, returning to main menu...');
+        // Confirmed mid-battle: the battle loop dies with this scene's timers,
+        // so clear the flag its own finally block will never reach.
+        PSGame.abortBattle();
         PSGame.stopMusic();
         this.scene.start('MenuScene', { config: this.config });
       }
