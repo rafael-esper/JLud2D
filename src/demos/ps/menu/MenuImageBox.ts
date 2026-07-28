@@ -81,6 +81,7 @@ export class MenuImageBox extends MenuType {
       // Image sits inside this menu's depth band, above its own box fill
       this.phaserImage.setDepth(this.menuStack.getMenuDepth(this) + 4);
       this.phaserImage.setPosition(x, y);
+      this.phaserImage.setAlpha(this.alpha);
     }
   }
 

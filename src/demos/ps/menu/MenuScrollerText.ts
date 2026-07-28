@@ -42,6 +42,9 @@ export class MenuScrollerText extends MenuType {
       const str = nextTextPos > 0 ? ScriptEngine.left(this.text[i], nextTextPos) : '';
       const textObj = ScriptEngine.drawText(this.x, this.y + (MenuStack.fontYSize + 5) * i, str, MenuStack.fontYSize);
       if (textObj) {
+        // Text objects are recreated every draw, so the fade alpha has to be
+        // reapplied here (see MenuType.alpha / PSMenu.fadeMenus())
+        textObj.setAlpha(this.alpha);
         this.textObjects.push(textObj);
       }
       nextTextPos -= this.text[i].length;

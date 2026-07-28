@@ -38,6 +38,14 @@ export abstract class MenuType {
   public state: MenuState = MenuState.OPEN;
 
   /**
+   * Opacity applied by subclasses to whatever they render (0 = invisible).
+   * Java faded the whole screen between cinematic portraits; here the fade is
+   * applied per menu so it can run over the menu stack's own black backdrop
+   * (a camera fade would cover the portraits instead). See PSMenu.fadeMenus().
+   */
+  public alpha: number = 1;
+
+  /**
    * Abstract draw method - must be implemented by subclasses
    * @param active - Whether this menu is the active (top) menu
    */

@@ -6,6 +6,7 @@
 import { MenuStack, PSOutcome, PSCancellable } from './menu/MenuStack';
 import { MenuImageBox, VImage } from './menu/MenuImageBox';
 import { MenuScrollerText } from './menu/MenuScrollerText';
+import { MenuType } from './menu/MenuType';
 import { MenuTextBox } from './menu/MenuTextBox';
 import { MenuCHR } from './menu/MenuCHR';
 import { ScriptEngine } from '../../core/ScriptEngine';
@@ -14,6 +15,7 @@ import { CHR } from '../../domain/CHR';
 import { ScreenSize } from './game/GameData';
 import { PS1CHR } from './game/PSLibCHR';
 import { MainEngine } from '@/core/MainEngine';
+import { GameSpeed } from '../../config/GameSpeed';
 
 export enum PSSceneType {
   BLACK, BLUE_HOUSE, YELLOW_HOUSE, HOSPITAL, CHURCH, SHOP_CENTRAL, SHOP_FOOD, SHOP_HAND, SHOP_WEAPON,
@@ -594,7 +596,15 @@ export class PSMenu {
    */
   public static async cinematicText(portrait: VImage, texts: string[], skippable: boolean = false): Promise<void> {
     const portraitBox = MenuImageBox.MenuImage(PSMenu.instance.getScene(), PSMenu.instance, 32, 22, portrait);
+    // Start hidden so the portrait fades up from the black backdrop instead of
+    // popping in (Java faded the screen between cinematic images)
+    portraitBox.alpha = 0;
     PSMenu.instance.push(portraitBox);
+
+    // Let any pending scene delay (startScene's setdelay) drain first, or the
+    // fade would run while the menu stack still isn't drawing the portrait
+    await PSMenu.waitMenuDelay();
+    await PSMenu.fadeMenus([portraitBox], 0, 1);
 
     outer:
     for (let t = 0; t < texts.length; t++) {
@@ -620,9 +630,12 @@ export class PSMenu {
           await PSMenu.instance.waitB1();
         }
 
-        // If last chunk of text, fade out
-        if (t === texts.length - 1 && i + 1 > Math.floor((rows.length - 1) / 4)) {
-          //await ScriptEngine.fadeout(25, false);
+        // If last chunk of text, fade portrait and text out together (Java:
+        // screen.fade(25, false)). A skip (b2) means "hurry up", so it drops
+        // the image immediately instead.
+        const isLast = t === texts.length - 1 && i + 1 > Math.floor((rows.length - 1) / 4);
+        if (isLast && !skipped) {
+          await PSMenu.fadeMenus([portraitBox, menuScrollerText], 1, 0);
         }
 
         PSMenu.instance.pop();
@@ -634,6 +647,75 @@ export class PSMenu {
     }
 
     PSMenu.instance.pop();
+  }
+
+  /** Java screen.fade() duration used between cinematic images, in engine frames. */
+  private static readonly CINEMATIC_FADE_FRAMES = 25;
+
+  /**
+   * Ramp the alpha of the given menus from one value to another, redrawing the
+   * menu stack each frame.
+   *
+   * Java faded the whole screen (screen.fade) between cinematic portraits, but
+   * the cinematics here run on the menu stack's own black backdrop, and a
+   * camera fade sits on top of it — it would just black out the portraits
+   * (see Space.alisIntro). Its ScriptEngine helpers also flip control/entity
+   * state, which must stay put mid-script. Fading the menus themselves gives
+   * the same look (black background, image fading in/out) without either.
+   */
+  private static async fadeMenus(menus: MenuType[], from: number, to: number): Promise<void> {
+    const setAlpha = (a: number) => menus.forEach(m => { m.alpha = a; });
+
+    const scene = PSMenu.instance?.getScene();
+    if (ScriptEngine.TEST_SIMULATION || !scene) {
+      setAlpha(to);
+      return;
+    }
+
+    // Java frames are 20ms (50fps), shortened/lengthened by the game speed
+    const duration = GameSpeed.scaleDelay(PSMenu.CINEMATIC_FADE_FRAMES * 20);
+    const start = scene.time.now;
+    setAlpha(from);
+
+    return new Promise<void>((resolve) => {
+      const step = () => {
+        const progress = Math.min(1, (scene.time.now - start) / duration);
+        setAlpha(from + (to - from) * progress);
+        PSMenu.instance.drawMenus();
+
+        if (progress >= 1) {
+          resolve();
+          return;
+        }
+        scene.time.delayedCall(16, step);
+      };
+
+      step();
+    });
+  }
+
+  /**
+   * Run the menu stack until a pending setdelay() has drained (startScene uses
+   * it to show the scene alone before any menu appears).
+   */
+  private static async waitMenuDelay(): Promise<void> {
+    const scene = PSMenu.instance?.getScene();
+    if (ScriptEngine.TEST_SIMULATION || !scene) {
+      return;
+    }
+
+    return new Promise<void>((resolve) => {
+      const step = () => {
+        if (PSMenu.instance.delayTimer <= 0) {
+          resolve();
+          return;
+        }
+        PSMenu.instance.drawMenus();
+        scene.time.delayedCall(16, step);
+      };
+
+      step();
+    });
   }
 
   /**
