@@ -58,7 +58,7 @@ export class VGMMusicManager {
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
-      this.player = new VgmEnginePlayer({ sampleRate: 44100, ...options });
+      if (!this.player) this.player = new VgmEnginePlayer({ sampleRate: 44100, ...options });
       await this.player.initialize();
       this.applyVolume();
       this.player.setMuted(this.muted);
@@ -66,6 +66,18 @@ export class VGMMusicManager {
     })();
 
     return this.initPromise;
+  }
+
+  /**
+   * Synchronously create + resume the underlying AudioContext from inside a
+   * trusted user-gesture handler (see VgmEnginePlayer.primeFromGesture), then
+   * kick off the full async worklet load in the background so playback is
+   * ready by the time it's actually requested. Cheap to call on every tap.
+   */
+  primeFromGesture(): void {
+    if (!this.player) this.player = new VgmEnginePlayer({ sampleRate: 44100 });
+    this.player.primeFromGesture();
+    if (!this.initialized && !this.initPromise) void this.initialize();
   }
 
   /** Fetch + inflate a track's bytes into the cache (no audio pre-render). */

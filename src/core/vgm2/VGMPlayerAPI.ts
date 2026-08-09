@@ -65,6 +65,11 @@ export class VGMPlayerAPI {
     VGMMusicManager.getInstance().resumeAudio();
   }
 
+  /** See VGMMusicManager.primeFromGesture — call synchronously from a real tap/click/keydown. */
+  static primeFromGesture(): void {
+    VGMMusicManager.getInstance().primeFromGesture();
+  }
+
   static setMusicVolume(volume: number): void {
     VGMMusicManager.getInstance().setMusicVolume(volume);
   }

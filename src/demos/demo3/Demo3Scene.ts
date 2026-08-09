@@ -72,9 +72,10 @@ export class Demo3Scene extends Phaser.Scene {
       // Set up controls
       this.setupControls();
 
-      // Set up audio context resume on user interaction
-      this.input.on('pointerdown', () => ScriptEngine.resumeVGMAudio());
-      this.input.keyboard?.on('keydown', () => ScriptEngine.resumeVGMAudio());
+      // Set up audio context resume on user interaction (the global listener
+      // in main.ts already covers this scene too; kept as a same-scene backup)
+      this.input.on('pointerdown', () => ScriptEngine.unlockAudioFromGesture());
+      this.input.keyboard?.on('keydown', () => ScriptEngine.unlockAudioFromGesture());
 
       console.log('Demo 3 Scene - VGM Player initialized');
     } finally {

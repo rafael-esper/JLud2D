@@ -124,10 +124,21 @@ export class ScriptEngine {
   }
 
   /**
-   * Resume VGM audio context (call on user interaction)
+   * Unlock every AudioContext the game uses — must be called synchronously
+   * from inside a real pointerdown/touchend/keydown handler, not from a
+   * scene's async create() (see VgmEnginePlayer.primeFromGesture). Covers
+   * both the custom VGM engine's context and Phaser's own WebAudio context,
+   * which some browsers (notably iOS Safari) leave permanently suspended
+   * otherwise. Cheap and idempotent — safe to call on every gesture.
    */
-  public static resumeVGMAudio(): void {
-    VGMPlayerAPI.resumeAudio();
+  public static unlockAudioFromGesture(): void {
+    VGMPlayerAPI.primeFromGesture();
+
+    const currentScene = MainEngine.getCurrentScene();
+    const ctx = (currentScene?.sound as Phaser.Sound.WebAudioSoundManager | undefined)?.context;
+    if (ctx?.state === 'suspended') {
+      void ctx.resume();
+    }
   }
 
   // ============================================================================

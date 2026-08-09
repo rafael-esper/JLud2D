@@ -46,18 +46,38 @@ export class VgmEnginePlayer {
     this.sampleRate = options.sampleRate ?? 44100;
   }
 
+  /**
+   * Create the AudioContext (if it doesn't exist yet) and resume it — must be
+   * called directly, synchronously, from inside a trusted user-gesture event
+   * handler (pointerdown/touchend/keydown). iOS Safari only ever unlocks an
+   * AudioContext as the *direct* result of such a handler; the plain
+   * `initialize()` path below awaits `audioWorklet.addModule()` first, which
+   * yields to the event loop and leaves the context permanently suspended on
+   * iOS if there was no gesture backing it already. Safe to call repeatedly
+   * (self-heals if iOS re-suspends the context on backgrounding).
+   */
+  primeFromGesture(): void {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
+        sampleRate: this.sampleRate,
+      });
+    }
+    if (this.ctx.state === 'suspended') {
+      void this.ctx.resume();
+    }
+  }
+
   async initialize(): Promise<void> {
     if (this.initialized) return;
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
-        sampleRate: this.sampleRate,
-      });
+      this.primeFromGesture();
+      const ctx = this.ctx!;
 
-      await this.ctx.audioWorklet.addModule(WORKLET_URL);
+      await ctx.audioWorklet.addModule(WORKLET_URL);
 
-      this.node = new AudioWorkletNode(this.ctx, 'vgm-processor', {
+      this.node = new AudioWorkletNode(ctx, 'vgm-processor', {
         numberOfInputs: 0,
         numberOfOutputs: 1,
         outputChannelCount: [2],
@@ -66,9 +86,9 @@ export class VgmEnginePlayer {
         if (e.data?.type === 'ended') this.playing = false;
       };
 
-      this.gain = this.ctx.createGain();
+      this.gain = ctx.createGain();
       this.node.connect(this.gain);
-      this.gain.connect(this.ctx.destination);
+      this.gain.connect(ctx.destination);
       this.applyGain();
 
       this.initialized = true;

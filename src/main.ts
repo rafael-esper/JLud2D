@@ -141,14 +141,18 @@ class Game {
       PersistenceManager.snapshotAll();
     });
 
-    // iOS Safari refuses to start/resume an AudioContext except as a direct
-    // consequence of a user gesture. Scenes (e.g. TitleScene) start VGM music
-    // during create() with no gesture behind it, so the context boots
-    // suspended and stays silent forever there — this never happens on
-    // desktop/Android, which don't gate autoplay this way. Resume on every
-    // tap/click (not just the first) so it self-heals whenever the context
-    // is suspended, whichever scene happens to be active.
-    window.addEventListener('pointerdown', () => ScriptEngine.resumeVGMAudio(), { passive: true });
+    // iOS Safari refuses to start/create/resume an AudioContext except as a
+    // direct, synchronous consequence of a user gesture. Scenes (e.g.
+    // TitleScene) start VGM music from inside an async create() with several
+    // awaits between the gesture that launched the scene and the actual
+    // AudioContext construction — by then the gesture chain is long gone, so
+    // on iOS the context boots suspended and stays silent forever. This
+    // never happens on desktop/Android, which don't gate autoplay this way.
+    // Unlock on every tap/keypress (starting with the very first one, on the
+    // game-select menu — not just the first) so it self-heals whenever a
+    // context is missing or suspended, whichever scene happens to be active.
+    window.addEventListener('pointerdown', () => ScriptEngine.unlockAudioFromGesture(), { passive: true });
+    window.addEventListener('keydown', () => ScriptEngine.unlockAudioFromGesture(), { passive: true });
 
     // Resize, orientation and fullscreen changes are handled by Phaser's
     // Scale Manager (Scale.FIT) — no extra listeners or timers needed
