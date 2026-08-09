@@ -19,6 +19,7 @@ import { GameScene as PSGameScene } from './demos/ps/GameScene';
 import { ResponsiveScaler } from './utils/ResponsiveScaler';
 import { EmulatorUI } from './ui/EmulatorUI';
 import { PersistenceManager } from './utils/PersistenceManager';
+import { ScriptEngine } from './core/ScriptEngine';
 
 class Game {
   private game: Phaser.Game | null = null;
@@ -139,6 +140,15 @@ class Game {
     window.addEventListener('pagehide', () => {
       PersistenceManager.snapshotAll();
     });
+
+    // iOS Safari refuses to start/resume an AudioContext except as a direct
+    // consequence of a user gesture. Scenes (e.g. TitleScene) start VGM music
+    // during create() with no gesture behind it, so the context boots
+    // suspended and stays silent forever there — this never happens on
+    // desktop/Android, which don't gate autoplay this way. Resume on every
+    // tap/click (not just the first) so it self-heals whenever the context
+    // is suspended, whichever scene happens to be active.
+    window.addEventListener('pointerdown', () => ScriptEngine.resumeVGMAudio(), { passive: true });
 
     // Resize, orientation and fullscreen changes are handled by Phaser's
     // Scale Manager (Scale.FIT) — no extra listeners or timers needed
