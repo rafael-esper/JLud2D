@@ -24,6 +24,7 @@ import { Item, EquipPlace, ItemType } from '../game/Item';
 import { OriginalItem } from '../game/PSLibItem';
 import { Trapped } from '../game/GameData';
 import { Dungeon } from '../game/Dungeon';
+import { PSCloudStats } from '../cloud/PSCloudStats';
 
 export enum Action {
   NONE = 'NONE',
@@ -134,6 +135,14 @@ export class PSBattle {
     await PSMenu.startScene(scene, SpecialEntity.NONE);
 
     const outcome = await this.startBattle(enemies, PS1Music.BATTLE);
+
+    // Phantasy Cloud statistics. This is the single choke point every battle
+    // passes through, so counting here needs no per-call-site bookkeeping.
+    if (outcome === BattleOutcome.WIN) {
+      PSCloudStats.noteBattleWon();
+    } else if (outcome === BattleOutcome.DEFEAT) {
+      PSCloudStats.noteDeath();
+    }
 
     if (outcome === BattleOutcome.DEFEAT) {
       // Shows the game-over texts over the battle scene, then switches to the

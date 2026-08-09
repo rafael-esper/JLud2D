@@ -18,6 +18,9 @@ import { PSMenuMain } from './PSMenuMain';
 import { PSAssets } from './PSAssets';
 import { ConfirmDialog } from '../../utils/ConfirmDialog';
 import { PersistenceManager } from '../../utils/PersistenceManager';
+import { PSCloudClient } from './cloud/PSCloudClient';
+import { PSCloudForm } from './cloud/PSCloudForm';
+import { PSCloudStats } from './cloud/PSCloudStats';
 
 export class GameScene extends Phaser.Scene {
   private config!: GameConfig;
@@ -104,7 +107,22 @@ export class GameScene extends Phaser.Scene {
     this.time.addEvent({ delay: 5000, loop: true, callback: () => PSGame.captureAutoResume() });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       PersistenceManager.unregister(this.snapshotCallback);
+      // A cloud form still open here would never restore Phaser's keyboard.
+      PSCloudForm.forceClose();
     });
+
+    // Phantasy Cloud statistics: start the playtime clock and tell it where to
+    // read the descriptive fields from. Everything here is inert until the
+    // player signs in — nothing is collected, and nothing is sent, before that.
+    PSCloudStats.setContextProvider(() => ({
+      maxLevel: PSGame.getParty()?.getMaxLevel(),
+      place: PSGame.currentPlaceName(),
+      locale: PSGame.gameData?.locale
+    }));
+    PSCloudStats.start();
+    // Restore a persisted session in the background so the cloud menu already
+    // knows who is signed in by the time the player opens it.
+    void PSCloudClient.restoreSession();
 
     // Loading a save from the title screen: the save data is already adopted;
     // now that the engine/scene context exists, enter the saved location. This

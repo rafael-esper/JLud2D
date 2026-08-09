@@ -11,6 +11,7 @@ import { ScreenSize } from './game/GameData';
 import { MenuStack } from './menu/MenuStack';
 import { PSSceneType, SpecialEntity } from './PSMenu';
 import { ConfirmDialog } from '../../utils/ConfirmDialog';
+import { PSCloudForm } from './cloud/PSCloudForm';
 
 
 
@@ -60,6 +61,11 @@ export abstract class PSScene extends Phaser.Scene {
     // renders nothing (GameScene already did this; PSScene didn't).
     PSMenu.initPSMenu(ScreenSize.SCREEN_320_240);
     this.initPSMenu();
+
+    // Safety net: the Phantasy Cloud form suspends Phaser's keyboard while it
+    // is open and restores it on close. If the scene is torn down while a form
+    // is still up, that close never runs and the keyboard would stay dead.
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => PSCloudForm.forceClose());
   }
 
   /**

@@ -650,6 +650,15 @@ export class EmulatorUI {
   }
 
   private onKeyDown(ev: KeyboardEvent): void {
+    // This listener runs in the capture phase, so it sees keystrokes before the
+    // element being typed into does. Any real text field on the page (the
+    // Phantasy Cloud email / code overlay) must be left alone, or typing an
+    // address would land on a rebinding row or trip the Escape handler.
+    const target = ev.target as HTMLElement | null;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+      return;
+    }
+
     if (this.listening) {
       ev.preventDefault();
       ev.stopPropagation();

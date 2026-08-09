@@ -25,6 +25,8 @@ import { PSLibEnemy, GenericEnemy } from './game/PSLibEnemy';
 import { VImage } from './menu/MenuImageBox';
 import { I18nManager } from './game/I18nManager';
 import { SaveManager, SaveSlotMeta, ArenaResume, AutoResumeSnapshot } from './game/SaveManager';
+import { PSCloudClient } from './cloud/PSCloudClient';
+import { PSCloudStats } from './cloud/PSCloudStats';
 
 // Battle system imports
 import { Enemy } from './battle/Enemy';
@@ -402,7 +404,7 @@ export class PSGame {
    * Human-readable name of the party's current location, for save-slot labels.
    * Dungeon > city > planet, matching how a save's position is restored.
    */
-  private static currentPlaceName(): string {
+  public static currentPlaceName(): string {
     if (this.getCurrentDungeon() !== Dungeon.NONE) {
       // NAULA -> "Naula", GOTHIC_PASSAGEWAY_IN -> "Gothic Passageway In"
       return Dungeon[this.getCurrentDungeon()]
@@ -561,9 +563,24 @@ export class PSGame {
     const meta = this.buildSaveMeta();
     if (SaveManager.saveToSlot(slot, this.gameData, meta)) {
       await PSMenu.Stext(this.getString("Menu_Save_Success"));
+      this.mirrorSlotToCloud(slot, meta);
     } else {
       await PSMenu.Stext(this.getString("Menu_Save_Failed"));
     }
+  }
+
+  /**
+   * Mirror a freshly written slot to Phantasy Cloud, if the player is signed
+   * in. Deliberately not awaited and never surfaced: the local save already
+   * succeeded, and a slow or dead network must not delay the menu or make a
+   * good save look failed. A missed push is picked up by the next one, or by
+   * "Upload saves" in the cloud menu.
+   */
+  private static mirrorSlotToCloud(slot: number, meta: SaveSlotMeta): void {
+    if (!PSCloudClient.isSignedIn()) return;
+    void PSCloudClient.pushSlot(slot, meta, this.gameData.serialize())
+      .catch(error => console.error('PSGame: cloud save mirror failed', error));
+    void PSCloudStats.flush(true);
   }
 
   /**

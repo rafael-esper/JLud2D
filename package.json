@@ -29,6 +29,7 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.2",
     "phaser": "^4.2.1"
   }
 }

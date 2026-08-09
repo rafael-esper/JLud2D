@@ -11,6 +11,7 @@ import { PS1Music } from './game/PSLibMusic';
 import { PS1Image } from './game/PSLibImage';
 import { PSAssets } from './PSAssets';
 import { PSCancellable } from './menu/MenuStack';
+import { PSCloudMenu } from './cloud/PSCloudMenu';
 import { ScriptEngine } from '../../core/ScriptEngine';
 import { GameConfig } from '../../config/GameConfig';
 
@@ -118,7 +119,8 @@ export class TitleScene extends PSScene {
         PSGame.getString("Title_Newgame"),
         PSGame.getString("Title_Loadgame"),
         PSGame.getString("Title_Credits"),
-        PSGame.getString("Title_Options")
+        PSGame.getString("Title_Options"),
+        PSGame.getString("Title_Cloud")
       ], true);
 
       this.menuStack.push(mainMenu);
@@ -159,6 +161,13 @@ export class TitleScene extends PSScene {
         // Options submenu (Language + Music chip)
         await this.optionsMenu();
         // Continue the loop to show updated menu text
+      }
+
+      if (mainOpt === 5) {
+        // Phantasy Cloud (sign in / upload / download saves). Offered here as
+        // well as in-game so a save can be pulled onto a fresh device before
+        // there is any game running to pull it into.
+        await PSCloudMenu.open();
       }
     }
 

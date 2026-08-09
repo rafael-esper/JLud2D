@@ -18,6 +18,7 @@ import { EffectOutcome, EffectPlace } from './game/PSEffect';
 import { Trapped } from './game/GameData';
 import { Specie } from './game/Specie';
 import { Job } from './game/Job';
+import { PSCloudMenu } from './cloud/PSCloudMenu';
 import { MainEngine } from '../../core/MainEngine';
 
 export class PSMenuMain {
@@ -52,7 +53,8 @@ export class PSMenuMain {
       PSGame.getString('Menu_Quest'),
       PSGame.getString('Menu_Options'),
       PSGame.getString('Menu_Load'),
-      PSGame.getString('Menu_Save')
+      PSGame.getString('Menu_Save'),
+      PSGame.getString('Title_Cloud')
     ], true);
     PSMenu.instance.push(mainMenu);
 
@@ -107,6 +109,10 @@ export class PSMenuMain {
 
       if (opt === 7) { // Save
         await PSGame.saveGame();
+      }
+
+      if (opt === 8) { // Phantasy Cloud
+        await PSCloudMenu.open();
       }
     }
 

@@ -121,6 +121,37 @@ export class SaveManager {
     }
   }
 
+  /**
+   * The raw serialized payload stored in a slot, exactly as written. Used by
+   * the cloud mirror (PSCloudClient) to upload a slot verbatim — deserializing
+   * to GameData and re-serializing just to send it would risk silent drift
+   * whenever the two are not perfectly symmetric.
+   */
+  public static readSlotData(slot: number): any | null {
+    return SaveManager.readRaw(slot)?.data ?? null;
+  }
+
+  /**
+   * Write a slot from an already-serialized payload (the shape produced by
+   * GameData.serialize()). The counterpart of readSlotData, used when pulling
+   * a save down from the cloud: the downloaded JSON lands in an ordinary slot
+   * and is then loaded through the normal Load Game path.
+   */
+  public static writeSlotData(slot: number, data: any, meta: SaveSlotMeta): boolean {
+    if (slot < 0 || slot >= SaveManager.MAX_SLOTS) {
+      console.error(`SaveManager: invalid slot ${slot}`);
+      return false;
+    }
+    try {
+      const entry: SaveSlotEntry = { meta, data };
+      localStorage.setItem(SaveManager.keyFor(slot), JSON.stringify(entry));
+      return true;
+    } catch (error) {
+      console.error(`SaveManager: failed to write slot ${slot}`, error);
+      return false;
+    }
+  }
+
   /** Rebuild the GameData stored in a slot, or null if empty/corrupt. */
   public static loadFromSlot(slot: number): GameData | null {
     const entry = SaveManager.readRaw(slot);
